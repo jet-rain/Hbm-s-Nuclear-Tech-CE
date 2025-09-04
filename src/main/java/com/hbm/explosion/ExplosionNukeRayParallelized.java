@@ -4,14 +4,15 @@ import com.github.bsideup.jabel.Desugar;
 import com.hbm.config.BombConfig;
 import com.hbm.config.CompatibilityConfig;
 import com.hbm.interfaces.IExplosionRay;
+import com.hbm.interfaces.ServerThread;
 import com.hbm.lib.Library;
 import com.hbm.lib.TLPool;
-import com.hbm.lib.UnsafeHolder;
 import com.hbm.lib.maps.LongObjectConsumer;
 import com.hbm.lib.maps.NonBlockingHashMapLong;
 import com.hbm.main.MainRegistry;
 import com.hbm.util.ChunkUtil;
 import com.hbm.util.ConcurrentBitSet;
+import com.hbm.util.MpscIntArrayListCollector;
 import io.netty.util.internal.shaded.org.jctools.queues.atomic.MpscLinkedAtomicQueue;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -36,17 +37,15 @@ import net.minecraftforge.common.util.Constants;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.annotation.*;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static com.hbm.lib.UnsafeHolder.U;
 
 /**
  * Threaded DDA raytracer for mk5 explosion.
@@ -98,10 +97,11 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
     private final int strength;
     private final NonBlockingHashMapLong<ConcurrentBitSet> destructionMap;
     private final NonBlockingHashMapLong<ChunkAgg> aggMap;
-    private final NonBlockingHashMapLong<WaitGroup> waitingRoom;
+    private final NonBlockingHashMapLong<MpscIntArrayListCollector> waitingRoom;
     private final NonBlockingHashMapLong<LongObjectConsumer<ExtendedBlockStorage[]>> postLoadActions;
     private final MpscLinkedAtomicQueue<Long> chunkLoadQueue;
     private final Long2IntOpenHashMap sectionMaskByChunk;
+    private final AtomicBoolean mapAcquired = new AtomicBoolean(false);
     private final AtomicInteger pendingRays;
     private final AtomicInteger pendingCarveNotifies = new AtomicInteger(0);
     private int algorithm;
@@ -243,6 +243,8 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
             this.consolidationFinished = true;
             return;
         }
+        ChunkUtil.acquireMirrorMap(world);
+        mapAcquired.set(true);
         int processors = Runtime.getRuntime().availableProcessors();
         int workers = BombConfig.maxThreads <= 0 ? Math.max(1, processors + BombConfig.maxThreads) : Math.min(BombConfig.maxThreads, processors);
         this.pool = new ForkJoinPool(workers);
@@ -280,7 +282,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
     @ServerThread
     private void processChunkLoadRequest(long chunkPos) {
         Chunk chunk = world.getChunk(ChunkUtil.getChunkPosX(chunkPos), ChunkUtil.getChunkPosZ(chunkPos));
-        WaitGroup waiters = waitingRoom.remove(chunkPos);
+        MpscIntArrayListCollector waiters = waitingRoom.remove(chunkPos);
         if (waiters != null && pool != null && !pool.isShutdown()) {
             IntArrayList batch = waiters.drain();
             if (!batch.isEmpty()) {
@@ -367,6 +369,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
                 Thread.currentThread().interrupt();
                 if (!this.pool.isShutdown()) this.pool.shutdownNow();
             }
+            if (mapAcquired.getAndSet(false)) ChunkUtil.releaseMirrorMap(world);
         }
         if (this.destructionMap != null) this.destructionMap.clear();
         if (this.aggMap != null) this.aggMap.clear();
@@ -423,6 +426,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
                 secondPass();
                 destroyFinished = true;
                 if (pool != null && !pool.isShutdown()) pool.shutdown();
+                if (mapAcquired.getAndSet(false)) ChunkUtil.releaseMirrorMap(world);
             });
         }
     }
@@ -557,7 +561,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
             final LongArrayList te = new LongArrayList(8);
             final LongOpenHashSet edges = new LongOpenHashSet(64);
             final ExtendedBlockStorage carved = ChunkUtil.copyAndCarve(world, cx, cz, subY, storages, bitset, te, edges);
-            if (ChunkUtil.compareAndSwap(expected, carved, storages, subY)) {
+            if (ChunkUtil.casEbsAt(expected, carved, storages, subY)) {
                 final boolean emptied = carved == Chunk.NULL_BLOCK_STORAGE || carved.isEmpty();
                 return new CarveResult(te, edges, emptied);
             }
@@ -666,15 +670,15 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
 
     private void enqueueIndexForMissingChunk(long chunkPos, int dirIndex) {
         boolean amFirst = false;
-        WaitGroup group = waitingRoom.get(chunkPos);
+        MpscIntArrayListCollector group = waitingRoom.get(chunkPos);
         if (group == null) {
-            WaitGroup created = new WaitGroup();
-            WaitGroup prev = waitingRoom.putIfAbsent(chunkPos, created);
+            MpscIntArrayListCollector created = new MpscIntArrayListCollector();
+            MpscIntArrayListCollector prev = waitingRoom.putIfAbsent(chunkPos, created);
             group = (prev != null) ? prev : created;
             amFirst = (prev == null);
         }
         if (amFirst) chunkLoadQueue.add(chunkPos);
-        group.add(dirIndex);
+        group.push(dirIndex);
     }
 
     private void enqueueResumableForMissingChunk(long chunkPos, LongObjectConsumer<ExtendedBlockStorage[]> task) {
@@ -1026,30 +1030,6 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         }
     }
 
-    private static final class WaitGroup {
-        private static final long HEAD_OFF = UnsafeHolder.fieldOffset(WaitGroup.class, "head");
-        private Node head;
-
-        void add(int i) {
-            while (true) {
-                Node h = (Node) U.getObjectVolatile(this, HEAD_OFF);
-                Node n = new Node(i, h);
-                if (U.compareAndSwapObject(this, HEAD_OFF, h, n)) return;
-            }
-        }
-
-        @NotNull IntArrayList drain() {
-            Node h = (Node) U.getAndSetObject(this, HEAD_OFF, null);
-            IntArrayList out = new IntArrayList(16);
-            for (Node p = h; p != null; p = p.next) out.add(p.v);
-            return out;
-        }
-
-        @Desugar
-        private record Node(int v, WaitGroup.Node next) {
-        }
-    }
-
     private class RayTracerTask extends RecursiveAction {
         private final int start, end, threshold;
 
@@ -1117,11 +1097,5 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
 
     @Desugar
     private record CarveResult(@NotNull LongArrayList teRemovals, @NotNull LongOpenHashSet edgeTouched, boolean emptiedAfterSwap) {
-    }
-
-    @Documented
-    @Retention(RetentionPolicy.SOURCE)
-    @Target(ElementType.METHOD)
-    private @interface ServerThread {
     }
 }

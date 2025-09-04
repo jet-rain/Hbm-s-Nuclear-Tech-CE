@@ -214,7 +214,9 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
             boolean eval = false;
 
             for (FalloutEntry entry : FalloutConfigJSON.entries) {
-                if (entry.eval(world, pos, state, dist, state)) {
+                IBlockState result = entry.eval(pos.getY(), state, dist, rand);
+                if (result != null) {
+                    world.setBlockState(pos, result, 3);
                     if (entry.isSolid()) {
                         depth++;
                     }

@@ -1593,4 +1593,24 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
 		int z = (int)(serialized << 38 >> 38);
 		pos.setPos(x, y, z);
 	}
+
+	@Contract(pure = true)
+	public static int packLocal(int localX, int localY, int localZ) {
+		return localX | (localY << 4) | (localZ << 8);
+	}
+
+	@Contract(pure = true)
+	public static int unpackLocalX(int packedLocal) {
+		return (packedLocal << 28) >>> 28;
+	}
+
+	@Contract(pure = true)
+	public static int unpackLocalY(int packedLocal) {
+		return (packedLocal << 24) >>> 28;
+	}
+
+	@Contract(pure = true)
+	public static int unpackLocalZ(int packedLocal) {
+		return (packedLocal << 20) >>> 28;
+	}
 }

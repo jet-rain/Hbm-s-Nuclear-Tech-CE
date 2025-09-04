@@ -22,6 +22,8 @@ import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.FileReader;
@@ -34,7 +36,6 @@ public class FalloutConfigJSON {
 
     public static final List<FalloutEntry> entries = new ArrayList();
     public static final Gson gson = new Gson();
-    public static Random rand = new Random();
     public static HashBiMap<String, Material> matNames = HashBiMap.create();
 
     static {
@@ -560,17 +561,12 @@ public class FalloutConfigJSON {
 
         /**
          * Evaluates whether this {@link FalloutEntry} should convert the block at the given
-         * position and, if so, performs the conversion in-world.
-         * <p><strong>Side effects:</strong> May call {@link World#setBlockState(BlockPos, IBlockState, int)}
-         * to mutate the world.
+         * position.
          *
-         * @param world              the world being modified (also used for Gaussian randomness)
-         * @param pos                the target block position
+         * @param yGlobal            the target block's y coordinate
          * @param blockState         the current block state at {@code pos} to test against this entry
          * @param dist               distance factor from the effect origin (same units as {@link #minDist}/{@link #maxDist}; typically a percentage)
-         * @param originalBlockState the original state at {@code pos} used for tier/meta comparisons and protective rules
-         * @return {@code true} if a conversion was performed and a new block state was placed;
-         * {@code false} if no action was taken (no match, skipped by falloff, no valid outcome, or blocked by safety rules)
+         * @return the IBlockState if the block needs to be replaced, or null if no-op
          */
         public boolean eval(World world, BlockPos pos, IBlockState blockState, double dist, IBlockState originalBlockState) {
             if (dist > maxDist || dist < minDist) return false;
