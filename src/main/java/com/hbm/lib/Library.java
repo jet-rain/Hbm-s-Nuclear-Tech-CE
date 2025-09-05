@@ -1596,21 +1596,21 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
 
 	@Contract(pure = true)
 	public static int packLocal(int localX, int localY, int localZ) {
-		return localX | (localY << 4) | (localZ << 8);
+		return (localY << 8) | (localZ << 4) | localX;
 	}
 
 	@Contract(pure = true)
 	public static int unpackLocalX(int packedLocal) {
-		return (packedLocal << 28) >>> 28;
+		return packedLocal & 0xF;
 	}
 
 	@Contract(pure = true)
 	public static int unpackLocalY(int packedLocal) {
-		return (packedLocal << 24) >>> 28;
+		return (packedLocal >>> 8) & 0xF;
 	}
 
 	@Contract(pure = true)
 	public static int unpackLocalZ(int packedLocal) {
-		return (packedLocal << 20) >>> 28;
+		return (packedLocal >>> 4) & 0xF;
 	}
 }

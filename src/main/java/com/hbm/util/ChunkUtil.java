@@ -1,22 +1,28 @@
 package com.hbm.util;
 
+import com.hbm.config.GeneralConfig;
 import com.hbm.interfaces.ServerThread;
+import com.hbm.interfaces.ThreadSafeMethod;
 import com.hbm.lib.Library;
 import com.hbm.lib.RefStrings;
 import com.hbm.lib.UnsafeHolder;
 import com.hbm.lib.maps.NonBlockingHashMapLong;
+import com.hbm.main.MainRegistry;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongCollection;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BitArray;
 import net.minecraft.util.IntIdentityHashBiMap;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.*;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
@@ -28,17 +34,15 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.concurrent.ThreadSafe;
 import java.util.function.Function;
 
 import static com.hbm.lib.UnsafeHolder.U;
 
 /**
- * Collection of highly performance non-blocking chunk utilities
+ * Collection of high performance non-blocking chunk utilities
  *
  * @author mlbv
  */
-@ThreadSafe
 @Mod.EventBusSubscriber(modid = RefStrings.MODID)
 public final class ChunkUtil {
 
@@ -53,6 +57,7 @@ public final class ChunkUtil {
     private static final long IIHBM_BYID_OFFSET = UnsafeHolder.fieldOffset(IntIdentityHashBiMap.class, "byId", "field_186820_d");
     private static final long IIHBM_NEXTFREE_OFFSET = UnsafeHolder.fieldOffset(IntIdentityHashBiMap.class, "nextFreeIndex", "field_186821_e");
     private static final long IIHBM_MAPSIZE_OFFSET = UnsafeHolder.fieldOffset(IntIdentityHashBiMap.class, "mapSize", "field_186822_f");
+    private static final long TE_INVALID_OFFSET = UnsafeHolder.fieldOffset(TileEntity.class, "tileEntityInvalid", "field_145846_f");
 
     private static final ThreadLocal<Int2ObjectOpenHashMap<IBlockState>[]> TL_BUCKET = ThreadLocal.withInitial(() -> {
         // noinspection unchecked
@@ -62,10 +67,12 @@ public final class ChunkUtil {
         }
         return maps;
     });
-    private static final ThreadLocal<LongArrayList> TL_SCRATCH = ThreadLocal.withInitial(LongArrayList::new);
+    private static final ThreadLocal<Long2ObjectOpenHashMap<IBlockState>> TL_SCRATCH = ThreadLocal.withInitial(Long2ObjectOpenHashMap::new);
     private static final IBlockState AIR_DEFAULT_STATE = Blocks.AIR.getDefaultState();
     private static final Int2IntOpenHashMap activeTask = new Int2IntOpenHashMap();
     private static final NonBlockingHashMapLong<NonBlockingHashMapLong<Chunk>> chunkMap = new NonBlockingHashMapLong<>();
+    private static final int DENSE_THRESHOLD = 4096 / 3;
+
     private static int refCounter = 0;
 
     @ServerThread
@@ -78,6 +85,11 @@ public final class ChunkUtil {
             chunkMap.put(key, thisDim);
         }
         refCounter++;
+        if (GeneralConfig.enableExtendedLogging) {
+            MainRegistry.logger.info(
+                    "Acquired mirror map for dimension {}. Active tasks of this dim = {}, reference count = {}.\nAll active dimensions: {}", key,
+                    activeTask.get(key), refCounter, chunkMap.keySetLong());
+        }
     }
 
     @ServerThread
@@ -85,9 +97,15 @@ public final class ChunkUtil {
         int key = world.provider.getDimension();
         if (activeTask.addTo(key, -1) == 1) chunkMap.remove(key);
         refCounter--;
+        if (GeneralConfig.enableExtendedLogging) {
+            MainRegistry.logger.info(
+                    "Released mirror map for dimension {}. Active tasks of this dim = {}, reference count = {}.\nAll active dimensions: {}", key,
+                    activeTask.get(key), refCounter, chunkMap.keySetLong());
+        }
     }
 
     @Nullable
+    @ThreadSafeMethod
     public static Chunk getLoadedChunk(WorldServer world, long chunkPos) {
         int key = world.provider.getDimension();
         NonBlockingHashMapLong<Chunk> dimMap = chunkMap.get(key);
@@ -119,13 +137,16 @@ public final class ChunkUtil {
 
     @SubscribeEvent
     public static void onWorldUnload(WorldEvent.Unload event) {
-        chunkMap.remove(event.getWorld().provider.getDimension());
+        int key = event.getWorld().provider.getDimension();
+        activeTask.put(key, 0);
+        chunkMap.remove(key);
     }
 
     /**
      * @return a deep copy of the given {@link BlockStateContainer}
      */
     @NotNull
+    @ThreadSafeMethod
     @Contract("_ -> new")
     public static BlockStateContainer copyOf(@NotNull BlockStateContainer srcData) {
         final int bits = srcData.bits;
@@ -173,6 +194,7 @@ public final class ChunkUtil {
      * @return null when src is null or empty
      */
     @Nullable
+    @ThreadSafeMethod
     @Contract(mutates = "param7, param8") // teRemovals and edgeOut
     public static ExtendedBlockStorage copyAndCarve(@NotNull WorldServer world, int chunkX, int chunkZ, int subY, ExtendedBlockStorage[] srcs,
                                                     ConcurrentBitSet bs, LongCollection teRemovals, LongCollection edgeOut) {
@@ -269,24 +291,18 @@ public final class ChunkUtil {
         return dst;
     }
 
+    @ThreadSafeMethod
     public static boolean casEbsAt(ExtendedBlockStorage expect, ExtendedBlockStorage update, ExtendedBlockStorage[] arr, int subY) {
         final long off = ARR_BASE + ((long) subY) * ARR_SCALE;
         return U.compareAndSwapObject(arr, off, expect, update);
     }
 
     @Nullable
+    @ThreadSafeMethod
     public static ExtendedBlockStorage[] getLoadedEBS(WorldServer world, long chunkPos) {
         Chunk chunk = getLoadedChunk(world, chunkPos);
         if (chunk == null) return null;
         return chunk.getBlockStorageArray();
-    }
-
-    public static int getChunkPosX(long chunkKey) {
-        return (int) (chunkKey & 0xFFFFFFFFL);
-    }
-
-    public static int getChunkPosZ(long chunkKey) {
-        return (int) ((chunkKey >>> 32) & 0xFFFFFFFFL);
     }
 
     private static void copyEBS(boolean hasSky, ExtendedBlockStorage src, ExtendedBlockStorage dst) {
@@ -303,16 +319,14 @@ public final class ChunkUtil {
     /**
      * Apply block state changes to a chunk in-place using copy-on-write + CAS per subchunk.
      *
-     * <p>Concurrency model: for each touched subY, we create a fresh ExtendedBlockStorage based on
-     * the <em>current</em> reference in the chunk array, apply all updates for that subY, and then
-     * CAS it into the array slot. On CAS failure we retry against the latest reference.</p>
-     *
-     * @param chunk         The chunk to modify.
-     * @param function      The function to apply to the chunk. the resulting Long2ObjectMap must not contain null values.
-     * @param blocksChanged Optional sink of global packed positions affected.
+     * @param chunk        The chunk to modify.
+     * @param function     Produces desired mutations. Result must not contain null values.
+     * @param oldStatesOut Optional sink mapping global packed positions to their OLD (pre-change) states.
      */
+    @ThreadSafeMethod
     public static void applyAndSwap(@NotNull Chunk chunk, @NotNull Function<Chunk, Long2ObjectMap<IBlockState>> function,
-                                    @Nullable LongCollection blocksChanged) {
+                                    @Nullable Long2ObjectMap<IBlockState> oldStatesOut) {
+
         final Long2ObjectMap<IBlockState> newStates = function.apply(chunk);
         if (newStates == null || newStates.isEmpty()) return;
 
@@ -325,7 +339,7 @@ public final class ChunkUtil {
         final Int2ObjectOpenHashMap<IBlockState>[] bySub = TL_BUCKET.get();
         for (Int2ObjectOpenHashMap<IBlockState> map : bySub) map.clear();
 
-        // Bucket updates per subY with local-packed indices
+        // bucket updates per subY with local-packed indices
         for (Long2ObjectMap.Entry<IBlockState> e : newStates.long2ObjectEntrySet()) {
             final long p = e.getLongKey();
             final int x = Library.getBlockPosX(p);
@@ -339,18 +353,16 @@ public final class ChunkUtil {
             if (b == null) bySub[subY] = b = new Int2ObjectOpenHashMap<>();
             b.put(Library.packLocal(x & 15, y & 15, z & 15), e.getValue());
         }
-        final int DENSE_THRESHOLD = 4096 / 3;
-        final LongArrayList scratch;
-        if (blocksChanged != null) {
-            scratch = TL_SCRATCH.get();
-            scratch.clear();
-        } else scratch = null;
+
+        final Long2ObjectOpenHashMap<IBlockState> subScratch = oldStatesOut == null ? null : TL_SCRATCH.get();
+
         for (int subY = 0; subY < 16; subY++) {
+            if (subScratch != null) subScratch.clear();
             final Int2ObjectOpenHashMap<IBlockState> bucket = bySub[subY];
             if (bucket == null || bucket.isEmpty()) continue;
 
             if (bucket.size() < DENSE_THRESHOLD) {
-                // Sparse path: only touch mutated locals
+                // sparse path
                 while (true) {
                     final ExtendedBlockStorage src = arr[subY];
                     ExtendedBlockStorage working = null;
@@ -383,13 +395,20 @@ public final class ChunkUtil {
                         working.set(lx, ly, lz, ns);
                         any = true;
 
-                        if (scratch != null) scratch.add(Library.blockPosToLong(xBase | lx, yBase | ly, zBase | lz));
+                        if (subScratch != null) {
+                            final long gpos = Library.blockPosToLong(xBase | lx, yBase | ly, zBase | lz);
+                            subScratch.put(gpos, os);
+                        }
                     }
 
                     if (!any) break;
                     final ExtendedBlockStorage update = working.isEmpty() ? Chunk.NULL_BLOCK_STORAGE : working;
-                    if (casEbsAt(src, update, arr, subY)) break;
-                    else if (scratch != null) scratch.clear();
+                    if (casEbsAt(src, update, arr, subY)) {
+                        if (oldStatesOut != null) oldStatesOut.putAll(subScratch);
+                        break;
+                    } else if (subScratch != null) {
+                        subScratch.clear();
+                    }
                 }
             } else {
                 // Dense path: build a 4096 override array, then sweep 0..4095 using indexTo*
@@ -404,56 +423,61 @@ public final class ChunkUtil {
                     boolean any = false;
 
                     for (int idx = 0; idx < 4096; idx++) {
-                        final IBlockState ns = overrides[idx];
-                        if (ns == null) continue;
+                        final IBlockState newState = overrides[idx];
+                        if (newState == null) continue;
 
                         final int lx = idx & 15;
                         final int ly = idx >>> 8;
                         final int lz = (idx >>> 4) & 15;
 
-                        final IBlockState os = (src != Chunk.NULL_BLOCK_STORAGE && !src.isEmpty()) ? src.get(lx, ly, lz) : AIR_DEFAULT_STATE;
-                        if (os == ns) continue;
+                        final IBlockState oldState = src == Chunk.NULL_BLOCK_STORAGE || src.isEmpty() ? AIR_DEFAULT_STATE : src.get(lx, ly, lz);
+                        if (oldState == newState) continue;
 
                         if (working == null) {
-                            if (src != Chunk.NULL_BLOCK_STORAGE && !src.isEmpty()) {
+                            if (src == Chunk.NULL_BLOCK_STORAGE || src.isEmpty()) {
+                                working = new ExtendedBlockStorage(subY << 4, hasSky);
+                            } else {
                                 working = new ExtendedBlockStorage(src.getYLocation(), hasSky);
                                 copyEBS(hasSky, src, working);
-                            } else {
-                                working = new ExtendedBlockStorage(subY << 4, hasSky);
                             }
                         }
 
-                        working.set(lx, ly, lz, ns);
+                        working.set(lx, ly, lz, newState);
                         any = true;
 
-                        if (scratch != null) {
+                        if (subScratch != null) {
                             final int x = indexToX(idx, chunkX);
                             final int y = indexToY(idx) | (subY << 4);
                             final int z = indexToZ(idx, chunkZ);
-                            scratch.add(Library.blockPosToLong(x, y, z));
+                            subScratch.put(Library.blockPosToLong(x, y, z), oldState);
                         }
                     }
 
                     if (!any) break;
-                    final ExtendedBlockStorage update = (working.isEmpty() ? Chunk.NULL_BLOCK_STORAGE : working);
-                    if (casEbsAt(src, update, arr, subY)) break;
-                    else if (scratch != null) scratch.clear();
+                    final ExtendedBlockStorage update = working.isEmpty() ? Chunk.NULL_BLOCK_STORAGE : working;
+                    if (casEbsAt(src, update, arr, subY)) {
+                        if (oldStatesOut != null) oldStatesOut.putAll(subScratch);
+                        break;
+                    } else if (subScratch != null) {
+                        subScratch.clear();
+                    }
                 }
             }
         }
-        if (scratch != null) blocksChanged.addAll(scratch);
     }
 
     /**
      * Return a modified copy of a subChunk.
      *
-     * @param toUpdate      Map of <b>packed local</b> (x|y<<4|z<<8) → new state. Values must be notnull.
-     * @param blocksChanged Optional sink of global packed positions affected.
+     * @param toUpdate     Map of <b>packed local</b> (x | y<<4 | z<<8) → new state. Values must be notnull.
+     * @param oldStatesOut Optional sink mapping global packed block positions to their OLD (pre-change) states.
      * @return The modified copy of the subchunk's EBS, or null if no change.
      */
     @Nullable
+    @ThreadSafeMethod
     public static ExtendedBlockStorage copyAndModify(int chunkX, int chunkZ, int subY, boolean hasSky, @Nullable ExtendedBlockStorage src,
-                                                     @NotNull Int2ObjectMap<IBlockState> toUpdate, @Nullable LongCollection blocksChanged) {
+                                                     @NotNull Int2ObjectMap<IBlockState> toUpdate,
+                                                     @Nullable Long2ObjectMap<IBlockState> oldStatesOut) {
         if (toUpdate.isEmpty()) return null;
 
         ExtendedBlockStorage dst = null;
@@ -470,6 +494,7 @@ public final class ChunkUtil {
 
             final IBlockState newState = e.getValue();
             if (newState == null) throw new NullPointerException("newState");
+
             final IBlockState oldState = (src != Chunk.NULL_BLOCK_STORAGE && !src.isEmpty()) ? src.get(lx, ly, lz) : AIR_DEFAULT_STATE;
             if (oldState == newState) continue;
 
@@ -483,37 +508,76 @@ public final class ChunkUtil {
                 }
             }
 
-            dst.set(lx, ly, lz, newState);
-            anyChange = true;
-
-            if (blocksChanged != null) {
+            // record OLD state before change
+            if (oldStatesOut != null) {
                 final int xGlobal = xBase | lx;
                 final int yGlobal = yBase | ly;
                 final int zGlobal = zBase | lz;
-                blocksChanged.add(Library.blockPosToLong(xGlobal, yGlobal, zGlobal));
+                oldStatesOut.put(Library.blockPosToLong(xGlobal, yGlobal, zGlobal), oldState);
             }
+
+            dst.set(lx, ly, lz, newState);
+            anyChange = true;
         }
 
         if (!anyChange) return null;
         return dst.isEmpty() ? Chunk.NULL_BLOCK_STORAGE : dst;
     }
 
+    @ServerThread
+    public static void flushTileEntity(Chunk chunk, BlockPos pos, IBlockState oldState, IBlockState newState) {
+        World world = chunk.getWorld();
+        Block oldBlock = oldState.getBlock();
+        Block newBlock = newState.getBlock();
+        if (oldBlock != newBlock) oldBlock.breakBlock(world, pos, oldState);
+        TileEntity te = chunk.getTileEntity(pos, Chunk.EnumCreateEntityType.CHECK);
+        if (te != null && te.shouldRefresh(world, pos, oldState, newState)) world.removeTileEntity(pos);
+        Block block = newState.getBlock();
+        if (!block.hasTileEntity(newState)) return;
+        TileEntity newTileEntity = chunk.getTileEntity(pos, Chunk.EnumCreateEntityType.CHECK);
+        if (newTileEntity == null) {
+            newTileEntity = block.createTileEntity(world, newState);
+            if (newTileEntity != null) world.setTileEntity(pos, newTileEntity);
+        }
+        if (newTileEntity != null) newTileEntity.updateContainingBlockInfo();
+    }
+
+    @ThreadSafeMethod
+    public static void invalidateTE(TileEntity te) {
+        U.putBooleanVolatile(te, TE_INVALID_OFFSET, true);
+    }
+
+    @Contract(pure = true)
+    public static int getChunkPosX(long chunkKey) {
+        return (int) (chunkKey & 0xFFFFFFFFL);
+    }
+
+    @Contract(pure = true)
+    public static int getChunkPosZ(long chunkKey) {
+        return (int) ((chunkKey >>> 32) & 0xFFFFFFFFL);
+    }
+
+    @Contract(pure = true)
     public static int indexToX(int index, int chunkX) {
         return (chunkX << 4) | (index & 15);
     }
 
+    @Contract(pure = true)
     public static int indexToY(int index) {
         return index >>> 8;
     }
 
+    @Contract(pure = true)
     public static int indexToZ(int index, int chunkZ) {
         return (chunkZ << 4) | ((index >>> 4) & 15);
     }
 
+    @Contract(pure = true)
     public static int indexToX(int index, long chunkPos) {
         return indexToX(index, getChunkPosX(chunkPos));
     }
 
+    @Contract(pure = true)
     public static int indexToZ(int index, long chunkPos) {
         return indexToZ(index, getChunkPosZ(chunkPos));
     }

@@ -376,6 +376,12 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         if (this.chunkLoadQueue != null) this.chunkLoadQueue.clear();
     }
 
+    /**
+     * Ideal LifeCycle: <p>
+     * ParallelStream(worker ->
+     *          calculateForChunk(chunk, toApply -> this::tryCAS).whenComplete(chunk -> notifyMainThread(chunk))
+     *      ).whenComplete(this::secondPass)
+     */
     private void runConsolidation() {
         if (algorithm == 2) {
             Arrays.stream(this.aggMap.keySetLong()).parallel().forEach(cpLong -> {
@@ -431,6 +437,9 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         }
     }
 
+    /**
+     * Algorithm 1
+     */
     private void carveChunk(long cpLong, ConcurrentBitSet chunkBitSet, ExtendedBlockStorage[] storages) {
         final LongArrayList teRemovals = new LongArrayList(64);
         final LongArrayList neighborNotifies = new LongArrayList(128);

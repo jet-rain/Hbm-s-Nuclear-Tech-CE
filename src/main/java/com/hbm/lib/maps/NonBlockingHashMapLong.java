@@ -300,6 +300,8 @@ public class NonBlockingHashMapLong<TypeV>
      *  @throws NullPointerException if the specified is value is null  */
     public TypeV   putIfAbsent( long key, TypeV val ) { return putIfMatch( key,      val,TOMBSTONE   );}
 
+    public TypeV   putIfAbsentLong( long key, TypeV val ) { return putIfMatch( key,      val,TOMBSTONE   );}
+
     /** Removes the key (and its corresponding value) from this map.
      * This method does nothing if the key is not in the map.
      * @return the previous value associated with <tt>key</tt>, or

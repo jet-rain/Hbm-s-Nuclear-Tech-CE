@@ -9,7 +9,6 @@ import com.hbm.blocks.ModBlocks;
 import com.hbm.inventory.RecipesCommon;
 import com.hbm.main.MainRegistry;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLog;
 import net.minecraft.block.BlockRotatedPillar;
 import net.minecraft.block.BlockSand;
 import net.minecraft.block.material.Material;
@@ -19,8 +18,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Tuple;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
@@ -568,48 +565,49 @@ public class FalloutConfigJSON {
          * @param dist               distance factor from the effect origin (same units as {@link #minDist}/{@link #maxDist}; typically a percentage)
          * @return the IBlockState if the block needs to be replaced, or null if no-op
          */
-        public boolean eval(World world, BlockPos pos, IBlockState blockState, double dist, IBlockState originalBlockState) {
-            if (dist > maxDist || dist < minDist) return false;
-
-            if (this.blockState != null && blockState.getBlock() != this.blockState.getBlock()) return false;
-            if (matchesMaterial != null && blockState.getMaterial() != matchesMaterial) return false;
-            if (matchState && blockState.equals(this.blockState)) return false;
-            if (matchesOpaque && !blockState.isOpaqueCube()) return false;
+        @Nullable
+        @Contract(mutates = "param4")
+        public IBlockState eval(int yGlobal, IBlockState blockState, double dist, Random random) {
+            if (dist > maxDist || dist < minDist) return null;
+            Block originalBlock = blockState.getBlock();
+            if (this.blockState != null && originalBlock != this.blockState.getBlock()) return null;
+            if (matchesMaterial != null && blockState.getMaterial() != matchesMaterial) return null;
+            if (matchState && blockState.equals(this.blockState)) return null;
+            if (matchesOpaque && !blockState.isOpaqueCube()) return null;
 
             if (dist > maxDist * falloffStart) {
                 double t = (dist - maxDist * falloffStart) / (maxDist - maxDist * falloffStart);
-                if (Math.abs(world.rand.nextGaussian()) < t * t * 3.0) {
-                    return false;
+                if (Math.abs(random.nextGaussian()) < t * t * 3.0) {
+                    return null;
                 }
             }
 
             RecipesCommon.MetaBlock conversion =
-                    chooseRandomOutcome((primaryChance == 1D || rand.nextDouble() < primaryChance) ? primaryBlocks : secondaryBlocks);
+                    chooseRandomOutcome((primaryChance == 1D || random.nextDouble() < primaryChance) ? primaryBlocks : secondaryBlocks, random);
 
-            if (conversion == null) return false;
+            if (conversion == null) return null;
 
-            Block originalBlock = originalBlockState.getBlock();
-            int originalMeta = originalBlock.getMetaFromState(originalBlockState);
+            int originalMeta = originalBlock.getMetaFromState(blockState);
 
             if (conversion.block == ModBlocks.sellafield_slaked &&
                     originalBlock == ModBlocks.sellafield_slaked &&
                     conversion.meta <= originalMeta) {
-                return false;
+                return null;
             }
 
             if (conversion.block == ModBlocks.sellafield_bedrock &&
                     originalBlock == ModBlocks.sellafield_bedrock &&
                     conversion.meta <= originalMeta) {
-                return false;
+                return null;
             }
 
             if (originalBlock == ModBlocks.sellafield_bedrock &&
                     conversion.block != ModBlocks.sellafield_bedrock) {
-                return false;
+                return null;
             }
 
-            if (pos.getY() == 0 && conversion.block != ModBlocks.sellafield_bedrock) {
-                return false;
+            if (yGlobal == 0 && conversion.block != ModBlocks.sellafield_bedrock) {
+                return null;
             }
 
             IBlockState newState = conversion.block.getStateFromMeta(conversion.meta);
@@ -618,73 +616,70 @@ public class FalloutConfigJSON {
                     newState = copyProperty(blockState, newState, property.getName());
                 }
             }
-            world.setBlockState(pos, newState, 3);
-            return true;
+            return newState;
         }
 
-        //GENERIC SLUDGE
-        //FUCK YOU MINECAFT
-        @SuppressWarnings("unchecked")
         private static IBlockState copyProperty(IBlockState from, IBlockState to, String propertyName) {
-            IProperty<?> fromProp = getPropertyByName(from.getBlock(), propertyName);
-            IProperty<?> toProp = getPropertyByName(to.getBlock(), propertyName);
-
+            final IProperty<?> fromProp = getPropertyByName(from.getBlock(), propertyName);
+            final IProperty<?> toProp = getPropertyByName(to.getBlock(), propertyName);
             if (fromProp == null || toProp == null) return to;
+            return copyPropertyGeneric(from, to, fromProp, toProp);
+        }
 
-            Object oldValue = from.getValue(fromProp);
-            Object mappedValue = null;
+        private static <F extends Comparable<F>, T extends Comparable<T>> IBlockState copyPropertyGeneric(IBlockState from, IBlockState to,
+                                                                                                          IProperty<F> fromProp,
+                                                                                                          IProperty<T> toProp) {
+            final F oldValue = from.getValue(fromProp);
+            final T mapped = coerceValue(oldValue, fromProp, toProp);
+            return mapped == null ? to : to.withProperty(toProp, mapped);
+        }
 
-            // enums
-            if (oldValue instanceof Enum) {
-                Enum oldEnum = (Enum) oldValue;
-                for (Object allowed : toProp.getAllowedValues()) {
-                    if (allowed instanceof Enum) {
-                        Enum allowedEnum = (Enum) allowed;
-                        // Match by ordinal
-                        if (allowedEnum.ordinal() == oldEnum.ordinal()) {
-                            mappedValue = allowedEnum;
-                            break;
-                        }
-                    }
+        private static <F extends Comparable<F>, T extends Comparable<T>> T coerceValue(F oldValue, IProperty<F> fromProp, IProperty<T> toProp) {
+            final String srcName = fromProp.getName(oldValue);
+            final Optional<T> parsed = toProp.parseValue(srcName);
+            if (parsed.isPresent()) return parsed.get();
+
+            final Collection<T> allowed = toProp.getAllowedValues();
+            if (toProp.getValueClass().isInstance(oldValue)) {
+                final T sameTyped = (T) oldValue;
+                if (allowed.contains(sameTyped)) return sameTyped;
+            }
+
+            for (T a : allowed) {
+                String aName;
+                try {
+                    aName = toProp.getName(a);
+                } catch (Throwable t) {
+                    aName = String.valueOf(a);
+                }
+                if (aName.equals(srcName) || aName.equalsIgnoreCase(srcName) || String.valueOf(a).equals(srcName) ||
+                    String.valueOf(a).equalsIgnoreCase(srcName)) {
+                    return a;
                 }
             }
-            // integers
-            else if (oldValue instanceof Integer) {
-                int oldInt = (Integer) oldValue;
-                for (Object allowed : toProp.getAllowedValues()) {
-                    if (allowed instanceof Integer && allowed.equals(oldInt)) {
-                        mappedValue = allowed;
-                        break;
-                    }
-                }
-            }
-            // booleans
-            else if (oldValue instanceof Boolean) {
-                boolean oldBool = (Boolean) oldValue;
-                for (Object allowed : toProp.getAllowedValues()) {
-                    if (allowed instanceof Boolean && allowed.equals(oldBool)) {
-                        mappedValue = allowed;
-                        break;
-                    }
-                }
-            }
-            else {
-                for (Object allowed : toProp.getAllowedValues()) {
-                    if (allowed.toString().equals(oldValue.toString())) {
-                        mappedValue = allowed;
-                        break;
+
+            if (oldValue instanceof Enum<?> oldEnum) {
+                for (T a : allowed) {
+                    if (a instanceof Enum<?> tgt && tgt.ordinal() == oldEnum.ordinal()) {
+                        return a;
                     }
                 }
             }
 
-            if (mappedValue == null) return to;
-
-            IProperty rawToProp = (IProperty) toProp;
-            return to.withProperty(rawToProp, (Comparable) mappedValue);
+            if (oldValue instanceof Integer oldInt) {
+                for (T a : allowed) {
+                    if (a instanceof Integer ai && ai.equals(oldInt)) return a;
+                }
+            } else if (oldValue instanceof Boolean oldBool) {
+                for (T a : allowed) {
+                    if (a instanceof Boolean ab && ab.equals(oldBool)) return a;
+                }
+            }
+            return null;
         }
 
 
-        private RecipesCommon.MetaBlock chooseRandomOutcome(Tuple<IBlockState, Integer>[] blocks) {
+        private static RecipesCommon.MetaBlock chooseRandomOutcome(Tuple<IBlockState, Integer>[] blocks, Random random) {
             if (blocks == null) return null;
 
             int weight = 0;
@@ -693,7 +688,7 @@ public class FalloutConfigJSON {
                 weight += choice.getSecond();
             }
 
-            int r = rand.nextInt(weight);
+            int r = random.nextInt(weight);
 
             for (Tuple<IBlockState, Integer> choice : blocks) {
                 r -= choice.getSecond();

@@ -8,71 +8,114 @@ import com.hbm.config.FalloutConfigJSON.FalloutEntry;
 import com.hbm.config.WorldConfig;
 import com.hbm.entity.logic.EntityExplosionChunkloading;
 import com.hbm.interfaces.AutoRegister;
+import com.hbm.lib.Library;
+import com.hbm.lib.maps.NonBlockingHashMapLong;
 import com.hbm.util.ChunkUtil;
 import com.hbm.world.WorldUtil;
 import com.hbm.world.biome.BiomeGenCraterBase;
+import io.netty.util.internal.shaded.org.jctools.queues.atomic.MpscLinkedAtomicQueue;
+import it.unimi.dsi.fastutil.longs.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
+import net.minecraft.network.play.server.SPacketChunkData;
+import net.minecraft.server.management.PlayerChunkMapEntry;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
-import java.util.*;
+import java.util.Queue;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @AutoRegister(name = "entity_fallout_rain", trackingRange = 1000)
 public class EntityFalloutRain extends EntityExplosionChunkloading {
 
     private static final DataParameter<Integer> SCALE = EntityDataManager.createKey(EntityFalloutRain.class, DataSerializers.VARINT);
-    private final List<Long> chunksToProcess = new ArrayList<>();
-    private final List<Long> outerChunksToProcess = new ArrayList<>();
-    private int tickDelay = BombConfig.falloutDelay;
+
+    private static final int MAX_SOLID_DEPTH = 3;
+    private static final int MIN_ANGLE_STEPS = 18;
+    private static final int SPOKE_STEP_BLOCKS = 8;
+
+    private static final ThreadLocal<MutableBlockPos> TL_POS = ThreadLocal.withInitial(MutableBlockPos::new);
+    private final ThreadLocal<Random> TL_RAND;
+    private final LongArrayList chunksToProcess = new LongArrayList();
+    private final LongArrayList outerChunksToProcess = new LongArrayList();
+    private final Queue<Long> qInner = new ConcurrentLinkedQueue<>();
+    private final Queue<Long> qOuter = new ConcurrentLinkedQueue<>();
+    private final Queue<Long> chunkLoadQueue = new MpscLinkedAtomicQueue<>();
+    private final NonBlockingHashMapLong<Boolean> waitingRoom = new NonBlockingHashMapLong<>(64); // cpLong -> clampToRadius
+    private final Long2IntOpenHashMap sectionMaskByChunk = new Long2IntOpenHashMap();
+    private final AtomicInteger pendingChunks = new AtomicInteger(0);
+    private final AtomicInteger pendingMainThreadNotifies = new AtomicInteger(0);
+
+    private final AtomicBoolean finished = new AtomicBoolean(false);
+    private final AtomicBoolean mapAcquired = new AtomicBoolean(false);
     public UUID detonator;
+    private ForkJoinPool pool;
+    private int tickDelay = BombConfig.falloutDelay;
 
     public EntityFalloutRain(World worldIn) {
         super(worldIn);
         this.setSize(4.0F, 20.0F);
         this.ignoreFrustumCheck = true;
         this.isImmuneToFire = true;
+        TL_RAND = ThreadLocal.withInitial(() -> new Random(worldIn.getSeed()));
     }
 
-    public EntityFalloutRain(World worldIn, int maxAge) {
-        super(worldIn);
-        this.setSize(4.0F, 20.0F);
-        this.isImmuneToFire = true;
+    public EntityFalloutRain(World worldIn, int ignored) {
+        this(worldIn);
     }
 
-    public static Biome getBiomeChange(double dist, int scale, Biome original) {
+    public static Biome getBiomeChange(double distPercent, int scale, Biome original) {
         if (!WorldConfig.enableCraterBiomes) return null;
-        if (scale >= 150 && dist < 15) return BiomeGenCraterBase.craterInnerBiome;
-        if (scale >= 100 && dist < 55 && original != BiomeGenCraterBase.craterInnerBiome) return BiomeGenCraterBase.craterBiome;
-        if (scale >= 25 && original != BiomeGenCraterBase.craterInnerBiome && original != BiomeGenCraterBase.craterBiome)
+
+        if (scale >= 150 && distPercent < 15) {
+            return BiomeGenCraterBase.craterInnerBiome;
+        }
+        if (scale >= 100 && distPercent < 55 && original != BiomeGenCraterBase.craterInnerBiome) {
+            return BiomeGenCraterBase.craterBiome;
+        }
+        if (scale >= 25 && original != BiomeGenCraterBase.craterInnerBiome && original != BiomeGenCraterBase.craterBiome) {
             return BiomeGenCraterBase.craterOuterBiome;
+        }
         return null;
     }
 
-    private static void addAllFromPairs(List<Long> out, int[] data) {
+    private static void addAllFromPairs(LongList out, int[] data) {
         if (data == null || data.length == 0) return;
         for (int i = 0; i + 1 < data.length; i += 2) {
             out.add(ChunkPos.asLong(data[i], data[i + 1]));
         }
     }
 
-    private static int[] toPairsArray(List<Long> coords) {
+    private static int[] toPairsArray(LongList coords) {
         int[] data = new int[coords.size() * 2];
-        for (int i = 0; i < coords.size(); i++) {
-            long packed = coords.get(i);
-            data[i * 2] = ChunkUtil.getChunkPosX(packed);
-            data[i * 2 + 1] = ChunkUtil.getChunkPosZ(packed);
+        int i = 0;
+        LongIterator it = coords.iterator();
+        while (it.hasNext()) {
+            long packed = it.nextLong();
+            data[i++] = ChunkUtil.getChunkPosX(packed);
+            data[i++] = ChunkUtil.getChunkPosZ(packed);
         }
         return data;
     }
@@ -80,170 +123,329 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
     @Override
     public void onUpdate() {
         if (!world.isRemote) {
-            long start = System.currentTimeMillis();
-            if (!CompatibilityConfig.isWarDim(world)) this.setDead();
-            else if (firstUpdate && chunksToProcess.isEmpty() && outerChunksToProcess.isEmpty()) gatherChunks();
-            if (tickDelay == 0) {
-                tickDelay = BombConfig.falloutDelay;
-
-                while (System.currentTimeMillis() < start + BombConfig.mk5) {
-                    if (!chunksToProcess.isEmpty()) {
-                        long chunkPosLong = chunksToProcess.remove(chunksToProcess.size() - 1);
-                        int chunkPosX = ChunkUtil.getChunkPosX(chunkPosLong);
-                        int chunkPosZ = ChunkUtil.getChunkPosZ(chunkPosLong);
-                        boolean biomeModified = false;
-                        for (int x = (chunkPosX << 4); x < (chunkPosX << 4) + 16; x++) {
-                            for (int z = (chunkPosZ << 4); z < (chunkPosZ << 4) + 16; z++) {
-                                double percent = Math.hypot(x - this.posX, z - this.posZ) * 100.0 / getScale();
-                                stomp(x, z, percent);
-                                Biome biome = getBiomeChange(percent, getScale(), world.getBiome(new BlockPos(x, 0, z)));
-                                if (biome != null) {
-                                    WorldUtil.setBiome(world, x, z, biome);
-                                    biomeModified = true;
-                                }
-                            }
-                        }
-                        if (biomeModified) WorldUtil.syncBiomeChange(world, chunkPosX, chunkPosZ);
-                    } else if (!outerChunksToProcess.isEmpty()) {
-                        long chunkPosLong = outerChunksToProcess.remove(outerChunksToProcess.size() - 1);
-                        int chunkPosX = ChunkUtil.getChunkPosX(chunkPosLong);
-                        int chunkPosZ = ChunkUtil.getChunkPosZ(chunkPosLong);
-                        boolean biomeModified = false;
-                        for (int x = (chunkPosX << 4); x < (chunkPosX << 4) + 16; x++) {
-                            for (int z = (chunkPosZ << 4); z < (chunkPosZ << 4) + 16; z++) {
-                                double distance = Math.hypot(x - this.posX, z - this.posZ);
-                                if (distance <= getScale()) {
-                                    double percent = distance * 100.0 / getScale();
-                                    stomp(x, z, percent);
-                                    Biome biome = getBiomeChange(percent, getScale(), world.getBiome(new BlockPos(x, 0, z)));
-                                    if (biome != null) {
-                                        WorldUtil.setBiome(world, x, z, biome);
-                                        biomeModified = true;
-                                    }
-                                }
-                            }
-                        }
-                        if (biomeModified) WorldUtil.syncBiomeChange(world, chunkPosX, chunkPosZ);
-                    } else {
-                        this.clearChunkLoader();
-                        this.setDead();
-                        break;
+            if (!CompatibilityConfig.isWarDim(world)) {
+                this.setDead();
+            } else {
+                if (firstUpdate) {
+                    // Initialize queues and workers lazily on first tick server-side
+                    if (chunksToProcess.isEmpty() && outerChunksToProcess.isEmpty()) {
+                        gatherChunks();
                     }
+                    startWorkersIfNeeded();
                 }
+
+                // Keep chunk loads on the server thread and resume queued work
+                loadMissingChunks(BombConfig.mk5);
+
+                // Keep a small tick delay to avoid hogging
+                if (tickDelay > 0) tickDelay--;
+                else tickDelay = BombConfig.falloutDelay;
             }
-            tickDelay--;
         }
         super.onUpdate();
     }
 
-    // Is it worth the effort to split this into a method that can be called over multiple ticks? I'd say it's fast enough anyway...
-    private void gatherChunks() {
-        Set<Long> chunks = new LinkedHashSet<>();
-        Set<Long> outerChunks = new LinkedHashSet<>();
-        int outerRange = getScale();
+    private void startWorkersIfNeeded() {
+        if (finished.get()) return;
 
-        // step size heuristic (minimum ~18 to cover all chunks)
-        int adjustedMaxAngle = 20 * outerRange / 32;
-        if (adjustedMaxAngle < 18) adjustedMaxAngle = 18;
+        // Seed queues
+        for (int i = 0; i < chunksToProcess.size(); i++) qInner.add(chunksToProcess.getLong(i));
+        for (int i = 0; i < outerChunksToProcess.size(); i++) qOuter.add(outerChunksToProcess.getLong(i));
+        pendingChunks.set(chunksToProcess.size() + outerChunksToProcess.size());
 
-        // outer ring
-        for (int angle = 0; angle <= adjustedMaxAngle; angle++) {
-            double theta = angle * (2.0 * Math.PI) / adjustedMaxAngle; // full rotation
-            Vec3d vec = new Vec3d(outerRange, 0, 0).rotateYaw((float) theta);
-            int cx = ((int) Math.floor(this.posX + vec.x)) >> 4;
-            int cz = ((int) Math.floor(this.posZ + vec.z)) >> 4;
-            outerChunks.add(ChunkPos.asLong(cx, cz));
+        if (pendingChunks.get() == 0) {
+            finished.set(true);
+            clearChunkLoader();
+            setDead();
+            return;
         }
 
-        // interior (radial spokes every 8 blocks)
-        for (int distance = 0; distance <= outerRange; distance += 8) {
-            for (int angle = 0; angle <= adjustedMaxAngle; angle++) {
-                double theta = angle * (2.0 * Math.PI) / adjustedMaxAngle;
-                Vec3d vec = new Vec3d(distance, 0, 0).rotateYaw((float) theta);
-                int cx = ((int) Math.floor(this.posX + vec.x)) >> 4;
-                int cz = ((int) Math.floor(this.posZ + vec.z)) >> 4;
-                long packed = ChunkPos.asLong(cx, cz);
-                if (!outerChunks.contains(packed)) chunks.add(packed);
-            }
-        }
+        ChunkUtil.acquireMirrorMap((WorldServer) world);
+        mapAcquired.set(true);
 
-        chunksToProcess.addAll(chunks);
-        outerChunksToProcess.addAll(outerChunks);
-        Collections.reverse(chunksToProcess); // start nicely from the middle
-        Collections.reverse(outerChunksToProcess);
+        int processors = Runtime.getRuntime().availableProcessors();
+        int workers = BombConfig.maxThreads <= 0 ? Math.max(1, processors + BombConfig.maxThreads) : Math.min(BombConfig.maxThreads, processors);
+        pool = new ForkJoinPool(Math.max(1, workers));
+        for (int i = 0; i < workers; i++) {
+            pool.submit(new WorkerTask());
+        }
     }
 
-    private void stomp(int x, int z, double dist) {
-        int depth = 0;
-        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+    private void loadMissingChunks(int timeBudgetMs) {
+        final long deadline = System.nanoTime() + timeBudgetMs * 1_000_000L;
+        while (System.nanoTime() < deadline) {
+            Long cpBoxed = chunkLoadQueue.poll();
+            if (cpBoxed == null) break;
+            long ck = cpBoxed;
+            int cx = ChunkUtil.getChunkPosX(ck);
+            int cz = ChunkUtil.getChunkPosZ(ck);
+            world.getChunk(cx, cz);
+            Boolean clamp = waitingRoom.remove(ck);
+            if (clamp != null) {
+                if (clamp) qOuter.add(ck);
+                else qInner.add(ck);
+            }
+        }
+    }
+
+    private void processChunkOffThread(long cpLong, int scale, boolean clampToRadius) {
+        if (finished.get()) return;
+        ExtendedBlockStorage[] ebs = ChunkUtil.getLoadedEBS((WorldServer) world, cpLong);
+        if (ebs == null) {
+            if (waitingRoom.putIfAbsentLong(cpLong, clampToRadius) == null) {
+                chunkLoadQueue.add(cpLong);
+            }
+            return;
+        }
+
+        final int chunkX = ChunkUtil.getChunkPosX(cpLong);
+        final int chunkZ = ChunkUtil.getChunkPosZ(cpLong);
+        final int minX = (chunkX << 4);
+        final int minZ = (chunkZ << 4);
+
+        final Long2ObjectOpenHashMap<IBlockState> updates = new Long2ObjectOpenHashMap<>();
+        final Long2IntOpenHashMap biomeChanges = new Long2IntOpenHashMap();
+        final NonBlockingHashMapLong<Entity> spawnFalling = new NonBlockingHashMapLong<>(32);
+
+        final Random rand = TL_RAND.get();
+
+        final double cx = this.posX;
+        final double cz = this.posZ;
+
+        for (int lx = 0; lx < 16; lx++) {
+            int x = minX + lx;
+            for (int lz = 0; lz < 16; lz++) {
+                int z = minZ + lz;
+                final double distance = Math.hypot(x - cx, z - cz);
+                if (clampToRadius && distance > (double) scale) continue;
+                final double percent = (double) scale <= 0 ? 100.0 : (distance * 100.0 / (double) scale);
+                Biome target = getBiomeChange(percent, scale, world.getBiome(TL_POS.get().setPos(x, 0, z)));
+                if (target != null) {
+                    biomeChanges.put(ChunkPos.asLong(x, z), Biome.getIdForBiome(target));
+                }
+                stompColumnToUpdates(ebs, x, z, percent, updates, spawnFalling, rand);
+            }
+        }
+
+        final Chunk chunk = ChunkUtil.getLoadedChunk((WorldServer) world, cpLong);
+        if (chunk == null) {
+            if (waitingRoom.putIfAbsentLong(cpLong, clampToRadius) == null) chunkLoadQueue.add(cpLong);
+            return;
+        }
+
+        final Long2ObjectOpenHashMap<IBlockState> changed = new Long2ObjectOpenHashMap<>();
+        if (!updates.isEmpty()) {
+            ChunkUtil.applyAndSwap(chunk, c -> updates, changed);
+        }
+        if (changed.isEmpty() && biomeChanges.isEmpty() && spawnFalling.isEmpty()) {
+            if (pendingChunks.decrementAndGet() == 0) maybeFinish();
+            return;
+        }
+
+        int mask = 0;
+        LongIterator it = changed.keySet().iterator();
+        while (it.hasNext()) {
+            long p = it.nextLong();
+            int y = Library.getBlockPosY(p);
+            mask |= 1 << (y >>> 4);
+        }
+
+        notifyMainThread(cpLong, changed, mask, biomeChanges, spawnFalling);
+        if (pendingChunks.decrementAndGet() == 0) maybeFinish();
+    }
+
+    private void notifyMainThread(long cpLong, Long2ObjectMap<IBlockState> changed, int mask, Long2IntOpenHashMap biomeChanges,
+                                  NonBlockingHashMapLong<Entity> spawnFalling) {
+        pendingMainThreadNotifies.incrementAndGet();
+        ((WorldServer) world).addScheduledTask(() -> {
+            try {
+                Chunk loadedChunk = ChunkUtil.getLoadedChunk((WorldServer) world, cpLong);
+                sectionMaskByChunk.put(cpLong, sectionMaskByChunk.get(cpLong) | mask);
+                final MutableBlockPos mutableBlockPos = TL_POS.get();
+                if (loadedChunk != null) {
+                    for (var e : changed.long2ObjectEntrySet()) {
+                        long lp = e.getLongKey();
+                        Library.fromLong(mutableBlockPos, lp);
+                        IBlockState newState = world.getBlockState(mutableBlockPos);
+                        IBlockState oldState = e.getValue();
+                        // This check can't be done in the workers as it reads the world instance, so instead we restore the state
+                        if (newState.getBlock() == ModBlocks.fallout && !ModBlocks.fallout.canPlaceBlockAt(world, mutableBlockPos)) {
+                            world.setBlockState(mutableBlockPos, oldState, 3);
+                            continue;
+                        }
+                        if (oldState != newState) world.notifyBlockUpdate(mutableBlockPos, oldState, newState, 3);
+                        ChunkUtil.flushTileEntity(loadedChunk, mutableBlockPos, oldState, newState);
+                        world.notifyNeighborsOfStateChange(mutableBlockPos, newState.getBlock(), true);
+                    }
+                }
+
+                if (!biomeChanges.isEmpty()) {
+                    int cx = ChunkUtil.getChunkPosX(cpLong);
+                    int cz = ChunkUtil.getChunkPosZ(cpLong);
+                    for (Long2IntMap.Entry be : biomeChanges.long2IntEntrySet()) {
+                        long packed = be.getLongKey();
+                        int x = ChunkUtil.getChunkPosX(packed);
+                        int z = ChunkUtil.getChunkPosZ(packed);
+                        Biome target = Biome.getBiome(be.getIntValue());
+                        if (target != null) {
+                            WorldUtil.setBiome(world, x, z, target);
+                        }
+                    }
+                    WorldUtil.syncBiomeChange(world, cx, cz);
+                }
+
+                if (!spawnFalling.isEmpty()) {
+                    for (Entity entity : spawnFalling.values()) {
+                        if (entity == null) continue;
+                        world.spawnEntity(entity);
+                    }
+                    spawnFalling.clear();
+                }
+
+                if (loadedChunk != null) loadedChunk.markDirty();
+            } finally {
+                if (pendingMainThreadNotifies.decrementAndGet() == 0) maybeFinish();
+            }
+        });
+    }
+
+    private void maybeFinish() {
+        if (finished.get()) return;
+        if (pendingChunks.get() == 0 && waitingRoom.isEmpty() && qInner.isEmpty() && qOuter.isEmpty() && pendingMainThreadNotifies.get() == 0) {
+            ((WorldServer) world).addScheduledTask(this::secondPassAndFinish);
+        }
+    }
+
+    private void secondPassAndFinish() {
+        for (Long2IntMap.Entry e : sectionMaskByChunk.long2IntEntrySet()) {
+            long cp = e.getLongKey();
+//            int cx = ChunkUtil.getChunkPosX(cp);
+//            int cz = ChunkUtil.getChunkPosZ(cp);
+            int changedMask = e.getIntValue();
+            if (changedMask == 0) continue;
+            Chunk chunk = ChunkUtil.getLoadedChunk((WorldServer) world, cp);
+            if (chunk == null) continue;
+//
+//            ExtendedBlockStorage[] storages = chunk.getBlockStorageArray();
+//            boolean groundUp = false;
+//            for (int subY = 0; subY < storages.length; subY++) {
+//                if (((changedMask >>> subY) & 1) == 0) continue;
+//                ExtendedBlockStorage s = storages[subY];
+//                if (s == Chunk.NULL_BLOCK_STORAGE) groundUp = true;
+//                else if (s.isEmpty()) {
+//                    storages[subY] = Chunk.NULL_BLOCK_STORAGE;
+//                    groundUp = true;
+//                }
+//            }
+            chunk.generateSkylightMap();
+            chunk.resetRelightChecks();
+
+//            PlayerChunkMapEntry entry = ((WorldServer) world).getPlayerChunkMap().getEntry(cx, cz);
+//            if (entry != null) entry.sendPacket(new SPacketChunkData(chunk, groundUp ? 0xFFFF : changedMask));
+        }
+        sectionMaskByChunk.clear();
+
+        finished.set(true);
+        if (pool != null) {
+            pool.shutdown();
+            try {
+                pool.awaitTermination(100, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ignored) {
+            }
+        }
+        if (mapAcquired.getAndSet(false)) ChunkUtil.releaseMirrorMap((WorldServer) world);
+        clearChunkLoader();
+        setDead();
+    }
+
+    private void stompColumnToUpdates(ExtendedBlockStorage[] ebs, int x, int z, double distPercent, Long2ObjectOpenHashMap<IBlockState> updates,
+                                      NonBlockingHashMapLong<Entity> spawnFalling, Random rand) {
+        int solidDepth = 0;
+        final int lx = x & 15;
+        final int lz = z & 15;
+        final MutableBlockPos pos = TL_POS.get();
+        final float stonebrickRes = Blocks.STONEBRICK.getExplosionResistance(null);
 
         for (int y = 255; y >= 0; y--) {
-            if (depth >= 3) return;
-
-            pos.setPos(x, y, z);
-            IBlockState state = world.getBlockState(pos);
-            Block block = state.getBlock();
-
+            if (solidDepth >= MAX_SOLID_DEPTH) return;
+            final int subY = y >>> 4;
+            ExtendedBlockStorage s = ebs[subY];
+            final IBlockState state = s == Chunk.NULL_BLOCK_STORAGE || s.isEmpty() ? Blocks.AIR.getDefaultState() : s.get(lx, y & 15, lz);
+            final Block block = state.getBlock();
             if (state.getMaterial() == Material.AIR || block == ModBlocks.fallout) continue;
 
-            // TODO: implement volcano_rad_core
-//			if (block == ModBlocks.volcano_core) {
-//				world.setBlockState(pos, ModBlocks.volcano_rad_core.getDefaultState(), 3);
-//				continue;
-//			}
-
-            BlockPos posUp = pos.up();
-            IBlockState stateUp = world.getBlockState(posUp);
-
-            if (depth == 0 && (world.isAirBlock(posUp) || stateUp.getBlock().isReplaceable(world, posUp) && !stateUp.getMaterial().isLiquid())) {
-
-                double d = dist / 100.0;
-                double chance = 0.1 - Math.pow((d - 0.7), 2.0);
-
-                if (chance >= rand.nextDouble() && ModBlocks.fallout.canPlaceBlockAt(world, posUp)) {
-                    world.setBlockState(posUp, ModBlocks.fallout.getDefaultState(), 3);
-                }
-            }
-
-            if (dist < 65 && block.isFlammable(world, pos, EnumFacing.UP)) {
-                if (rand.nextInt(5) == 0 && world.isAirBlock(posUp)) {
-                    world.setBlockState(posUp, Blocks.FIRE.getDefaultState(), 3);
-                }
-            }
-
-            boolean eval = false;
-
-            for (FalloutEntry entry : FalloutConfigJSON.entries) {
-                IBlockState result = entry.eval(pos.getY(), state, dist, rand);
-                if (result != null) {
-                    world.setBlockState(pos, result, 3);
-                    if (entry.isSolid()) {
-                        depth++;
+            // Place fallout just above topmost solid
+            final int upY = y + 1;
+            if (solidDepth == 0 && upY < 256) {
+                final int upSub = upY >>> 4;
+                ExtendedBlockStorage su = ebs[upSub];
+                final IBlockState stateUp = su == Chunk.NULL_BLOCK_STORAGE || su.isEmpty() ? Blocks.AIR.getDefaultState() : su.get(lx, upY & 15, lz);
+                if (stateUp.getBlock() == Blocks.AIR) {
+                    double d = distPercent / 100.0;
+                    double chance = 0.1 - Math.pow(d - 0.7, 2.0);
+                    long seed = (((long) x) * 341873128712L) ^ (((long) z) * 132897987541L) ^ (((long) upY) * 31L) ^ this.getEntityId();
+                    rand.setSeed(seed);
+                    if (chance >= rand.nextDouble()) {
+                        updates.put(Library.blockPosToLong(x, upY, z), ModBlocks.fallout.getDefaultState());
                     }
-                    eval = true;
-                    break;
                 }
             }
 
-            float hardness = state.getBlockHardness(world, pos);
-            if (y > 0 && dist < 65 && hardness <= Blocks.STONEBRICK.getExplosionResistance(null) && hardness >= 0) {
-                BlockPos below = pos.down();
-                if (world.isAirBlock(below)) {
-                    for (int i = 0; i <= depth; i++) {
-                        BlockPos p = pos.add(0, i, 0);
-                        IBlockState s = world.getBlockState(p);
-                        float h = s.getBlockHardness(world, p);
-                        if (h <= Blocks.STONEBRICK.getExplosionResistance(null) && h >= 0) {
-                            EntityFallingBlock falling = new EntityFallingBlock(world, x + 0.5D, y + 0.5D + i, z + 0.5D, s);
-                            falling.shouldDropItem = false; // turn off block drops because block dropping was coded by a mule with dementia
-                            world.spawnEntity(falling);
+            if (distPercent < 65 && block.isFlammable(world, pos.setPos(x, y, z), EnumFacing.UP)) {
+                if (y + 1 < 256) {
+                    final int upSub = (y + 1) >>> 4;
+                    ExtendedBlockStorage su = ebs[upSub];
+                    final IBlockState stateUp =
+                            (su == Chunk.NULL_BLOCK_STORAGE || su.isEmpty()) ? Blocks.AIR.getDefaultState() : su.get(lx, (y + 1) & 15, lz);
+                    if (stateUp.getBlock() == Blocks.AIR) {
+                        if ((rand.nextInt(5)) == 0) {
+                            updates.put(Library.blockPosToLong(x, y + 1, z), Blocks.FIRE.getDefaultState());
                         }
                     }
                 }
             }
 
-            if (!eval && state.isNormalCube()) {
-                depth++;
+            boolean transformed = false;
+            for (FalloutEntry entry : FalloutConfigJSON.entries) {
+                IBlockState result = entry.eval(y, state, distPercent, rand);
+                if (result != null) {
+                    updates.put(Library.blockPosToLong(x, y, z), result);
+                    if (entry.isSolid()) solidDepth++;
+                    transformed = true;
+                    break;
+                }
+            }
+
+            if (!transformed && distPercent < 65 && y > 0) {
+                final int belowSub = (y - 1) >>> 4;
+                ExtendedBlockStorage sb = ebs[belowSub];
+                final IBlockState below =
+                        (sb == Chunk.NULL_BLOCK_STORAGE || sb.isEmpty()) ? Blocks.AIR.getDefaultState() : sb.get(lx, (y - 1) & 15, lz);
+                if (below.getBlock() == Blocks.AIR) {
+                    float hardnessHere = state.getBlockHardness(world, pos.setPos(x, y, z));
+                    if (hardnessHere >= 0.0F && hardnessHere <= stonebrickRes) {
+                        for (int i = 0; i <= solidDepth; i++) {
+                            int yy = y + i;
+                            if (yy >= 256) break;
+                            final int sub = yy >>> 4;
+                            ExtendedBlockStorage ss = ebs[sub];
+                            final IBlockState sAt =
+                                    (ss == Chunk.NULL_BLOCK_STORAGE || ss.isEmpty()) ? Blocks.AIR.getDefaultState() : ss.get(lx, yy & 15, lz);
+                            if (sAt.getMaterial() == Material.AIR) continue; // nothing solid to drop at this offset
+                            float h = sAt.getBlockHardness(world, pos.setPos(x, yy, z));
+                            if (h >= 0.0F && h <= stonebrickRes) {
+                                EntityFallingBlock falling = new EntityFallingBlock(world, x + 0.5D, yy + 0.5D, z + 0.5D, sAt);
+                                falling.shouldDropItem = false;
+                                long key = Library.blockPosToLong(x, yy, z);
+                                spawnFalling.putIfAbsentLong(key, falling);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!transformed && state.isNormalCube()) {
+                solidDepth++;
             }
         }
     }
@@ -281,5 +483,54 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
 
     public void setScale(int i, int ignored) {
         this.dataManager.set(SCALE, i);
+    }
+
+    private void gatherChunks() {
+        final LongLinkedOpenHashSet inner = new LongLinkedOpenHashSet();
+        final LongLinkedOpenHashSet outer = new LongLinkedOpenHashSet();
+
+        final int radius = getScale();
+        int angleSteps = 20 * radius / 32;
+        if (angleSteps < MIN_ANGLE_STEPS) angleSteps = MIN_ANGLE_STEPS;
+
+        for (int step = 0; step <= angleSteps; step++) {
+            final double theta = step * (2.0 * Math.PI) / angleSteps;
+            Vec3d vec = new Vec3d(radius, 0, 0).rotateYaw((float) theta);
+            int cx = ((int) Math.floor(this.posX + vec.x)) >> 4;
+            int cz = ((int) Math.floor(this.posZ + vec.z)) >> 4;
+            outer.add(ChunkPos.asLong(cx, cz));
+        }
+
+        for (int d = 0; d <= radius; d += SPOKE_STEP_BLOCKS) {
+            for (int step = 0; step <= angleSteps; step++) {
+                final double theta = step * (2.0 * Math.PI) / angleSteps;
+                Vec3d vec = new Vec3d(d, 0, 0).rotateYaw((float) theta);
+                int cx = ((int) Math.floor(this.posX + vec.x)) >> 4;
+                int cz = ((int) Math.floor(this.posZ + vec.z)) >> 4;
+                long packed = ChunkPos.asLong(cx, cz);
+                if (!outer.contains(packed)) inner.add(packed);
+            }
+        }
+
+        LongArrayList innerList = new LongArrayList(inner);
+        LongArrayList outerList = new LongArrayList(outer);
+        for (int i = innerList.size() - 1; i >= 0; i--) chunksToProcess.add(innerList.getLong(i));
+        for (int i = outerList.size() - 1; i >= 0; i--) outerChunksToProcess.add(outerList.getLong(i));
+    }
+
+    private final class WorkerTask extends RecursiveAction {
+        @Override
+        protected void compute() {
+            while (!Thread.currentThread().isInterrupted()) {
+                Long cp = qInner.poll();
+                boolean clamp = false;
+                if (cp == null) {
+                    cp = qOuter.poll();
+                    clamp = true;
+                }
+                if (cp == null) break;
+                processChunkOffThread(cp, getScale(), clamp);
+            }
+        }
     }
 }
