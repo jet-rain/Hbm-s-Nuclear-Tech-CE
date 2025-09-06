@@ -6,6 +6,8 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,7 @@ public class ControlTab extends CreativeTabs {
 	}
 
 	@Override
+    @SideOnly(Side.CLIENT)
 	public ItemStack createIcon() {
 		if(ModItems.pellet_rtg != null){
 			return new ItemStack(ModItems.pellet_rtg);
@@ -25,6 +28,7 @@ public class ControlTab extends CreativeTabs {
 	}
 	
 	@Override
+    @SideOnly(Side.CLIENT)
 	public void displayAllRelevantItems(NonNullList<ItemStack> list) {
 		super.displayAllRelevantItems(list);
 		List<ItemStack> batteries = new ArrayList<>();

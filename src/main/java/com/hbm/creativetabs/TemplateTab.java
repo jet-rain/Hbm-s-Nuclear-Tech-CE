@@ -4,15 +4,17 @@ import com.hbm.items.ModItems;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class TemplateTab extends CreativeTabs {
 
 	public TemplateTab(int index, String label) {
 		super(index, label);
-		this.setBackgroundImageName("item_search.png");
 	}
 
 	@Override
+    @SideOnly(Side.CLIENT)
 	public ItemStack createIcon() {
 		if(ModItems.assembly_template != null){
 			return new ItemStack(ModItems.assembly_template);
@@ -24,5 +26,11 @@ public class TemplateTab extends CreativeTabs {
 	public boolean hasSearchBar() {
 		return true;
 	}
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public String getBackgroundImageName() {
+        return "item_search.png";
+    }
 
 }

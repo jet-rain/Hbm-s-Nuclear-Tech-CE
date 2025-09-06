@@ -7,6 +7,8 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class MissileTab extends CreativeTabs {
 
@@ -15,6 +17,7 @@ public class MissileTab extends CreativeTabs {
 	}
 
 	@Override
+    @SideOnly(Side.CLIENT)
 	public ItemStack createIcon() {
 		if(ModItems.missile_nuclear != null){
 			return new ItemStack(ModItems.missile_nuclear);
@@ -23,6 +26,7 @@ public class MissileTab extends CreativeTabs {
 	}
 
 	@Override
+    @SideOnly(Side.CLIENT)
 	public void displayAllRelevantItems(NonNullList<ItemStack> list) {
 		super.displayAllRelevantItems(list);
 		

@@ -4,6 +4,8 @@ import com.hbm.items.ModItems;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class ConsumableTab extends CreativeTabs {
 
@@ -12,6 +14,7 @@ public class ConsumableTab extends CreativeTabs {
 	}
 
 	@Override
+    @SideOnly(Side.CLIENT)
 	public ItemStack createIcon() {
 		if(ModItems.bottle_nuka != null){
 			return new ItemStack(ModItems.bottle_nuka);

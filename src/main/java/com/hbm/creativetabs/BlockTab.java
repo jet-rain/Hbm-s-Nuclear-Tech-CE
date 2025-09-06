@@ -5,6 +5,8 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class BlockTab extends CreativeTabs {
 
@@ -13,6 +15,7 @@ public class BlockTab extends CreativeTabs {
 	}
 
 	@Override
+    @SideOnly(Side.CLIENT)
 	public ItemStack createIcon() {
 		if(ModBlocks.ore_uranium != null){
 			return new ItemStack(Item.getItemFromBlock(ModBlocks.brick_concrete));
