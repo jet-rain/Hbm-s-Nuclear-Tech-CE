@@ -45,8 +45,16 @@ public class UnsafeHolder {
     public static long fieldOffset(Class<?> clz, String fieldName) throws RuntimeException {
         try {
             return U.objectFieldOffset(clz.getDeclaredField(fieldName));
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
         }
-        catch (NoSuchFieldException e) {
+    }
+
+    public static <T> T allocateInstance(Class<? extends T> clz) {
+        try {
+            //noinspection unchecked
+            return (T) U.allocateInstance(clz);
+        } catch (InstantiationException e) {
             throw new RuntimeException(e);
         }
     }
@@ -54,8 +62,7 @@ public class UnsafeHolder {
     public static long fieldOffset(Class<?> clz, String mcp, String srg) throws RuntimeException {
         try {
             return U.objectFieldOffset(clz.getDeclaredField(HbmCorePlugin.runtimeDeobfEnabled() ? srg : mcp));
-        }
-        catch (NoSuchFieldException e) {
+        } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
     }

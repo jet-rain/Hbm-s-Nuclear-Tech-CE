@@ -1,5 +1,6 @@
 package com.hbm.util;
 
+import com.hbm.lib.Library;
 import net.minecraft.util.math.ChunkPos;
 
 import javax.annotation.concurrent.Immutable;
@@ -83,6 +84,13 @@ public class SubChunkKey {
 
     private static int unzz(long u) {
         return (int) ((u >>> 1) ^ -(u & 1L));
+    }
+
+    public static long fromPackedBlockPosLong(long serialized) {
+        final int cx = Library.getBlockPosX(serialized) >> 4;
+        final int cz = Library.getBlockPosZ(serialized) >> 4;
+        final int sy = Library.getBlockPosY(serialized) >> 4;
+        return asLong(cx, cz, sy);
     }
 
     public static long asLong(int cx, int cz, int subY) {

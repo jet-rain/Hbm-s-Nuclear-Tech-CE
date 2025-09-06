@@ -18,10 +18,7 @@ import it.unimi.dsi.fastutil.longs.AbstractLongSet;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.objects.AbstractObjectCollection;
-import it.unimi.dsi.fastutil.objects.AbstractObjectSet;
-import it.unimi.dsi.fastutil.objects.ObjectCollection;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import it.unimi.dsi.fastutil.objects.*;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -1351,6 +1348,80 @@ public class NonBlockingHashMapLong<TypeV>
         }
     }
 
+    public void forEachFast(LongObjectConsumer<? super TypeV> action) {
+        if (action == null) throw new NullPointerException();
+        Object v0 = _val_1;
+        if (v0 != TOMBSTONE) {
+            // noinspection unchecked
+            TypeV vv0 = (TypeV) v0;
+            action.accept(NO_KEY, vv0);
+        }
+
+        CHM top = _chm;
+        if (top._newchm != null) {
+            top.help_copy_impl(true);
+            top = _chm;
+        }
+
+        final long[] keys = top._keys;
+        final Object[] vals = top._vals;
+
+        for (int i = 0, len = keys.length; i < len; i++) {
+            long k = keys[i];
+            if (k == NO_KEY) continue;
+
+            Object v = U.getObjectVolatile(vals, rawIndex(vals, i));
+            if (v == null || v == TOMBSTONE) continue;
+
+            if (v instanceof Prime) {
+                TypeV gv = get(k);
+                if (gv != null) action.accept(k, gv);
+                continue;
+            }
+
+            // noinspection unchecked
+            TypeV vv = (TypeV) v;
+            action.accept(k, vv);
+        }
+    }
+
+    public <R> void forEachFastRef(R ref, LongObjectRefConsumer<? super TypeV, ? super R> action) {
+        if (action == null) throw new NullPointerException();
+        Object v0 = _val_1;
+        if (v0 != TOMBSTONE) {
+            // noinspection unchecked
+            TypeV vv0 = (TypeV) v0;
+            action.accept(NO_KEY, vv0, ref);
+        }
+
+        CHM top = _chm;
+        if (top._newchm != null) {
+            top.help_copy_impl(true);
+            top = _chm;
+        }
+
+        final long[]   keys = top._keys;
+        final Object[] vals = top._vals;
+
+        for (int i = 0, len = keys.length; i < len; i++) {
+            long k = keys[i];
+            if (k == NO_KEY) continue;
+
+            Object v = U.getObjectVolatile(vals, rawIndex(vals, i));
+            if (v == null || v == TOMBSTONE) continue;
+
+            if (v instanceof Prime) {
+                TypeV gv = get(k);
+                if (gv != null) action.accept(k, gv, ref);
+                continue;
+            }
+
+            // noinspection unchecked
+            TypeV vv = (TypeV) v;
+            action.accept(k, vv, ref);
+        }
+    }
+
     @Deprecated
     @Override
     public void forEach(BiConsumer<? super Long, ? super TypeV> action) {
@@ -1532,6 +1603,19 @@ public class NonBlockingHashMapLong<TypeV>
         if (value == null || remappingFunction == null) throw new NullPointerException();
         return merge(key.longValue(), value, remappingFunction);
     }
+
+    public void putAll(final Long2ObjectMap<? extends TypeV> m) {
+        if (m == null) throw new NullPointerException();
+        if (m == this || m.isEmpty()) return;
+        final ObjectSet<? extends Long2ObjectMap.Entry<? extends TypeV>> it = m.long2ObjectEntrySet();
+        for (Long2ObjectMap.Entry<? extends TypeV> e : it) {
+            final long k = e.getLongKey();
+            final TypeV v = e.getValue();
+            if (v == null) throw new NullPointerException();
+            put(k, v);
+        }
+    }
+
 
     // --- writeObject -------------------------------------------------------
     // Write a NBHML to a stream
