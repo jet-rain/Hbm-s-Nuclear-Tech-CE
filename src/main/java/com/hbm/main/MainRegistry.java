@@ -52,6 +52,7 @@ import com.hbm.saveddata.satellites.Satellite;
 import com.hbm.tileentity.bomb.TileEntityLaunchPadBase;
 import com.hbm.tileentity.bomb.TileEntityNukeCustom;
 import com.hbm.tileentity.machine.rbmk.RBMKDials;
+import com.hbm.util.ChunkUtil;
 import com.hbm.util.CrashHelper;
 import com.hbm.util.DamageResistanceHandler;
 import com.hbm.world.ModBiomes;
@@ -464,6 +465,7 @@ public class MainRegistry {
     @EventHandler
     public void serverStopping(FMLServerStoppingEvent evt) {
         RadiationSystemNT.onServerStopping(evt);
+        ChunkUtil.onServerStopping();
     }
 
     @EventHandler
