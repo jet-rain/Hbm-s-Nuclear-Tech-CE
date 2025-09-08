@@ -158,6 +158,8 @@ public class HazardRegistry {
 	public static final HazardTypeBase COAL = new HazardTypeCoal();
 	public static final HazardTypeBase HYDROACTIVE = new HazardTypeHydroactive();
 	public static final HazardTypeBase EXPLOSIVE = new HazardTypeExplosive();
+	public static final HazardTypeBase TOXIC = new HazardTypeToxic();
+	public static final HazardTypeBase COLD = new HazardTypeCold();
 
 	public static void registerItems() {
 
