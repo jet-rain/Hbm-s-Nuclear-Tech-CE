@@ -1,30 +1,77 @@
 package com.hbm.blocks.network.energy;
 
 import com.hbm.blocks.ModBlocks;
+import com.hbm.items.IDynamicModels;
 import com.hbm.lib.Library;
-import com.hbm.main.MainRegistry;
+import com.hbm.lib.RefStrings;
+import com.hbm.render.amlfrom1710.WavefrontObject;
+import com.hbm.render.model.BlockCableBakedModel;
 import com.hbm.tileentity.network.energy.TileEntityCableBaseNT;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.state.BlockFaceShape;
+import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.renderer.block.statemap.StateMapperBase;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.entity.Entity;
+import net.minecraft.item.Item;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.client.event.ModelBakeEvent;
+import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
-public class BlockCable extends BlockContainer {
+import javax.annotation.Nullable;
+import java.util.List;
 
-	public BlockCable(Material materialIn, String s) {
-		super(materialIn);
-		this.setTranslationKey(s);
-		this.setRegistryName(s);
-		this.setCreativeTab(MainRegistry.blockTab);
+public class BlockCable extends BlockContainer implements IDynamicModels {
+	// Th3_Sl1ze: believe me, this shit will inevitably cause stackoverflowexception if you're going to load a shitton of cables in a single place
+	// though, it still works and it doesn't crash
+	public static final PropertyBool POS_X = PropertyBool.create("posx");
+	public static final PropertyBool NEG_X = PropertyBool.create("negx");
+	public static final PropertyBool POS_Y = PropertyBool.create("posy");
+	public static final PropertyBool NEG_Y = PropertyBool.create("negy");
+	public static final PropertyBool POS_Z = PropertyBool.create("posz");
+	public static final PropertyBool NEG_Z = PropertyBool.create("negz");
 
+	private final ResourceLocation objModelLocation = new ResourceLocation(RefStrings.MODID, "models/blocks/cable_neo.obj");
+	private final ResourceLocation textureLocation = new ResourceLocation(RefStrings.MODID, "blocks/cable_neo");
+
+	public BlockCable(Material material, String registryName) {
+		super(material);
+		this.setRegistryName(registryName);
+		this.setTranslationKey(registryName);
+		IBlockState base = this.blockState.getBaseState()
+				.withProperty(POS_X, Boolean.FALSE)
+				.withProperty(NEG_X, Boolean.FALSE)
+				.withProperty(POS_Y, Boolean.FALSE)
+				.withProperty(NEG_Y, Boolean.FALSE)
+				.withProperty(POS_Z, Boolean.FALSE)
+				.withProperty(NEG_Z, Boolean.FALSE);
+		this.setDefaultState(base);
+		this.fullBlock = false;
+		this.lightOpacity = 0;
+		this.translucent = true;
+		IDynamicModels.INSTANCES.add(this);
 		ModBlocks.ALL_BLOCKS.add(this);
+	}
+
+	@Override
+	public boolean hasTileEntity(IBlockState state) {
+		return true;
 	}
 
 	@Override
@@ -33,56 +80,83 @@ public class BlockCable extends BlockContainer {
 	}
 
 	@Override
-	public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess world, BlockPos pos) {
-		if (world.getTileEntity(pos) instanceof TileEntityCableBaseNT) {
-			TileEntityCableBaseNT cable = (TileEntityCableBaseNT) world.getTileEntity(pos);
-
-			boolean posX = Library.canConnect(world, cable.getPos().add(1, 0, 0), Library.POS_X);
-			boolean negX = Library.canConnect(world, cable.getPos().add(-1, 0, 0), Library.NEG_X);
-			boolean posY = Library.canConnect(world, cable.getPos().add(0, 1, 0), Library.POS_Y);
-			boolean negY = Library.canConnect(world, cable.getPos().add(0, -1, 0), Library.NEG_Y);
-			boolean posZ = Library.canConnect(world, cable.getPos().add(0, 0, 1), Library.POS_Z);
-			boolean negZ = Library.canConnect(world, cable.getPos().add(0, 0, -1), Library.NEG_Z);
-			
-
-			if (cable != null) {
-				float p = 1F / 16F;
-				float minX = 11 * p / 2 - (negX ? (11 * p / 2) : 0);
-				float minY = 11 * p / 2 - (negY ? (11 * p / 2) : 0);
-				float minZ = 11 * p / 2 - (negZ ? (11 * p / 2) : 0);
-				float maxX = 1 - 11 * p / 2 + (posX ? (11 * p / 2) : 0);
-				float maxY = 1 - 11 * p / 2 + (posY ? (11 * p / 2) : 0);
-				float maxZ = 1 - 11 * p / 2 + (posZ ? (11 * p / 2) : 0);
-
-				return new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
-			}
-		}
-		return FULL_BLOCK_AABB;
+	protected BlockStateContainer createBlockState() {
+		return new BlockStateContainer(this, POS_X, NEG_X, POS_Y, NEG_Y, POS_Z, NEG_Z);
 	}
 
 	@Override
-	public EnumBlockRenderType getRenderType(IBlockState state) {
-		return EnumBlockRenderType.ENTITYBLOCK_ANIMATED;
+	public IBlockState getStateFromMeta(int meta) {
+		return getDefaultState();
 	}
 
 	@Override
-	public boolean isFullCube(IBlockState state) {
-		return false;
+	public int getMetaFromState(IBlockState state) {
+		return 0;
+	}
+
+	private boolean canConnect(IBlockAccess world, BlockPos pos, EnumFacing dir) {
+		return switch (dir) {
+			case EAST -> Library.canConnect(world, pos, Library.POS_X);
+			case WEST -> Library.canConnect(world, pos, Library.NEG_X);
+			case UP -> Library.canConnect(world, pos, Library.POS_Y);
+			case DOWN -> Library.canConnect(world, pos, Library.NEG_Y);
+			case SOUTH -> Library.canConnect(world, pos, Library.POS_Z);
+			case NORTH -> Library.canConnect(world, pos, Library.NEG_Z);
+		};
+	}
+
+	private boolean getConnectAt(IBlockAccess world, BlockPos pos, EnumFacing dir) {
+		BlockPos adj = pos.offset(dir);
+		return canConnect(world, adj, dir);
 	}
 
 	@Override
-	public boolean isBlockNormalCube(IBlockState state) {
-		return false;
+	public IBlockState getActualState(IBlockState state, IBlockAccess world, BlockPos pos) {
+		boolean pX = getConnectAt(world, pos, EnumFacing.EAST);
+		boolean nX = getConnectAt(world, pos, EnumFacing.WEST);
+		boolean pY = getConnectAt(world, pos, EnumFacing.UP);
+		boolean nY = getConnectAt(world, pos, EnumFacing.DOWN);
+		boolean pZ = getConnectAt(world, pos, EnumFacing.SOUTH);
+		boolean nZ = getConnectAt(world, pos, EnumFacing.NORTH);
+		return state.withProperty(POS_X, pX)
+				.withProperty(NEG_X, nX)
+				.withProperty(POS_Y, pY)
+				.withProperty(NEG_Y, nY)
+				.withProperty(POS_Z, pZ)
+				.withProperty(NEG_Z, nZ);
 	}
 
 	@Override
-	public boolean isNormalCube(IBlockState state) {
-		return false;
+	public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) {
+		state = getActualState(state, source, pos);
+
+		boolean posX = state.getValue(POS_X);
+		boolean negX = state.getValue(NEG_X);
+		boolean posY = state.getValue(POS_Y);
+		boolean negY = state.getValue(NEG_Y);
+		boolean posZ = state.getValue(POS_Z);
+		boolean negZ = state.getValue(NEG_Z);
+
+		float pixel = 0.0625F;
+		float min = pixel * 5.5F;
+		float max = pixel * 10.5F;
+
+		float minX = negX ? 0F : min;
+		float maxX = posX ? 1F : max;
+		float minY = negY ? 0F : min;
+		float maxY = posY ? 1F : max;
+		float minZ = negZ ? 0F : min;
+		float maxZ = posZ ? 1F : max;
+
+		return new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
 	}
 
 	@Override
-	public boolean isNormalCube(IBlockState state, IBlockAccess world, BlockPos pos) {
-		return false;
+	public void addCollisionBoxToList(IBlockState state, World worldIn, BlockPos pos,
+									  AxisAlignedBB entityBox, List<AxisAlignedBB> collidingBoxes,
+									  @Nullable Entity entityIn, boolean isActualState) {
+		AxisAlignedBB bb = getBoundingBox(state, worldIn, pos);
+		super.addCollisionBoxToList(pos, entityBox, collidingBoxes, bb);
 	}
 
 	@Override
@@ -91,7 +165,77 @@ public class BlockCable extends BlockContainer {
 	}
 
 	@Override
-	public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face){
-		return BlockFaceShape.CENTER;
+	public boolean isFullCube(IBlockState state) {
+		return false;
+	}
+
+	@Override
+	public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face) {
+		return BlockFaceShape.UNDEFINED;
+	}
+	@Override
+	public EnumBlockRenderType getRenderType(IBlockState state) {
+		return EnumBlockRenderType.MODEL;
+	}
+	@Override
+	@SideOnly(Side.CLIENT)
+	public void registerSprite(TextureMap map) {
+		if (textureLocation != null) {
+			map.registerSprite(textureLocation);
+		}
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	public void bakeModel(ModelBakeEvent event) {
+		WavefrontObject wavefront = null;
+		try {
+			wavefront = new WavefrontObject(objModelLocation);
+		} catch (Exception ignored) {}
+
+		TextureAtlasSprite sprite;
+		if (textureLocation != null) {
+			sprite = Minecraft.getMinecraft()
+					.getTextureMapBlocks()
+					.getAtlasSprite(textureLocation.toString());
+		} else {
+			sprite = Minecraft.getMinecraft().getTextureMapBlocks().getMissingSprite();
+		}
+
+		IBakedModel blockModel;
+		IBakedModel itemModel;
+		if (wavefront == null) {
+			TextureAtlasSprite missing = Minecraft.getMinecraft().getTextureMapBlocks().getMissingSprite();
+			blockModel = BlockCableBakedModel.empty(missing);
+			itemModel = BlockCableBakedModel.empty(missing);
+		} else {
+			blockModel = BlockCableBakedModel.forBlock(wavefront, sprite);
+			itemModel = BlockCableBakedModel.forItem(wavefront, sprite, 1F, 0.0F, 0.0F, 0.0F, (float)Math.PI);
+		}
+
+		ModelResourceLocation mrlBlock = new ModelResourceLocation(getRegistryName(), "normal");
+		ModelResourceLocation mrlItem = new ModelResourceLocation(getRegistryName(), "inventory");
+
+		event.getModelRegistry().putObject(mrlBlock, blockModel);
+		event.getModelRegistry().putObject(mrlItem, itemModel);
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	public StateMapperBase getStateMapper(ResourceLocation loc) {
+		return new StateMapperBase() {
+			@Override
+			protected ModelResourceLocation getModelResourceLocation(IBlockState state) {
+				return new ModelResourceLocation(loc, "normal");
+			}
+		};
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	public void registerModel() {
+		Item item = Item.getItemFromBlock(this);
+		ModelResourceLocation inv = new ModelResourceLocation(this.getRegistryName(), "inventory");
+		ModelLoader.setCustomModelResourceLocation(item, 0, inv);
 	}
 }
