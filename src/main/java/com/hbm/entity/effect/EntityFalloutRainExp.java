@@ -7,10 +7,9 @@ import com.hbm.config.FalloutConfigJSON;
 import com.hbm.config.FalloutConfigJSON.FalloutEntry;
 import com.hbm.config.WorldConfig;
 import com.hbm.entity.logic.EntityExplosionChunkloading;
-import com.hbm.interfaces.AutoRegister;
 import com.hbm.lib.Library;
 import com.hbm.lib.maps.NonBlockingHashMapLong;
-import com.hbm.util.ChunkUtil;
+import com.hbm.util.ChunkUtilExp;
 import com.hbm.world.WorldUtil;
 import com.hbm.world.biome.BiomeGenCraterBase;
 import io.netty.util.internal.shaded.org.jctools.queues.atomic.MpscLinkedAtomicQueue;
@@ -18,15 +17,12 @@ import it.unimi.dsi.fastutil.longs.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.network.play.server.SPacketChunkData;
-import net.minecraft.server.management.PlayerChunkMapEntry;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -36,6 +32,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.Queue;
 import java.util.Random;
@@ -47,8 +44,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@AutoRegister(name = "entity_fallout_rain", trackingRange = 1000)
-public class EntityFalloutRain extends EntityExplosionChunkloading {
+@ApiStatus.Experimental
+public class EntityFalloutRainExp extends EntityExplosionChunkloading {
 
     private static final DataParameter<Integer> SCALE = EntityDataManager.createKey(EntityFalloutRain.class, DataSerializers.VARINT);
 
@@ -70,11 +67,12 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
 
     private final AtomicBoolean finished = new AtomicBoolean(false);
     private final AtomicBoolean mapAcquired = new AtomicBoolean(false);
+    // NOTE: EBS publishes & TE flushes are handled by ChunkUtilExp's new main-thread publisher.
     public UUID detonator;
     private ForkJoinPool pool;
     private int tickDelay = BombConfig.falloutDelay;
 
-    public EntityFalloutRain(World worldIn) {
+    public EntityFalloutRainExp(World worldIn) {
         super(worldIn);
         this.setSize(4.0F, 20.0F);
         this.ignoreFrustumCheck = true;
@@ -82,7 +80,7 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
         TL_RAND = ThreadLocal.withInitial(() -> new Random(worldIn.getSeed()));
     }
 
-    public EntityFalloutRain(World worldIn, int ignored) {
+    public EntityFalloutRainExp(World worldIn, int ignored) {
         this(worldIn);
     }
 
@@ -114,8 +112,8 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
         LongIterator it = coords.iterator();
         while (it.hasNext()) {
             long packed = it.nextLong();
-            data[i++] = ChunkUtil.getChunkPosX(packed);
-            data[i++] = ChunkUtil.getChunkPosZ(packed);
+            data[i++] = ChunkUtilExp.getChunkPosX(packed);
+            data[i++] = ChunkUtilExp.getChunkPosZ(packed);
         }
         return data;
     }
@@ -160,7 +158,7 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
             return;
         }
 
-        ChunkUtil.acquireMirrorMap((WorldServer) world);
+        ChunkUtilExp.acquireMirrorMap((WorldServer) world);
         mapAcquired.set(true);
 
         int processors = Runtime.getRuntime().availableProcessors();
@@ -177,8 +175,8 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
             Long cpBoxed = chunkLoadQueue.poll();
             if (cpBoxed == null) break;
             long ck = cpBoxed;
-            int cx = ChunkUtil.getChunkPosX(ck);
-            int cz = ChunkUtil.getChunkPosZ(ck);
+            int cx = ChunkUtilExp.getChunkPosX(ck);
+            int cz = ChunkUtilExp.getChunkPosZ(ck);
             world.getChunk(cx, cz);
             Boolean clamp = waitingRoom.remove(ck);
             if (clamp != null) {
@@ -190,7 +188,7 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
 
     private void processChunkOffThread(long cpLong, int scale, boolean clampToRadius) {
         if (finished.get()) return;
-        ExtendedBlockStorage[] ebs = ChunkUtil.getLoadedEBS((WorldServer) world, cpLong);
+        ExtendedBlockStorage[] ebs = ChunkUtilExp.getLoadedEBS((WorldServer) world, cpLong);
         if (ebs == null) {
             if (waitingRoom.putIfAbsentLong(cpLong, clampToRadius) == null) {
                 chunkLoadQueue.add(cpLong);
@@ -198,14 +196,14 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
             return;
         }
 
-        final int chunkX = ChunkUtil.getChunkPosX(cpLong);
-        final int chunkZ = ChunkUtil.getChunkPosZ(cpLong);
+        final int chunkX = ChunkUtilExp.getChunkPosX(cpLong);
+        final int chunkZ = ChunkUtilExp.getChunkPosZ(cpLong);
         final int minX = (chunkX << 4);
         final int minZ = (chunkZ << 4);
 
         final Long2ObjectOpenHashMap<IBlockState> updates = new Long2ObjectOpenHashMap<>();
         final Long2IntOpenHashMap biomeChanges = new Long2IntOpenHashMap();
-        final NonBlockingHashMapLong<Entity> spawnFalling = new NonBlockingHashMapLong<>(32);
+        final Long2ObjectOpenHashMap<IBlockState> fallingBlocks = new Long2ObjectOpenHashMap<>(32);
 
         final Random rand = TL_RAND.get();
 
@@ -223,21 +221,20 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
                 if (target != null) {
                     biomeChanges.put(ChunkPos.asLong(x, z), Biome.getIdForBiome(target));
                 }
-                stompColumnToUpdates(ebs, x, z, percent, updates, spawnFalling, rand);
+                stompColumnToUpdates(ebs, x, z, percent, updates, fallingBlocks, rand);
             }
         }
 
-        final Chunk chunk = ChunkUtil.getLoadedChunk((WorldServer) world, cpLong);
+        final Chunk chunk = ChunkUtilExp.getLoadedChunk((WorldServer) world, cpLong);
         if (chunk == null) {
             if (waitingRoom.putIfAbsentLong(cpLong, clampToRadius) == null) chunkLoadQueue.add(cpLong);
             return;
         }
-
         final Long2ObjectOpenHashMap<IBlockState> changed = new Long2ObjectOpenHashMap<>();
         if (!updates.isEmpty()) {
-            ChunkUtil.applyAndSwap(chunk, c -> updates, changed);
+            ChunkUtilExp.applyAndSwap(chunk, c -> updates, changed);
         }
-        if (changed.isEmpty() && biomeChanges.isEmpty() && spawnFalling.isEmpty()) {
+        if (changed.isEmpty() && biomeChanges.isEmpty() && fallingBlocks.isEmpty()) {
             if (pendingChunks.decrementAndGet() == 0) maybeFinish();
             return;
         }
@@ -249,43 +246,39 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
             int y = Library.getBlockPosY(p);
             mask |= 1 << (y >>> 4);
         }
-
-        notifyMainThread(cpLong, changed, mask, biomeChanges, spawnFalling);
+        final Long2ObjectOpenHashMap<IBlockState> newStates = new Long2ObjectOpenHashMap<>(changed.size());
+        it = changed.keySet().iterator();
+        while (it.hasNext()) {
+            long pos = it.nextLong();
+            IBlockState ns = updates.get(pos);
+            if (ns != null) newStates.put(pos, ns);
+        }
+        notifyMainThread(cpLong, newStates, mask, biomeChanges, fallingBlocks);
         if (pendingChunks.decrementAndGet() == 0) maybeFinish();
     }
 
-    private void notifyMainThread(long cpLong, Long2ObjectMap<IBlockState> changed, int mask, Long2IntOpenHashMap biomeChanges,
-                                  NonBlockingHashMapLong<Entity> spawnFalling) {
+    private void notifyMainThread(long cpLong, Long2ObjectMap<IBlockState> newStates, int mask, Long2IntOpenHashMap biomeChanges,
+                                  Long2ObjectOpenHashMap<IBlockState> fallingBlocks) {
         pendingMainThreadNotifies.incrementAndGet();
         ((WorldServer) world).addScheduledTask(() -> {
             try {
-                Chunk loadedChunk = ChunkUtil.getLoadedChunk((WorldServer) world, cpLong);
+                Chunk loadedChunk = ChunkUtilExp.getLoadedChunk((WorldServer) world, cpLong);
                 sectionMaskByChunk.put(cpLong, sectionMaskByChunk.get(cpLong) | mask);
                 final MutableBlockPos mutableBlockPos = TL_POS.get();
-                if (loadedChunk != null) {
-                    for (var e : changed.long2ObjectEntrySet()) {
-                        long lp = e.getLongKey();
-                        Library.fromLong(mutableBlockPos, lp);
-                        IBlockState newState = world.getBlockState(mutableBlockPos);
-                        IBlockState oldState = e.getValue();
-                        // This check can't be done in the workers as it reads the world instance, so instead we restore the state
-                        if (newState.getBlock() == ModBlocks.fallout && !ModBlocks.fallout.canPlaceBlockAt(world, mutableBlockPos)) {
-                            world.setBlockState(mutableBlockPos, oldState, 3);
-                            continue;
-                        }
-                        if (oldState != newState) world.notifyBlockUpdate(mutableBlockPos, oldState, newState, 3);
-                        ChunkUtil.flushTileEntity(loadedChunk, mutableBlockPos, oldState, newState);
-                        world.notifyNeighborsOfStateChange(mutableBlockPos, newState.getBlock(), true);
-                    }
+                for (var e : newStates.long2ObjectEntrySet()) {
+                    long lp = e.getLongKey();
+                    Library.fromLong(mutableBlockPos, lp);
+                    IBlockState ns = e.getValue();
+                    world.notifyNeighborsOfStateChange(mutableBlockPos, ns.getBlock(), true);
                 }
 
                 if (!biomeChanges.isEmpty()) {
-                    int cx = ChunkUtil.getChunkPosX(cpLong);
-                    int cz = ChunkUtil.getChunkPosZ(cpLong);
+                    int cx = ChunkUtilExp.getChunkPosX(cpLong);
+                    int cz = ChunkUtilExp.getChunkPosZ(cpLong);
                     for (Long2IntMap.Entry be : biomeChanges.long2IntEntrySet()) {
                         long packed = be.getLongKey();
-                        int x = ChunkUtil.getChunkPosX(packed);
-                        int z = ChunkUtil.getChunkPosZ(packed);
+                        int x = ChunkUtilExp.getChunkPosX(packed);
+                        int z = ChunkUtilExp.getChunkPosZ(packed);
                         Biome target = Biome.getBiome(be.getIntValue());
                         if (target != null) {
                             WorldUtil.setBiome(world, x, z, target);
@@ -294,12 +287,17 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
                     WorldUtil.syncBiomeChange(world, cx, cz);
                 }
 
-                if (!spawnFalling.isEmpty()) {
-                    for (Entity entity : spawnFalling.values()) {
-                        if (entity == null) continue;
-                        world.spawnEntity(entity);
+                if (!fallingBlocks.isEmpty()) {
+                    for (Long2ObjectMap.Entry<IBlockState> fe : fallingBlocks.long2ObjectEntrySet()) {
+                        long key = fe.getLongKey();
+                        int fx = Library.getBlockPosX(key);
+                        int fy = Library.getBlockPosY(key);
+                        int fz = Library.getBlockPosZ(key);
+                        IBlockState stateAt = fe.getValue();
+                        EntityFallingBlock falling = new EntityFallingBlock(world, fx + 0.5D, fy + 0.5D, fz + 0.5D, stateAt);
+                        falling.shouldDropItem = false;
+                        world.spawnEntity(falling);
                     }
-                    spawnFalling.clear();
                 }
 
                 if (loadedChunk != null) loadedChunk.markDirty();
@@ -319,11 +317,11 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
     private void secondPassAndFinish() {
         for (Long2IntMap.Entry e : sectionMaskByChunk.long2IntEntrySet()) {
             long cp = e.getLongKey();
-//            int cx = ChunkUtil.getChunkPosX(cp);
-//            int cz = ChunkUtil.getChunkPosZ(cp);
+//            int cx = ChunkUtilExp.getChunkPosX(cp);
+//            int cz = ChunkUtilExp.getChunkPosZ(cp);
             int changedMask = e.getIntValue();
             if (changedMask == 0) continue;
-            Chunk chunk = ChunkUtil.getLoadedChunk((WorldServer) world, cp);
+            Chunk chunk = ChunkUtilExp.getLoadedChunk((WorldServer) world, cp);
             if (chunk == null) continue;
 //
 //            ExtendedBlockStorage[] storages = chunk.getBlockStorageArray();
@@ -353,13 +351,13 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
             } catch (InterruptedException ignored) {
             }
         }
-        if (mapAcquired.getAndSet(false)) ChunkUtil.releaseMirrorMap((WorldServer) world);
+        if (mapAcquired.getAndSet(false)) ChunkUtilExp.releaseMirrorMap((WorldServer) world);
         clearChunkLoader();
         setDead();
     }
 
     private void stompColumnToUpdates(ExtendedBlockStorage[] ebs, int x, int z, double distPercent, Long2ObjectOpenHashMap<IBlockState> updates,
-                                      NonBlockingHashMapLong<Entity> spawnFalling, Random rand) {
+                                      Long2ObjectOpenHashMap<IBlockState> fallingBlocks, Random rand) {
         int solidDepth = 0;
         final int lx = x & 15;
         final int lz = z & 15;
@@ -434,10 +432,10 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
                             if (sAt.getMaterial() == Material.AIR) continue; // nothing solid to drop at this offset
                             float h = sAt.getBlockHardness(world, pos.setPos(x, yy, z));
                             if (h >= 0.0F && h <= stonebrickRes) {
-                                EntityFallingBlock falling = new EntityFallingBlock(world, x + 0.5D, yy + 0.5D, z + 0.5D, sAt);
-                                falling.shouldDropItem = false;
                                 long key = Library.blockPosToLong(x, yy, z);
-                                spawnFalling.putIfAbsentLong(key, falling);
+                                if (!fallingBlocks.containsKey(key)) {
+                                    fallingBlocks.put(key, sAt);
+                                }
                             }
                         }
                     }

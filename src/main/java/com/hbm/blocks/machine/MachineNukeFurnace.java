@@ -2,6 +2,7 @@ package com.hbm.blocks.machine;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.lib.InventoryHelper;
+import com.hbm.lib.Library;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.machine.TileEntityNukeFurnace;
 import net.minecraft.block.BlockContainer;
@@ -123,16 +124,11 @@ public class MachineNukeFurnace extends BlockContainer {
 	}
 	
 	public static void updateBlockState(boolean isProcessing, World world, BlockPos pos) {
-		EnumFacing e = world.getBlockState(pos).getValue(FACING);
+		IBlockState state = world.getBlockState(pos);
 		TileEntity entity = world.getTileEntity(pos);
 		keepInventory = true;
-		
-		if(isProcessing && world.getBlockState(pos).getBlock() != ModBlocks.machine_nuke_furnace_on)
-		{
-			world.setBlockState(pos, ModBlocks.machine_nuke_furnace_on.getDefaultState().withProperty(FACING, e));
-		} else if (!isProcessing && world.getBlockState(pos).getBlock() != ModBlocks.machine_nuke_furnace_off){
-			world.setBlockState(pos, ModBlocks.machine_nuke_furnace_off.getDefaultState().withProperty(FACING, e));
-		}
+		IBlockState newState = Library.changeBlockState(ModBlocks.machine_nuke_furnace_on, ModBlocks.machine_nuke_furnace_off, state, FACING, isProcessing);
+        if (newState != null) world.setBlockState(pos, newState, 3);
 		
 		keepInventory = false;
 		

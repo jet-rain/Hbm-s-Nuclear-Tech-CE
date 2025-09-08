@@ -1,6 +1,8 @@
 package com.hbm.util;
 
 import com.hbm.config.GeneralConfig;
+import com.hbm.events.WorldEventRegistry;
+import com.hbm.events.interfaces.IWorldEventListener;
 import com.hbm.interfaces.ServerThread;
 import com.hbm.interfaces.ThreadSafeMethod;
 import com.hbm.lib.Library;
@@ -30,6 +32,7 @@ import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,11 +53,11 @@ import static com.hbm.lib.UnsafeHolder.U;
  *   <li>Maintaining a <strong>mirror map</strong> of currently loaded chunks per dimension for
  *       concurrent, read-mostly access (see {@link #acquireMirrorMap} and
  *       {@link #getLoadedChunk}).</li>
- *   <li>Copy-on-write mutation of sub-chunks ({@link ExtendedBlockStorage}) with a single
- *       <strong>CAS publish</strong> per sub-chunk (see {@link #applyAndSwap}
- *       and {@link #casEbsAt};{@link #copyAndModify} builds a modified copy without publishing).</li>
+ *   <li>Copy-on-write mutation of sub-chunks ({@link ExtendedBlockStorage}) staged off-thread and
+ *       <strong>published by the server thread</strong> per sub-chunk (see {@link #applyAndSwap}
+ *       and {@link #queueEBSUpdate}; {@link #copyAndModify} builds a modified copy without publishing).</li>
  *   <li>Selective carving of blocks inside a sub-chunk from a bitmask while collecting metadata
- *       such as tile-entity removals and edge contacts (see {@link #copyAndCarve}).</li>
+ *       such as edge contacts (see {@link #copyAndCarve}).</li>
  *   <li>TileEntity lifecycle fix-ups after block-state transitions (see {@link #flushTileEntity}).</li>
  * </ul>
  *
@@ -64,10 +67,11 @@ import static com.hbm.lib.UnsafeHolder.U;
  *       {@link Chunk#getBlockStorageArray} is <em>stable</em> for the lifetime of that {@code Chunk}:
  *       it is created in the constructor and never replaced. Only the <em>elements</em>
  *       ({@code ExtendedBlockStorage} per sub-Y) can be swapped or mutated.</li>
- *   <li>Publishing a new sub-chunk is done via {@link #casEbsAt}; the CAS provides volatile write
- *       semantics for the slot. <strong>Readers must load the slot with a volatile read</strong>
- *       via {@link #getEbsVolatile} to reliably observe swaps.
- *       Direct array reads like {@code arr[subY]} may see stale values.</li>
+ *   <li>Publishing a new sub-chunk is done by <em>enqueuing</em> with {@link #queueEBSUpdate}; the
+ *       actual swap is performed on the <strong>server thread</strong> during
+ *       {@link #onUpdateChunkProvider(WorldServer)} using a <em>volatile array-slot write</em>.
+ *       <strong>Readers must load the slot with a volatile read</strong> via {@link #getEbsVolatile}
+ *       to reliably observe swaps. Direct array reads like {@code arr[subY]} may see stale values.</li>
  * </ul>
  *
  * <h3>Mirror Map</h3>
@@ -97,19 +101,26 @@ import static com.hbm.lib.UnsafeHolder.U;
  * <h3>Safety notes</h3>
  * <ul>
  *   <li>The {@code Chunk}/{@code ExtendedBlockStorage[]} array instance passed to helpers must be current.
- *       If a stale reference is passed, the modification will fail <strong>silently</strong> because
- *       the actual modification happens on an orphaned instance that was supposed to be garbage collected.
+ *       If a stale reference is passed, a modified copy of a stale chunk's EBS/teFlushTask will be scheduled or returned.
  *       This can happen if the chunk was unloaded or reloaded. </li>
- *   <li>{@link #getLoadedChunk} clears the {@link Chunk#unloadQueued} flag on the retrieved chunk
+ *   <li>{@link #getLoadedChunk} and {@link #getLoadedEBS} clears the {@link Chunk#unloadQueued} flag on the retrieved chunk
  *       to reduce races with the provider's unload pass. This can keep the chunk alive slightly
  *       longer but doesn't ensure the chunk is always loaded. Use {@link net.minecraftforge.common.ForgeChunkManager.Ticket}
  *       to enforce this behavior.</li>
  * </ul>
  *
+ * <h3>TE flush contract</h3>
+ * <ul>
+ *   <li>Each sub-chunk has at most one <em>owner</em> (the thread that wins {@link #queueEBSUpdate}).</li>
+ *   <li>Only the owner may enqueue TE flush tasks for that sub-chunk.</li>
+ *   <li>Owner must call {@link #publishTeQueue(int, long)} after finishing enqueueing so the server thread
+ *       can drain them together with the EBS swap.</li>
+ * </ul>
+ *
  * @author mlbv
  */
-@Mod.EventBusSubscriber(modid = RefStrings.MODID)
-public final class ChunkUtil {
+@ApiStatus.Experimental
+public final class ChunkUtilExp implements IWorldEventListener {
 
     private static final long ARR_BASE = U.arrayBaseOffset(ExtendedBlockStorage[].class);
     private static final long ARR_SCALE = U.arrayIndexScale(ExtendedBlockStorage[].class);
@@ -122,39 +133,33 @@ public final class ChunkUtil {
     private static final long IIHBM_BYID_OFFSET = UnsafeHolder.fieldOffset(IntIdentityHashBiMap.class, "byId", "field_186820_d");
     private static final long IIHBM_NEXTFREE_OFFSET = UnsafeHolder.fieldOffset(IntIdentityHashBiMap.class, "nextFreeIndex", "field_186821_e");
     private static final long IIHBM_MAPSIZE_OFFSET = UnsafeHolder.fieldOffset(IntIdentityHashBiMap.class, "mapSize", "field_186822_f");
-    private static final long TE_INVALID_OFFSET = UnsafeHolder.fieldOffset(TileEntity.class, "tileEntityInvalid", "field_145846_f");
 
     private static final ThreadLocal<Int2ObjectOpenHashMap<IBlockState>[]> TL_BUCKET = ThreadLocal.withInitial(() -> {
         // noinspection unchecked
         Int2ObjectOpenHashMap<IBlockState>[] maps = new Int2ObjectOpenHashMap[16];
-        for (int i = 0; i < maps.length; i++) {
-            maps[i] = new Int2ObjectOpenHashMap<>();
-        }
+        for (int i = 0; i < maps.length; i++) maps[i] = new Int2ObjectOpenHashMap<>();
         return maps;
     });
     private static final ThreadLocal<Long2ObjectOpenHashMap<IBlockState>> TL_SCRATCH = ThreadLocal.withInitial(Long2ObjectOpenHashMap::new);
     private static final ThreadLocal<IBlockState[]> TL_OVERRIDES = ThreadLocal.withInitial(() -> new IBlockState[4096]);
     private static final IBlockState AIR_DEFAULT_STATE = Blocks.AIR.getDefaultState();
-
-    /**
-     * Dimension → active task count (used to decide when to build/tear down the mirror map).
-     */
+    // <dim, active task count>
     private static final Int2IntOpenHashMap activeTask = new Int2IntOpenHashMap();
-
-    /**
-     * Dimension → (ChunkPos long key → Chunk) mirror. Only present while there are active tasks.
-     */
+    // <dim, <ChunkPos, Chunk>>
     private static final NonBlockingHashMapLong<NonBlockingHashMapLong<Chunk>> chunkMap = new NonBlockingHashMapLong<>();
+    // <dim, <SubChunkKey, newEBS>>
+    private static final NonBlockingHashMapLong<NonBlockingHashMapLong<ExtendedBlockStorage>> ebsPutMap = new NonBlockingHashMapLong<>();
+    // <dim, <SubChunkKey, TEQueue>>; Only the EBS-winner creates/fills the TEQueue, then calls publishTeQueue().
+    private static final NonBlockingHashMapLong<NonBlockingHashMapLong<TEQueue>> teFlushQueues = new NonBlockingHashMapLong<>();
 
-    /**
-     * Heuristic threshold: switch to dense path when sub-chunk updates exceed roughly 1/3 of 4096.
-     */
     private static final int DENSE_THRESHOLD = 4096 / 3;
+    private static final ChunkUtilExp INSTANCE = new ChunkUtilExp();
+    // NonBlockingHashMapLong supports neither null value nor a custom default value, this is a workaround
+    private static final ExtendedBlockStorage NULL_EBS = UnsafeHolder.allocateInstance(ExtendedBlockStorage.class);
+    private static int refCounter = 0; // mutated only on server thread
 
-    /**
-     * Global reference count across all dimensions indicating how many concurrent tasks are active.
-     */
-    private static int refCounter = 0;
+    private ChunkUtilExp() {
+    }
 
     /**
      * Build (or reference) the mirror map for the given dimension and increment its task count.
@@ -173,13 +178,13 @@ public final class ChunkUtil {
             // This parallel traversal assumes the server thread is quiescent for this world's provider
             world.getChunkProvider().loadedChunks.values().parallelStream().forEach(chunk -> thisDim.put(ChunkPos.asLong(chunk.x, chunk.z), chunk));
             chunkMap.put(key, thisDim);
+            teFlushQueues.computeIfAbsent(key, k -> new NonBlockingHashMapLong<>());
+            ebsPutMap.computeIfAbsent(key, k -> new NonBlockingHashMapLong<>());
         }
-        refCounter++;
-        if (GeneralConfig.enableExtendedLogging) {
-            MainRegistry.logger.info(
-                    "Acquired mirror map for dimension {}. Active tasks of this dim = {}, refCounter = {}.\nAll active dimensions: {}", key,
-                    activeTask.get(key), refCounter, chunkMap.keySetLong());
-        }
+        if (refCounter++ == 0) WorldEventRegistry.register(INSTANCE);
+        if (GeneralConfig.enableExtendedLogging) MainRegistry.logger.info(
+                "Acquired mirror map for dimension {}. Active tasks of this dim = {}, refCounter = {}.\nAll active dimensions: {}", key,
+                activeTask.get(key), refCounter, chunkMap.keySetLong());
     }
 
     /**
@@ -194,8 +199,18 @@ public final class ChunkUtil {
     @ServerThread
     public static void releaseMirrorMap(@NotNull WorldServer world) {
         int key = world.provider.getDimension();
-        if (activeTask.addTo(key, -1) == 1) chunkMap.remove(key);
-        refCounter--;
+        int cur = activeTask.get(key);
+        if (cur <= 0) {
+            if (GeneralConfig.enableExtendedLogging)
+                MainRegistry.logger.warn("releaseMirrorMap ignored for dim {} (already drained/unloaded). refCounter={}", key, refCounter);
+            return;
+        }
+        if (activeTask.addTo(key, -1) == 1) {
+            chunkMap.remove(key);
+            teFlushQueues.remove(key);
+            ebsPutMap.remove(key);
+        }
+        if (--refCounter == 0) WorldEventRegistry.unregister(INSTANCE);
         if (GeneralConfig.enableExtendedLogging) {
             MainRegistry.logger.info(
                     "Released mirror map for dimension {}. Active tasks of this dim = {}, refCounter = {}.\nAll active dimensions: {}", key,
@@ -227,49 +242,6 @@ public final class ChunkUtil {
         if (chunk == null) return null;
         U.putBooleanVolatile(chunk, UNLOAD_QUEUED_OFFSET, false);
         return chunk;
-    }
-
-    @SubscribeEvent
-    public static void onChunkLoad(ChunkEvent.Load event) {
-        if (refCounter == 0) return;
-        Chunk chunk = event.getChunk();
-        World world = chunk.getWorld();
-        if (world.isRemote) return;
-        int key = world.provider.getDimension();
-        if (activeTask.get(key) == 0) return;
-        NonBlockingHashMapLong<Chunk> dimMap = chunkMap.get(key);
-        if (dimMap != null) dimMap.put(ChunkPos.asLong(chunk.x, chunk.z), chunk);
-    }
-
-    @SubscribeEvent
-    public static void onChunkUnload(ChunkEvent.Unload event) {
-        if (refCounter == 0) return;
-        Chunk chunk = event.getChunk();
-        World world = chunk.getWorld();
-        if (world.isRemote) return;
-        int key = world.provider.getDimension();
-        NonBlockingHashMapLong<Chunk> dimMap = chunkMap.get(key);
-        if (dimMap != null) dimMap.remove(ChunkPos.asLong(chunk.x, chunk.z));
-    }
-
-    @SubscribeEvent
-    public static void onWorldUnload(WorldEvent.Unload event) {
-        World world = event.getWorld();
-        if (world.isRemote) return;
-        int key = world.provider.getDimension();
-        if (GeneralConfig.enableExtendedLogging)
-            MainRegistry.logger.info("Dimension {} unloaded with {} active tasks. refCounter = {}", key, activeTask.get(key), refCounter);
-        activeTask.put(key, 0);
-        chunkMap.remove(key);
-    }
-
-    public static void onServerStopping() {
-        chunkMap.clear();
-        activeTask.clear();
-        if (GeneralConfig.enableExtendedLogging)
-            MainRegistry.logger.info("Server stopping with {} active tasks, refCounter = {}", Arrays.stream(activeTask.values().toIntArray()).sum(),
-                    refCounter);
-        refCounter = 0;
     }
 
     /**
@@ -325,8 +297,7 @@ public final class ChunkUtil {
 
     /**
      * Produce a modified copy of the target sub-chunk by <em>carving out</em> positions marked in
-     * {@code bs}. For every non-air block removed, tile-entity removals and edge contacts are
-     * recorded.
+     * {@code bs}. For every non-air block removed, edge contacts are recorded to {@code edgeOut}.
      *
      * <p>Edge contact logic: if a removed block position is adjacent to a non-air block outside the
      * sub-chunk bounds (±X/±Z neighbor chunks or the subchunk above/below), the removed block's
@@ -337,22 +308,25 @@ public final class ChunkUtil {
      *
      * <p>Neighbor reads are done via {@link #getLoadedEBS(WorldServer, long)} using the mirror map.</p>
      *
-     * @param world      the world (for height and skylight info)
-     * @param chunkX     chunk X coordinate
-     * @param chunkZ     chunk Z coordinate
-     * @param subY       sub-chunk Y index (0..height/16-1)
-     * @param srcs       the source chunk's {@code ExtendedBlockStorage[]} array
-     * @param bs         bitset of positions to carve; bits are ordered by descending global Y
-     * @param teRemovals sink of global packed positions whose TEs should be removed
-     * @param edgeOut    sink of global packed positions that touch non-air outside the sub-chunk
+     * <p><b>Note:</b> TE flush tasks are <em>not</em> enqueued here; they must be queued by the thread
+     * that successfully calls {@link #queueEBSUpdate(int, long, ExtendedBlockStorage)} for the same sub-chunk.</p>
+     *
+     * @param world   the world (for height and skylight info)
+     * @param chunkX  chunk X coordinate
+     * @param chunkZ  chunk Z coordinate
+     * @param subY    sub-chunk Y index (0..height/16-1)
+     * @param srcs    the source chunk's {@code ExtendedBlockStorage[]} array
+     * @param bs      bitset of positions to carve; bits are ordered by descending global Y
+     * @param edgeOut sink of global packed positions that touch non-air outside the sub-chunk
      * @return a copied {@link ExtendedBlockStorage} with carved positions set to air, or
      * {@code null} if the source is empty.
      */
     @ThreadSafeMethod
-    @Contract(mutates = "param7, param8") // teRemovals and edgeOut
+    @Contract(mutates = "param7") // edgeOut
     public static @Nullable ExtendedBlockStorage copyAndCarve(@NotNull WorldServer world, int chunkX, int chunkZ, int subY,
                                                               @Nullable ExtendedBlockStorage @NotNull [] srcs, @NotNull ConcurrentBitSet bs,
-                                                              @NotNull LongCollection teRemovals, @NotNull LongCollection edgeOut) {
+                                                              @NotNull LongCollection edgeOut,
+                                                              @Nullable Long2ObjectMap<@NotNull IBlockState> oldStatesOut) {
         ExtendedBlockStorage src = getEbsVolatile(srcs, subY);
         if (src == null || src.isEmpty()) return null;
         final boolean hasSky = world.provider.hasSkyLight();
@@ -376,7 +350,7 @@ public final class ChunkUtil {
             final Block oldBlock = old.getBlock();
             if (oldBlock != Blocks.AIR) {
                 final long packed = Library.blockPosToLong(xGlobal, yGlobal, zGlobal);
-                if (oldBlock.hasTileEntity(old)) teRemovals.add(packed);
+                if (oldStatesOut != null) oldStatesOut.put(packed, old);
                 boolean touchesOutsideNonAir = false;
                 if (yLocal == 0 && subY > 0) {
                     ExtendedBlockStorage below = srcs[subY - 1];
@@ -447,20 +421,39 @@ public final class ChunkUtil {
     }
 
     /**
-     * Atomically swap a sub-chunk slot using a single compare-and-swap (CAS).
+     * Queue an update for a sub-chunk slot. Must be called after {@link #acquireMirrorMap}.
+     * The server thread applies queued updates in {@link #onUpdateChunkProvider(WorldServer)} via a
+     * volatile write to the corresponding array slot.
      *
-     * @param expect the expected current value in {@code arr[subY]}.
-     *               The CAS is guaranteed to fail if the reference is stale.
-     * @param update the value to publish on success (can be {@code null})
-     * @param arr    the chunk's {@code ExtendedBlockStorage[]} array
-     * @param subY   the sub-chunk Y index
-     * @return {@code true} if the swap succeeded; {@code false} if the expected value did not match
+     * <p>On success, this method also installs an empty TE queue for the sub-chunk, owned by the caller.</p>
+     *
+     * @return true if successfully added to the queue (first-writer-wins per sub-chunk until publish),
+     * false if another update for the same sub-chunk is already pending
+     * @throws NullPointerException if {@link #ebsPutMap} at the requested dimension hasn't been initialized.
      */
     @ThreadSafeMethod
-    public static boolean casEbsAt(@Nullable ExtendedBlockStorage expect, @Nullable ExtendedBlockStorage update,
-                                   @Nullable ExtendedBlockStorage @NotNull [] arr, int subY) {
-        final long off = ARR_BASE + ((long) subY) * ARR_SCALE;
-        return U.compareAndSwapObject(arr, off, expect, update);
+    public static boolean queueEBSUpdate(int dim, long subChunkKey, @Nullable ExtendedBlockStorage update) {
+        var bySub = ebsPutMap.get(dim);
+        ExtendedBlockStorage val = (update == null ? NULL_EBS : update);
+        if (bySub.putIfAbsent(subChunkKey, val) == null) {
+            // I'm the winner: create the inner TE queue with ready=false
+            teFlushQueues.get(dim).putIfAbsent(subChunkKey, new TEQueue());
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Mark the TE queue for this sub-chunk as ready to drain on the server thread.
+     * Safe to call from worker threads; should be called by the EBS owner after
+     * finishing all {@link #queueTileEntityFlush} calls (even if there were none).
+     */
+    @ThreadSafeMethod
+    public static void publishTeQueue(int dim, long subChunkKey) {
+        var bySub = teFlushQueues.get(dim);
+        if (bySub == null) return;
+        var q = bySub.get(subChunkKey);
+        if (q != null) q.ready = true;
     }
 
     /**
@@ -492,10 +485,11 @@ public final class ChunkUtil {
     }
 
     /**
-     * Internal helper: copy block/skylight nibble arrays, palette+storage and ref counts from
+     * Copy block/skylight nibble arrays, palette+storage and ref counts from
      * {@code src} to {@code dst}.
      */
-    private static void copyEBS(boolean hasSky, @NotNull ExtendedBlockStorage src, @NotNull ExtendedBlockStorage dst) {
+    @ThreadSafeMethod
+    public static void copyEBS(boolean hasSky, @NotNull ExtendedBlockStorage src, @NotNull ExtendedBlockStorage dst) {
         dst.data = copyOf(src.getData());
         if (!(src instanceof SubChunkSnapshot)) {
             dst.blockLight = new NibbleArray(src.getBlockLight().getData().clone());
@@ -506,8 +500,11 @@ public final class ChunkUtil {
     }
 
     /**
-     * Apply block-state changes to a chunk <em>in place</em> using a copy-on-write strategy and a
-     * per-subchunk CAS publish. This method retries when the CAS fails due to concurrent swaps.
+     * Apply block-state changes to a chunk <em>in place</em> using a copy-on-write strategy and
+     * <em>server-thread publication</em>. Off-thread, this builds modified sub-chunk copies and
+     * enqueues them; the server thread performs the actual swap on the next update pass.
+     * If enqueueing loses a race against a concurrent update for the same sub-chunk, this method
+     * retries by re-reading the latest source and attempting to enqueue again.
      *
      * <p>The provided {@code function} must return a map of <strong>global packed block position</strong>
      * (see {@link Library#blockPosToLong(int, int, int)}) to <strong>new</strong> {@link IBlockState}
@@ -515,8 +512,9 @@ public final class ChunkUtil {
      * ignored.</p>
      *
      * <p>For each sub-chunk touched, this method builds a working copy, applies changes, and attempts
-     * a CAS publish. If the CAS fails due to a concurrent swap, it retries by reading the latest
-     * source again. Two paths are used:
+     * to enqueue it with {@link #queueEBSUpdate}. If enqueueing fails because another update is
+     * already pending for that sub-chunk, it retries by reading the latest source again.
+     * Two paths are used:
      * <ul>
      *   <li><em>Sparse path</em> (updates &lt; {@link #DENSE_THRESHOLD}): iterate only the changed
      *       indices.</li>
@@ -524,10 +522,14 @@ public final class ChunkUtil {
      * </ul>
      * </p>
      *
-     * <p>If {@code oldStatesOut} is non-null, it is populated <em>only after</em> a successful CAS
-     * with the <strong>old</strong> states of all positions changed in that sub-chunk, using global
-     * packed positions. Only entries that actually changed (identity compare) are emitted, and the
-     * old state may be {@link Blocks#AIR}'s default state when the sub-chunk was empty.</p>
+     * <p>If {@code oldStatesOut} is non-null, it is populated <em>only after</em> the update
+     * is successfully <em>enqueued</em> with the <strong>old</strong> states of all positions
+     * changed in that sub-chunk, using global packed positions. Only entries that actually changed
+     * (identity compare) are emitted, and the old state may be {@link Blocks#AIR}'s default state
+     * when the sub-chunk was empty.</p>
+     *
+     * <p>After enqueueing the EBS update and queuing any TE flushes for changed positions,
+     * this method calls {@link #publishTeQueue(int, long)} to hand off the work to the server thread.</p>
      *
      * @param chunk        the chunk to mutate
      * @param function     producer of desired mutations; may return {@code null} or an empty map to signal no-op;
@@ -545,10 +547,10 @@ public final class ChunkUtil {
 
         final WorldServer world = (WorldServer) chunk.getWorld();
         final boolean hasSky = world.provider.hasSkyLight();
+        final int dim = world.provider.getDimension();
         final int height = world.getHeight();
         final int chunkX = chunk.x, chunkZ = chunk.z;
         final ExtendedBlockStorage[] arr = chunk.getBlockStorageArray();
-
         final Int2ObjectOpenHashMap<IBlockState>[] bySub = TL_BUCKET.get();
         for (Int2ObjectOpenHashMap<IBlockState> map : bySub) map.clear();
 
@@ -567,10 +569,10 @@ public final class ChunkUtil {
             b.put(Library.packLocal(x & 15, y & 15, z & 15), e.getValue());
         }
 
-        final Long2ObjectOpenHashMap<IBlockState> subScratch = oldStatesOut == null ? null : TL_SCRATCH.get();
+        final Long2ObjectOpenHashMap<IBlockState> subScratch = TL_SCRATCH.get();
 
         for (int subY = 0; subY < 16; subY++) {
-            if (subScratch != null) subScratch.clear();
+            subScratch.clear();
             final Int2ObjectOpenHashMap<IBlockState> bucket = bySub[subY];
             if (bucket == null || bucket.isEmpty()) continue;
 
@@ -608,18 +610,29 @@ public final class ChunkUtil {
                         working.set(lx, ly, lz, ns);
                         any = true;
 
-                        if (subScratch != null) {
-                            final long gpos = Library.blockPosToLong(xBase | lx, yBase | ly, zBase | lz);
-                            subScratch.put(gpos, os);
-                        }
+                        final long gpos = Library.blockPosToLong(xBase | lx, yBase | ly, zBase | lz);
+                        subScratch.put(gpos, os);
                     }
 
                     if (!any) break;
                     final ExtendedBlockStorage update = working.isEmpty() ? null : working;
-                    if (casEbsAt(src, update, arr, subY)) {
+                    final long subKey = SubChunkKey.asLong(chunkX, chunkZ, subY);
+                    if (queueEBSUpdate(dim, subKey, update)) {
                         if (oldStatesOut != null) oldStatesOut.putAll(subScratch);
+                        // only the winner enqueues TE flushes for changed entries
+                        for (Int2ObjectMap.Entry<IBlockState> e : bucket.int2ObjectEntrySet()) {
+                            final int local = e.getIntKey();
+                            final int lx = Library.unpackLocalX(local);
+                            final int ly = Library.unpackLocalY(local);
+                            final int lz = Library.unpackLocalZ(local);
+                            final long gpos = Library.blockPosToLong((chunkX << 4) | lx, (subY << 4) | ly, (chunkZ << 4) | lz);
+                            final IBlockState oldState = subScratch.get(gpos);
+                            if (oldState != null) queueTileEntityFlushIfNeeded(dim, gpos, oldState, e.getValue());
+                        }
+                        publishTeQueue(dim, subKey);
                         break;
-                    } else if (subScratch != null) {
+                    } else {
+                        // Lost the enqueue race; clear and retry with the latest source.
                         subScratch.clear();
                     }
                 }
@@ -659,20 +672,33 @@ public final class ChunkUtil {
                         working.set(lx, ly, lz, newState);
                         any = true;
 
-                        if (subScratch != null) {
-                            final int x = indexToX(idx, chunkX);
-                            final int y = indexToY(idx) | (subY << 4);
-                            final int z = indexToZ(idx, chunkZ);
-                            subScratch.put(Library.blockPosToLong(x, y, z), oldState);
-                        }
+                        final int x = indexToX(idx, chunkX);
+                        final int y = indexToY(idx) | (subY << 4);
+                        final int z = indexToZ(idx, chunkZ);
+                        subScratch.put(Library.blockPosToLong(x, y, z), oldState);
                     }
 
                     if (!any) break;
                     final ExtendedBlockStorage update = working.isEmpty() ? null : working;
-                    if (casEbsAt(src, update, arr, subY)) {
+                    final long subKey = SubChunkKey.asLong(chunkX, chunkZ, subY);
+                    if (queueEBSUpdate(dim, subKey, update)) {
                         if (oldStatesOut != null) oldStatesOut.putAll(subScratch);
+                        final int xBase = chunkX << 4, yBase = subY << 4, zBase = chunkZ << 4;
+                        for (Int2ObjectMap.Entry<IBlockState> e : bucket.int2ObjectEntrySet()) {
+                            final int local = e.getIntKey();
+                            final int lx = Library.unpackLocalX(local);
+                            final int ly = Library.unpackLocalY(local);
+                            final int lz = Library.unpackLocalZ(local);
+                            final long gpos = Library.blockPosToLong(xBase | lx, yBase | ly, zBase | lz);
+                            final IBlockState oldState = subScratch.get(gpos);
+                            if (oldState != null) { // changed
+                                queueTileEntityFlushIfNeeded(dim, gpos, oldState, e.getValue());
+                            }
+                        }
+                        publishTeQueue(dim, subKey);
                         break;
-                    } else if (subScratch != null) {
+                    } else {
+                        // Lost the enqueue race; clear and retry.
                         subScratch.clear();
                     }
                 }
@@ -697,8 +723,10 @@ public final class ChunkUtil {
      */
     @ThreadSafeMethod
     @SuppressWarnings("OptionalAssignedToNull")
-    public static @Nullable Optional<ExtendedBlockStorage> copyAndModify(int chunkX, int chunkZ, int subY, boolean hasSky, @Nullable ExtendedBlockStorage src
-            , @NotNull Int2ObjectMap<@NotNull IBlockState> toUpdate, @Nullable Long2ObjectMap<@NotNull IBlockState> oldStatesOut) {
+    public static @Nullable Optional<ExtendedBlockStorage> copyAndModify(int chunkX, int chunkZ, int subY, boolean hasSky,
+                                                                         @Nullable ExtendedBlockStorage src,
+                                                                         @NotNull Int2ObjectMap<@NotNull IBlockState> toUpdate,
+                                                                         @Nullable Long2ObjectMap<@NotNull IBlockState> oldStatesOut) {
         if (toUpdate.isEmpty()) return null;
 
         ExtendedBlockStorage dst = null;
@@ -706,7 +734,6 @@ public final class ChunkUtil {
         final int xBase = chunkX << 4;
         final int yBase = subY << 4;
         final int zBase = chunkZ << 4;
-
         for (Int2ObjectMap.Entry<IBlockState> e : toUpdate.int2ObjectEntrySet()) {
             final int packedLocal = e.getIntKey();
             final int lx = Library.unpackLocalX(packedLocal);
@@ -730,13 +757,11 @@ public final class ChunkUtil {
             }
 
             // record OLD state before change
-            if (oldStatesOut != null) {
-                final int xGlobal = xBase | lx;
-                final int yGlobal = yBase | ly;
-                final int zGlobal = zBase | lz;
-                oldStatesOut.put(Library.blockPosToLong(xGlobal, yGlobal, zGlobal), oldState);
-            }
-
+            final int xGlobal = xBase | lx;
+            final int yGlobal = yBase | ly;
+            final int zGlobal = zBase | lz;
+            final long longPos = Library.blockPosToLong(xGlobal, yGlobal, zGlobal);
+            if (oldStatesOut != null) oldStatesOut.put(longPos, oldState);
             dst.set(lx, ly, lz, newState);
             anyChange = true;
         }
@@ -779,16 +804,39 @@ public final class ChunkUtil {
     }
 
     /**
-     * Mark a {@link TileEntity} as invalid via a volatile store to its internal flag.
+     * Queue a TE flush to run on the next main-thread TE phase for the given dimension if either
+     * the old or new state has a TE.
+     * Safe to call from worker threads. Only succeeds for the EBS-winner (owner).
+     *
+     * @return true if added, false if there is no owned queue (not winner / not yet enqueued / already published).
+     * @throws NullPointerException if the dim-specific structures haven't been initialized.
      */
     @ThreadSafeMethod
-    public static void invalidateTE(TileEntity te) {
-        U.putBooleanVolatile(te, TE_INVALID_OFFSET, true);
+    public static boolean queueTileEntityFlushIfNeeded(int dimension, long packedBlockPos, @NotNull IBlockState oldState,
+                                                       @NotNull IBlockState newState) {
+        Block ob = oldState.getBlock();
+        Block nb = newState.getBlock();
+        if (ob != nb || ob.hasTileEntity(oldState) || nb.hasTileEntity(newState)) {
+            return queueTileEntityFlush(dimension, packedBlockPos, oldState);
+        } else return true;
     }
 
     /**
-     * @return the X component of a packed chunk-key ({@code x | (z << 32)}).
+     * Queue a TE flush to run on the next main-thread TE phase for the given dimension.
+     * Safe to call from worker threads. Only succeeds for the EBS-winner (owner).
+     *
+     * @return true if added, false if not owner or queue already published.
+     * @throws NullPointerException if the dim-specific structures haven't been initialized.
      */
+    @ThreadSafeMethod
+    public static boolean queueTileEntityFlush(int dimension, long packedBlockPos, @NotNull IBlockState oldState) {
+        long subchunkkey = SubChunkKey.fromPackedBlockPosLong(packedBlockPos);
+        // noinspection DataFlowIssue
+        TEQueue q = teFlushQueues.get(dimension).get(subchunkkey);
+        if (q == null || q.ready) return false; // not owner or already published
+        return q.map.putIfAbsent(packedBlockPos, new FlushTask(packedBlockPos, oldState)) == null;
+    }
+
     @Contract(pure = true)
     public static int getChunkPosX(long chunkKey) {
         return (int) (chunkKey & 0xFFFFFFFFL);
@@ -824,5 +872,126 @@ public final class ChunkUtil {
     @Contract(pure = true)
     public static int indexToZ(int index, int chunkZ) {
         return (chunkZ << 4) | ((index >>> 4) & 15);
+    }
+
+    /// ------------------------------------------------- INTERNALS ------------------------------------------------- ///
+
+    @SubscribeEvent
+    public static void onChunkLoad(ChunkEvent.Load event) {
+        if (refCounter == 0) return;
+        Chunk chunk = event.getChunk();
+        World world = chunk.getWorld();
+        if (world.isRemote) return;
+        int key = world.provider.getDimension();
+        if (activeTask.get(key) == 0) return;
+        NonBlockingHashMapLong<Chunk> dimMap = chunkMap.get(key);
+        if (dimMap != null) dimMap.put(ChunkPos.asLong(chunk.x, chunk.z), chunk);
+    }
+
+    @SubscribeEvent
+    public static void onChunkUnload(ChunkEvent.Unload event) {
+        if (refCounter == 0) return;
+        Chunk chunk = event.getChunk();
+        World world = chunk.getWorld();
+        if (world.isRemote) return;
+        int key = world.provider.getDimension();
+        NonBlockingHashMapLong<Chunk> dimMap = chunkMap.get(key);
+        if (dimMap != null) dimMap.remove(ChunkPos.asLong(chunk.x, chunk.z));
+    }
+
+    @SubscribeEvent
+    public static void onWorldUnload(WorldEvent.Unload event) {
+        World world = event.getWorld();
+        if (world.isRemote) return;
+        int key = world.provider.getDimension();
+        int tasks = activeTask.get(key);
+        if (tasks < 0) tasks = 0;
+        if (tasks > 0) {
+            refCounter -= tasks;
+            if (refCounter < 0) throw new IllegalStateException("refCounter went negative");
+        }
+        activeTask.remove(key);
+        chunkMap.remove(key);
+        teFlushQueues.remove(key);
+        ebsPutMap.remove(key);
+        if (refCounter == 0) {
+            WorldEventRegistry.unregister(INSTANCE);
+        }
+        if (GeneralConfig.enableExtendedLogging) {
+            MainRegistry.logger.info("Dimension {} unloaded; drained {} active tasks. refCounter = {}", key, tasks, refCounter);
+        }
+    }
+
+    public static void onServerStopping() {
+        chunkMap.clear();
+        activeTask.clear();
+        teFlushQueues.clear();
+        ebsPutMap.clear();
+        WorldEventRegistry.unregister(INSTANCE);
+        if (GeneralConfig.enableExtendedLogging) {
+            MainRegistry.logger.info("Server stopping with {} active tasks, refCounter = {}", Arrays.stream(activeTask.values().toIntArray()).sum(),
+                    refCounter);
+        }
+        refCounter = 0;
+    }
+
+    @Override
+    public void onUpdateChunkProvider(WorldServer server) {
+        int dim = server.provider.getDimension();
+        if (activeTask.get(dim) == 0) return;
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        var chunkProvider = server.getChunkProvider();
+        var dimMap = ebsPutMap.get(dim);
+        var dimTeMap = teFlushQueues.get(dim);
+        if (dimTeMap != null && dimMap != null) {
+            long[] keys = dimTeMap.keySetLong();
+            for (long k : keys) {
+                if (!dimMap.containsKey(k)) {
+                    dimTeMap.remove(k);
+                }
+            }
+        }
+        // noinspection DataFlowIssue
+        dimMap.forEachFast((long subChunkKey, ExtendedBlockStorage ebs) -> {
+            TEQueue q = dimTeMap.get(subChunkKey);
+            if (q != null && !q.ready) return;
+
+            Chunk chunk = chunkProvider.loadedChunks.get(SubChunkKey.getPosLong(subChunkKey));
+            if (chunk == null) return;
+            else chunk.unloadQueued = false;
+
+            final long off = ARR_BASE + ((long) SubChunkKey.getSubY(subChunkKey)) * ARR_SCALE;
+            U.putObjectVolatile(chunk.getBlockStorageArray(), off, ebs == NULL_EBS ? null : ebs);
+            chunk.markDirty();
+
+            if (q != null) {
+                var teEntrySet = q.map.long2ObjectEntrySet();
+                for (var teE : teEntrySet) {
+                    long key = teE.getLongKey();
+                    Library.fromLong(pos, key);
+                    FlushTask task = teE.getValue();
+                    IBlockState newState = chunk.getBlockState(pos);
+                    flushTileEntity(chunk, pos, task.oldState, newState);
+                }
+                dimTeMap.remove(subChunkKey, q);
+            }
+
+            dimMap.remove(subChunkKey, ebs);
+        });
+    }
+
+    private static final class TEQueue {
+        final Long2ObjectOpenHashMap<FlushTask> map = new Long2ObjectOpenHashMap<>();
+        volatile boolean ready;
+    }
+
+    private static final class FlushTask {
+        final long packedPos;
+        final IBlockState oldState;
+
+        FlushTask(long packedPos, IBlockState oldState) {
+            this.packedPos = packedPos;
+            this.oldState = oldState;
+        }
     }
 }
