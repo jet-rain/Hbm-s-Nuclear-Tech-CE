@@ -2,8 +2,10 @@ package com.hbm.blocks.machine;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.lib.InventoryHelper;
+import com.hbm.lib.Library;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.machine.TileEntityDiFurnace;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.BlockHorizontal;
 import net.minecraft.block.material.Material;
@@ -167,34 +169,27 @@ public class MachineDiFurnace extends BlockContainer {
 	public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
 		worldIn.setBlockState(pos, state.withProperty(FACING, placer.getHorizontalFacing().getOpposite()), 2);
 	}
-	
-	public static void updateBlockState(boolean isProcessing, boolean ext, World world, BlockPos pos){
-		IBlockState i = world.getBlockState(pos);
-		TileEntity entity = world.getTileEntity(pos);
+
+	public static void updateBlockState(boolean isProcessing, boolean ext, World world, BlockPos pos) {
+		IBlockState cur = world.getBlockState(pos);
+		TileEntity te = world.getTileEntity(pos);
+		Block target = isProcessing ? ModBlocks.machine_difurnace_on : ModBlocks.machine_difurnace_off;
+		IBlockState ns = (cur.getBlock() == target) ? cur : target.getDefaultState();
+		if (cur.getPropertyKeys().contains(FACING) && ns.getPropertyKeys().contains(FACING))
+			ns = ns.withProperty(FACING, cur.getValue(FACING));
+		if (ns.getPropertyKeys().contains(EXT)) ns = ns.withProperty(EXT, ext);
+		boolean oldKeep = keepInventory;
 		keepInventory = true;
-
-		IBlockState newState = i;
-		if(isProcessing && i.getBlock() != ModBlocks.machine_difurnace_on)
-		{
-			newState = ModBlocks.machine_difurnace_on.getDefaultState();
-		}else if (!isProcessing && i.getBlock() != ModBlocks.machine_difurnace_off){
-			newState = ModBlocks.machine_difurnace_off.getDefaultState();
+		if (ns != cur) {
+			world.setBlockState(pos, ns, 2);
 		}
-
-		newState = newState.withProperty(FACING, i.getValue(FACING)).withProperty(EXT, ext);
-
-		if (newState != i) {
-			world.setBlockState(pos, newState, 2);
-		}
-
-		keepInventory = false;
-		
-		if(entity != null) {
-			entity.validate();
-			world.setTileEntity(pos, entity);
+		keepInventory = oldKeep;
+		if (te != null) {
+			te.validate();
+			world.setTileEntity(pos, te);
 		}
 	}
-	
+
 	@Override
 	@SideOnly(Side.CLIENT)
 	public void randomDisplayTick(IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {

@@ -2,6 +2,7 @@ package com.hbm.blocks.machine;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.lib.InventoryHelper;
+import com.hbm.lib.Library;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.machine.TileEntityMachineElectricFurnace;
 import net.minecraft.block.BlockContainer;
@@ -121,22 +122,18 @@ public class MachineElectricFurnace extends BlockContainer {
 			return false;
 		}
 	}
-	
+
 	public static void updateBlockState(boolean isProcessing, World world, BlockPos pos) {
-		EnumFacing e = world.getBlockState(pos).getValue(FACING);
+		IBlockState cur = world.getBlockState(pos);
 		TileEntity entity = world.getTileEntity(pos);
 		keepInventory = true;
-		
-		if(isProcessing && world.getBlockState(pos).getBlock() != ModBlocks.machine_electric_furnace_on)
-		{
-			world.setBlockState(pos, ModBlocks.machine_electric_furnace_on.getDefaultState().withProperty(FACING, e));
-		}else if (!isProcessing && world.getBlockState(pos).getBlock() != ModBlocks.machine_electric_furnace_off){
-			world.setBlockState(pos, ModBlocks.machine_electric_furnace_off.getDefaultState().withProperty(FACING, e));
+		IBlockState newState =
+				Library.changeBlockState(ModBlocks.machine_electric_furnace_on, ModBlocks.machine_electric_furnace_off, cur, FACING, isProcessing);
+		if (newState != null && newState != cur) {
+			world.setBlockState(pos, newState, 2);
 		}
-		
 		keepInventory = false;
-		
-		if(entity != null) {
+		if (entity != null) {
 			entity.validate();
 			world.setTileEntity(pos, entity);
 		}

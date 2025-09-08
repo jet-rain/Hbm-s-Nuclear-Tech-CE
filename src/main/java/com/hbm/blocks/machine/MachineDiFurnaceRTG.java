@@ -2,6 +2,7 @@ package com.hbm.blocks.machine;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.lib.InventoryHelper;
+import com.hbm.lib.Library;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.machine.TileEntityDiFurnaceRTG;
 import net.minecraft.block.BlockContainer;
@@ -162,22 +163,18 @@ public class MachineDiFurnaceRTG extends BlockContainer {
 	public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
 		worldIn.setBlockState(pos, state.withProperty(FACING, placer.getHorizontalFacing().getOpposite()), 2);
 	}
-	
-	public static void updateBlockState(boolean isProcessing, World world, BlockPos pos){
-		IBlockState i = world.getBlockState(pos);
+
+	public static void updateBlockState(boolean isProcessing, World world, BlockPos pos) {
+		IBlockState cur = world.getBlockState(pos);
 		TileEntity entity = world.getTileEntity(pos);
 		keepInventory = true;
-		
-		if(isProcessing && i.getBlock() != ModBlocks.machine_difurnace_rtg_on)
-		{
-			world.setBlockState(pos, ModBlocks.machine_difurnace_rtg_on.getDefaultState().withProperty(FACING, i.getValue(FACING)), 2);
-		}else if (!isProcessing && i.getBlock() != ModBlocks.machine_difurnace_rtg_off){
-			world.setBlockState(pos, ModBlocks.machine_difurnace_rtg_off.getDefaultState().withProperty(FACING, i.getValue(FACING)), 2);
+		IBlockState newState =
+				Library.changeBlockState(ModBlocks.machine_difurnace_rtg_on, ModBlocks.machine_difurnace_rtg_off, cur, FACING, isProcessing);
+		if (newState != null && newState != cur) {
+			world.setBlockState(pos, newState, 2);
 		}
-		
 		keepInventory = false;
-		
-		if(entity != null) {
+		if (entity != null) {
 			entity.validate();
 			world.setTileEntity(pos, entity);
 		}

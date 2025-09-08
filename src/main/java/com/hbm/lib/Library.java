@@ -28,6 +28,7 @@ import com.hbm.util.InventoryUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -1612,5 +1613,37 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
 	@Contract(pure = true)
 	public static int unpackLocalZ(int packedLocal) {
 		return (packedLocal >>> 4) & 0xF;
+	}
+
+	@Nullable
+	public static <T extends Comparable<T>> IBlockState changeBlockState(Block trueState, Block falseState, IBlockState state,
+																		 IProperty<T> preservingProperty, boolean flag) {
+		if (!state.getPropertyKeys().contains(preservingProperty)) return null;
+		Block current = state.getBlock();
+		if (current != trueState && current != falseState) return null;
+		T value = state.getValue(preservingProperty);
+		IBlockState newState = flag ? trueState.getDefaultState() : falseState.getDefaultState();
+		if (newState.getBlock() == current) return null;
+		return newState.withProperty(preservingProperty, value);
+	}
+
+	@Nullable
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	public static IBlockState changeBlockState(Block trueState, Block falseState, IBlockState state, boolean flag, IProperty<?>... preserveProps) {
+		Block current = state.getBlock();
+		if (current != trueState && current != falseState) return null;
+		IBlockState newState = flag ? trueState.getDefaultState() : falseState.getDefaultState();
+		if (newState.getBlock() == current) return null;
+
+		if (preserveProps != null) {
+			for (IProperty<?> p : preserveProps) {
+				if (p == null) continue;
+				if (state.getPropertyKeys().contains(p) && newState.getPropertyKeys().contains(p)) {
+                    Comparable val = state.getValue((IProperty) p);
+					newState = newState.withProperty((IProperty) p, val);
+				}
+			}
+		}
+		return newState;
 	}
 }

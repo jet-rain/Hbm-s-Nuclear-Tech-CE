@@ -2,6 +2,7 @@ package com.hbm.blocks.machine;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.lib.InventoryHelper;
+import com.hbm.lib.Library;
 import com.hbm.main.MainRegistry;
 import com.hbm.render.block.BlockBakeFrame;
 import com.hbm.tileentity.machine.TileEntityFurnaceBrick;
@@ -110,15 +111,9 @@ public class MachineBrickFurnace extends BlockContainerBakeable {
     public static void updateBlockState(boolean isProcessing, World world, BlockPos pos) {
         IBlockState state = world.getBlockState(pos);
         TileEntity entity = world.getTileEntity(pos);
-        EnumFacing facing = state.getValue(FACING);
         keepInventory = true;
-
-        if (isProcessing) {
-            world.setBlockState(pos, ModBlocks.machine_furnace_brick_on.getDefaultState().withProperty(FACING, facing), 3);
-        } else {
-            world.setBlockState(pos, ModBlocks.machine_furnace_brick_off.getDefaultState().withProperty(FACING, facing), 3);
-        }
-
+        IBlockState newState = Library.changeBlockState(ModBlocks.machine_furnace_brick_on, ModBlocks.machine_furnace_brick_off, state, FACING, isProcessing);
+        if (newState != null) world.setBlockState(pos, newState, 3);
         keepInventory = false;
 
         if (entity != null) {
