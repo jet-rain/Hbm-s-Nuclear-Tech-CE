@@ -1,8 +1,6 @@
 package com.hbm.blocks.generic;
 
-import com.hbm.blocks.ModBlocks;
-import com.hbm.tileentity.deco.TileEntityBarrier;
-import net.minecraft.block.BlockContainer;
+import net.minecraft.block.BlockHorizontal;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyDirection;
 import net.minecraft.block.state.BlockFaceShape;
@@ -11,7 +9,6 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -20,14 +17,12 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class BlockBarrier extends BlockContainer {
-  public static final PropertyDirection FACING =
-      PropertyDirection.create("facing", EnumFacing.Plane.HORIZONTAL);
+public class BlockBarrier extends BlockBakeBase {
+  public static final PropertyDirection FACING = BlockHorizontal.FACING;
 
   private static final AxisAlignedBB POS_X = new AxisAlignedBB(0, 0, 0, 0.125, 1, 1);
   private static final AxisAlignedBB NEG_X = new AxisAlignedBB(0.875, 0, 0, 1, 1, 1);
@@ -35,14 +30,9 @@ public class BlockBarrier extends BlockContainer {
   private static final AxisAlignedBB NEG_Z = new AxisAlignedBB(0, 0, 0.875, 1, 1, 1);
 
   public BlockBarrier(Material mat, String name) {
-    super(mat);
-
-    this.setRegistryName(name);
-    this.setTranslationKey(name);
+    super(mat, name);
 
     this.setDefaultState(this.blockState.getBaseState().withProperty(FACING, EnumFacing.NORTH));
-
-    ModBlocks.ALL_BLOCKS.add(this);
   }
 
   @Override
@@ -160,10 +150,5 @@ public class BlockBarrier extends BlockContainer {
       @NotNull BlockPos pos,
       @NotNull EnumFacing side) {
     return true;
-  }
-
-  @Override
-  public @Nullable TileEntity createNewTileEntity(World worldIn, int meta) {
-    return new TileEntityBarrier();
   }
 }
