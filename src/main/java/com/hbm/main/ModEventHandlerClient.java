@@ -6,6 +6,7 @@ import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.TrappedBrick.Trap;
 import com.hbm.blocks.network.FluidDuctBox;
+import com.hbm.blocks.network.FluidDuctStandard;
 import com.hbm.capability.HbmCapability;
 import com.hbm.config.ClientConfig;
 import com.hbm.entity.mob.EntityHunterChopper;
@@ -16,7 +17,6 @@ import com.hbm.forgefluid.SpecialContainerFillLists.EnumCell;
 import com.hbm.forgefluid.SpecialContainerFillLists.EnumGasCanister;
 import com.hbm.handler.*;
 import com.hbm.hazard.HazardSystem;
-import com.hbm.hazard.type.HazardTypeDangerousDrop;
 import com.hbm.interfaces.*;
 import com.hbm.inventory.RecipesCommon.ComparableStack;
 import com.hbm.inventory.RecipesCommon.NbtComparableStack;
@@ -275,7 +275,7 @@ public class ModEventHandlerClient {
 //                            FluidCanisterRender.INSTANCE.setModelLocation(ItemCanister.getStackFromFluid(order[i])));
                 }
 
-                ModelLoader.setCustomModelResourceLocation(ModItems.ff_fluid_duct, order[i].getID(), ItemFFFluidDuct.ductLoc);
+                ModelLoader.setCustomModelResourceLocation(ModItems.fluid_duct, order[i].getID(), ItemFFFluidDuct.ductLoc);
                 if (order[i].getContainer(Fluids.CD_Gastank.class) != null) {
                     ModelLoader.setCustomModelResourceLocation(ModItems.gas_full, order[i].getID(), ItemGasCanister.gasCansiterFullModel);
                 }
@@ -496,7 +496,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         swapModelsNoGui(ModItems.big_sword, reg);
         swapModelsNoGui(ModItems.shimmer_sledge, reg);
         swapModelsNoGui(ModItems.shimmer_axe, reg);
-        swapModels(ModItems.ff_fluid_duct, reg);
+        swapModels(ModItems.fluid_duct, reg);
         swapModelsNoGui(ModItems.stopsign, reg);
         swapModelsNoGui(ModItems.sopsign, reg);
         swapModelsNoGui(ModItems.chernobylsign, reg);
@@ -623,6 +623,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
     @SubscribeEvent
     public void blockColorsEvent(ColorHandlerEvent.Block evt) {
         FluidDuctBox.registerColorHandler(evt);
+        FluidDuctStandard.registerColorHandler(evt);
         IDynamicModels.registerBlockColorHandlers(evt);
     }
 

@@ -120,7 +120,7 @@ public class ItemFFFluidDuct extends Item {
 	}
 	
 	public static ItemStack getStackFromFluid(FluidType f, int amount){
-		return new ItemStack(ModItems.ff_fluid_duct, amount, f.getID());
+		return new ItemStack(ModItems.fluid_duct, amount, f.getID());
 	}
 	
 	public static ItemStack getStackFromFluid(FluidType f){

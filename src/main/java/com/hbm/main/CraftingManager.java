@@ -605,7 +605,6 @@ public class CraftingManager {
 		addShapelessAuto(new ItemStack(ModItems.crystal_charred, 1), SR.dust(), CO.dust(), BR.dust(), NB.dust(), TS.dust(), CE.dust(), ModBlocks.block_meteor, AL.block(), Items.WATER_BUCKET );
 		addRecipeAuto(new ItemStack(ModBlocks.crystal_virus, 1), "STS", "THT", "STS", 'S', ModItems.particle_strange, 'T', W.dust(), 'H', ModItems.crystal_horn );
 		addRecipeAuto(new ItemStack(ModBlocks.crystal_pulsar, 32), "STS", "THT", "STS", 'S', new ItemStack(ModItems.cell, 1, Fluids.UF6.getID()), 'T', AL.dust(), 'H', ModItems.crystal_charred );
-		// TODO: need to port different variants of fluid ducts.. uuuuuugh
 		addRecipeAuto(new ItemStack(ModBlocks.fluid_duct_neo, 8, 0), "SAS", "   ", "SAS", 'S', STEEL.plate(), 'A', AL.plate() );
 		addRecipeAuto(new ItemStack(ModBlocks.fluid_duct_neo, 8, 1), "IAI", "   ", "IAI", 'I', IRON.plate(), 'A', AL.plate() );
 		addRecipeAuto(new ItemStack(ModBlocks.fluid_duct_neo, 8, 2), "ASA", "   ", "ASA", 'S', STEEL.plate(), 'A', AL.plate() );
@@ -694,20 +693,20 @@ public class CraftingManager {
 		addShapelessAuto(new ItemStack(Items.SLIME_BALL, 16), new ItemStack(Items.DYE, 1, 15), new ItemStack(Items.DYE, 1, 15), new ItemStack(Items.DYE, 1, 15), new ItemStack(Items.DYE, 1, 15), Fluids.SULFURIC_ACID.getDict(1000) );
 
 		for(int i = 1; i < Fluids.getAll().length; ++i) {
-			//addShapelessAuto(new ItemStack(ModItems.fluid_duct, 1, i), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModItems.fluid_identifier, 1, i) );
+			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 1, i), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModItems.fluid_identifier, 1, i) );
 
-			addShapelessAuto(new ItemStack(ModBlocks.fluid_duct_neo, 8, i), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1),
+			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 8, i), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1),
 					new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1),
 					new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModItems.fluid_identifier, 1, i) );
 
-			/*(addShapelessAuto(new ItemStack(ModItems.fluid_duct, 1, i), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_identifier, 1, i) );
+			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 1, i), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_identifier, 1, i));
 
 			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 8, i), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE),
 					new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE),
-					new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_identifier, 1, i) );*/
+					new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_identifier, 1, i));
 		}
 
-		//addShapelessAuto(new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE) );
+		addShapelessAuto(new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE) );
 
 		addRecipeAuto(new ItemStack(Blocks.TORCH, 3), "L", "S", 'L', LIGNITE.gem(), 'S', KEY_STICK );
 		addRecipeAuto(new ItemStack(Blocks.TORCH, 8), "L", "S", 'L', ANY_COKE.gem(), 'S', KEY_STICK );
