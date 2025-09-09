@@ -582,6 +582,7 @@ public class ModItems {
     public static final Item ajr_helmet = new ArmorAJR(MainRegistry.aMatAJR, 7, EntityEquipmentSlot.HEAD, RefStrings.MODID + ":textures/armor/starmetal_1.png", 2500000, 10000, 2000, 25, "ajr_helmet")
             .enableVATS(true)
             .setHasGeigerSound(true)
+            .setHasHardLanding(true)
             .addEffect(new PotionEffect(MobEffects.JUMP_BOOST, 30, 0))
             .addEffect(new PotionEffect(MobEffects.STRENGTH, 30, 0))
             .setStep(HBMSoundHandler.iron)
