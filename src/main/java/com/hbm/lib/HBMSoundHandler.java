@@ -346,6 +346,9 @@ public final class HBMSoundHandler {
     public static SoundEvent fireGrenade;
     public static SoundEvent fireAmat;
     public static SoundEvent fireExtinguisher;
+    public static SoundEvent assemblerStrike;
+    public static SoundEvent assemblerStart;
+    public static SoundEvent assemblerStop;
 
     public static SoundEvent alarmHatch = registerBypass("alarm.hatch");
     public static SoundEvent alarmAutopilot = registerBypass("alarm.autopilot");
@@ -728,6 +731,9 @@ public final class HBMSoundHandler {
         fireGrenade = register("weapon.fire.grenade");
         fireAmat = register("weapon.fire.amat");
         fireExtinguisher = register("weapon.extinguisher");
+        assemblerStrike = register("block.assemblerStrike");
+        assemblerStart = register("block.assemblerStart");
+        assemblerStop = register("block.assemblerStop");
 
         geigerSounds = new SoundEvent[]{geiger1, geiger2, geiger3, geiger4, geiger5, geiger6, geiger7, geiger8};
         voiceSounds = new SoundEvent[]{voices1, voices2, voices3, voices4, voices5, voices6, voices7, voices8};

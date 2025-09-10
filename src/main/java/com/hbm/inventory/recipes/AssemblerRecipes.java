@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static com.hbm.inventory.OreDictManager.*;
-// TODO: we should probably replace all the recipes with 1.7, it'll be easier to deal with
+@Deprecated
 public class AssemblerRecipes extends SerializableRecipe {
 
 	public static final boolean exp = false;
@@ -230,59 +230,6 @@ public class AssemblerRecipes extends SerializableRecipe {
 				new ComparableStack(ModItems.motor, 3),
 				new ComparableStack(ModItems.circuit, 1, EnumCircuitType.ANALOG)
 		}, 200);
-		makeRecipe(new ComparableStack(ModItems.drillbit_steel), new AStack[] {
-				new OreDictStack(STEEL.ingot(), 12),
-				new OreDictStack(W.ingot(), 4)
-			}, 200);
-		makeRecipe(new ComparableStack(ModItems.drillbit_steel_diamond), new AStack[] {
-				new ComparableStack(ModItems.drillbit_steel),
-				new OreDictStack(DIAMOND.dust(), 16)
-			}, 100);
-
-		makeRecipe(new ComparableStack(ModItems.drillbit_hss), new AStack[] {
-				new OreDictStack(DURA.ingot(), 12),
-				new OreDictStack(ANY_PLASTIC.ingot(), 12),
-				new OreDictStack(TI.ingot(), 8)
-			}, 200);
-		makeRecipe(new ComparableStack(ModItems.drillbit_hss_diamond), new AStack[] {
-				new ComparableStack(ModItems.drillbit_hss),
-				new OreDictStack(DIAMOND.dust(), 24)
-			}, 100);
-
-		makeRecipe(new ComparableStack(ModItems.drillbit_desh), new AStack[] {
-				new OreDictStack(DESH.ingot(), 16),
-				new OreDictStack(RUBBER.ingot(), 12),
-				new OreDictStack(NB.ingot(), 4)
-			}, 200);
-		makeRecipe(new ComparableStack(ModItems.drillbit_desh_diamond), new AStack[] {
-				new ComparableStack(ModItems.drillbit_desh),
-				new OreDictStack(DIAMOND.dust(), 32)
-			}, 100);
-
-		makeRecipe(new ComparableStack(ModItems.drillbit_tcalloy), new AStack[] {
-				new OreDictStack(TCALLOY.ingot(), 20),
-				new OreDictStack(DESH.ingot(), 12),
-				new OreDictStack(RUBBER.ingot(), 8)
-			}, 200);
-		makeRecipe(new ComparableStack(ModItems.drillbit_tcalloy_diamond), new AStack[] {
-				new ComparableStack(ModItems.drillbit_tcalloy),
-				new OreDictStack(DIAMOND.dust(), 48)
-			}, 100);
-
-		makeRecipe(new ComparableStack(ModItems.drillbit_ferro), new AStack[] {
-				new OreDictStack(FERRO.ingot(), 24),
-				new OreDictStack(CDALLOY.ingot(), 12),
-				new OreDictStack(ANY_BISMOID.ingot(), 4),
-			}, 200);
-		makeRecipe(new ComparableStack(ModItems.drillbit_ferro_diamond), new AStack[] {
-				new ComparableStack(ModItems.drillbit_ferro),
-				new OreDictStack(DIAMOND.dust(), 64)
-			}, 100);
-		makeRecipe(new ComparableStack(ModItems.drillbit_dnt), new AStack[] {
-				new ComparableStack(ModItems.ingot_dineutronium, 32),
-				new OreDictStack(GH336.ingot(), 24),
-				new ComparableStack(ModItems.ingot_chainsteel, 8),
-			}, 2000);
 		makeRecipe(new ComparableStack(ModItems.telepad, 1), new AStack[] { new OreDictStack(ANY_PLASTIC.ingot(), 12), new OreDictStack(SA326.plate(), 2), new OreDictStack(CMB.plate(), 4), new OreDictStack(STEEL.plate(), 2), new ComparableStack(ModItems.wire_fine, 6, Mats.MAT_GOLD.id), new ComparableStack(ModItems.circuit, 1, EnumCircuitType.BISMOID.ordinal()), }, 300);
 		makeRecipe(new ComparableStack(ModItems.entanglement_kit, 1), new AStack[] { new ComparableStack(ModItems.coil_magnetized_tungsten, 6), new OreDictStack(PB.plate(), 16), new OreDictStack(OreDictManager.getReflector(), 4), new ComparableStack(ModItems.singularity_counter_resonant, 1), new ComparableStack(ModItems.singularity_super_heated, 1), new ComparableStack(ModItems.powder_power, 4), }, 200);
 		makeRecipe(new ComparableStack(ModItems.dysfunctional_reactor, 1), new AStack[] { new OreDictStack(STEEL.plate(), 15), new OreDictStack(PB.ingot(), 5), new ComparableStack(ModItems.rod_quad_empty, 10), new OreDictStack(KEY_BROWN, 3), }, 200);

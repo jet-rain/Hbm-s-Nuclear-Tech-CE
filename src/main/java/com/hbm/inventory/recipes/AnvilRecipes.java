@@ -219,13 +219,15 @@ public class AnvilRecipes extends SerializableRecipe {
 				},
 				new AnvilOutput(new ItemStack(ModBlocks.machine_difurnace_off))).setTier(1));
 
+		boolean exp = GeneralConfig.enableExpensiveMode;
+
 		constructionRecipes.add(new AnvilConstructionRecipe(
 				new AStack[] {
 						new OreDictStack(STEEL.ingot(), 8),
 						new OreDictStack(CU.plate(), 4),
 						new ComparableStack(ModItems.motor, 2),
-						new ComparableStack(ModItems.circuit, 4, EnumCircuitType.VACUUM_TUBE)
-				}, new AnvilOutput(new ItemStack(ModBlocks.machine_assembler))).setTier(2)); // TODO: port new assembly machine when Bob will release new assembly factory
+						exp ? new ComparableStack(ModItems.circuit, 2, EnumCircuitType.ANALOG) : new ComparableStack(ModItems.circuit, 4, EnumCircuitType.VACUUM_TUBE)
+				}, new AnvilOutput(new ItemStack(ModBlocks.machine_assembly_machine))).setTier(2)); // TODO: port new assembly machine when Bob will release new assembly factory
 
 		constructionRecipes.add(new AnvilConstructionRecipe(
 				new AStack[] {

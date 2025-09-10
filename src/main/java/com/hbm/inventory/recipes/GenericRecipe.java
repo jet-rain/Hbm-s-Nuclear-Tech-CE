@@ -118,17 +118,25 @@ public class GenericRecipe {
             String[] lines = I18nUtil.resolveKeyArray("autoswitch", I18nUtil.resolveKey(this.autoSwitchGroup));
             for(String line : lines) list.add(TextFormatting.GOLD + line);
         }
-        if(duration > 0) list.add(TextFormatting.RED + "Duration: " + this.duration / 20D + "s");
-        if(power > 0) list.add(TextFormatting.RED + "Consumption: " + BobMathUtil.getShortNumber(power) + "HE/t");
-        list.add(TextFormatting.BOLD + "Input:");
+        if(duration > 0) {
+            double seconds = this.duration / 20D;
+            list.add(TextFormatting.RED + I18nUtil.resolveKey("gui.recipe.duration") + ": " + seconds + "s");
+        }
+        if(power > 0) list.add(TextFormatting.RED + I18nUtil.resolveKey("gui.recipe.consumption") + ": " + BobMathUtil.getShortNumber(power) + "HE/t");
+        list.add(TextFormatting.BOLD + I18nUtil.resolveKey("gui.recipe.input") + ":");
         if(inputItem != null) for(RecipesCommon.AStack stack : inputItem) {
             ItemStack display = stack.extractForCyclingDisplay(20);
             list.add("  " + TextFormatting.GRAY + display.getCount() + "x " + display.getDisplayName());
         }
         if(inputFluid != null) for(FluidStack fluid : inputFluid) list.add("  " + TextFormatting.BLUE + fluid.fill + "mB " + fluid.type.getLocalizedName() + (fluid.pressure == 0 ? "" : " at " + TextFormatting.RED + fluid.pressure + " PU"));
-        list.add(TextFormatting.BOLD + "Output:");
-        if(outputItem != null) for(IOutput output : outputItem) for(String line : output.getLabel()) list.add("  " + line);
-        if(outputFluid != null) for(FluidStack fluid : outputFluid) list.add("  " + TextFormatting.BLUE + fluid.fill + "mB " + fluid.type.getLocalizedName() + (fluid.pressure == 0 ? "" : " at " + TextFormatting.RED + fluid.pressure + " PU"));
+        list.add(TextFormatting.BOLD + I18nUtil.resolveKey("gui.recipe.output") + ":");
+        if(outputItem != null) for(IOutput output : outputItem)
+            for(String line : output.getLabel()) list.add("  " + line);
+        if(outputFluid != null) for(FluidStack fluid : outputFluid) {
+            String pressurePart = fluid.pressure == 0 ? "" :
+                    " " + I18nUtil.resolveKey("gui.recipe.atPressure") + " " + TextFormatting.RED + fluid.pressure + " PU";
+            list.add("  " + TextFormatting.BLUE + fluid.fill + "mB " + fluid.type.getLocalizedName() + pressurePart);
+        }
         return list;
     }
 

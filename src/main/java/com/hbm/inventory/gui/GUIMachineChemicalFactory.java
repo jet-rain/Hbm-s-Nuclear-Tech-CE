@@ -6,9 +6,9 @@ import com.hbm.inventory.recipes.GenericRecipe;
 import com.hbm.items.machine.ItemBlueprints;
 import com.hbm.lib.RefStrings;
 import com.hbm.tileentity.machine.TileEntityMachineChemicalFactory;
+import com.hbm.util.I18nUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Slot;
@@ -49,7 +49,7 @@ public class GUIMachineChemicalFactory extends GuiInfoContainer {
                 GenericRecipe recipe = ChemicalPlantRecipes.INSTANCE.recipeNameMap.get(this.chemplant.chemplantModule[i].recipe);
                 this.drawHoveringText(recipe.print(), mouseX, mouseY);
             } else {
-                this.drawHoveringText(TextFormatting.YELLOW + "Click to set recipe", mouseX, mouseY);
+                this.drawHoveringText(TextFormatting.YELLOW + I18nUtil.resolveKey("gui.recipe.setRecipe"), mouseX, mouseY);
             }
         }
 

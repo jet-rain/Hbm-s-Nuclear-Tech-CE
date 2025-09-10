@@ -18,7 +18,7 @@ import com.hbm.inventory.gui.GUIMachineExcavator;
 import com.hbm.inventory.recipes.ShredderRecipes;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemDrillbit;
-import com.hbm.items.machine.ItemDrillbit.EnumDrillType;
+import com.hbm.items.ItemEnums.EnumDrillType;
 import com.hbm.items.machine.ItemMachineUpgrade;
 import com.hbm.items.machine.ItemMachineUpgrade.UpgradeType;
 import com.hbm.items.special.ItemBedrockOreBase;
@@ -29,6 +29,7 @@ import com.hbm.tileentity.IFluidCopiable;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.IUpgradeInfoProvider;
 import com.hbm.tileentity.TileEntityMachineBase;
+import com.hbm.util.EnumUtil;
 import com.hbm.util.I18nUtil;
 import com.hbm.util.InventoryUtil;
 import com.hbm.util.ItemStackUtil;
@@ -671,8 +672,8 @@ public class TileEntityMachineExcavator extends TileEntityMachineBase implements
     @Nullable
 	public EnumDrillType getInstalledDrill() {
 		ItemStack slotItem = inventory.getStackInSlot(4);
-        if(!slotItem.isEmpty() && slotItem.getItem() instanceof ItemDrillbit drill) {
-			return drill.drillType;
+        if(!slotItem.isEmpty() && slotItem.getItem() instanceof ItemDrillbit) {
+			return EnumUtil.grabEnumSafely(EnumDrillType.class, slotItem.getItemDamage());
 		}
 		
 		return null;

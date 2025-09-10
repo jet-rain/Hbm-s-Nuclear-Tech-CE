@@ -74,6 +74,7 @@ public abstract class SerializableRecipe {
         recipeHandlers.add(new WasteDrumRecipes());
 
         //GENERIC
+        recipeHandlers.add(AssemblyMachineRecipes.INSTANCE);
         recipeHandlers.add(ChemicalPlantRecipes.INSTANCE);
     }
 

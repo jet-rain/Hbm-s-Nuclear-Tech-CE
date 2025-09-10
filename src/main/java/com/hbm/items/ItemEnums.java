@@ -123,7 +123,7 @@ public class ItemEnums {
     NEPTUNIUM,
     LEAD,
     ZIRCONIUM,
-    NICKEL;
+    NICKEL
   }
 
   public enum EnumPartType {
@@ -141,7 +141,7 @@ public class ItemEnums {
     }
   }
 
-  public static enum ScrapType {
+  public enum ScrapType {
     //GENERAL BOARD
     BOARD_BLANK,
     BOARD_TRANSISTOR,
@@ -176,10 +176,40 @@ public class ItemEnums {
     CARD_PROCESSOR
   }
 
-  public static enum CircuitComponentType {
+  public enum CircuitComponentType {
     CHIPSET,
     CPU,
     RAM,
     CARD
+  }
+  public enum EnumExpensiveType {
+    STEEL_PLATING, HEAVY_FRAME, CIRCUIT, LEAD_PLATING, FERRO_PLATING, COMPUTER, BRONZE_TUBES
+  }
+
+  public enum EnumDrillType {
+    STEEL			(1.0D, 1, 0, false, false),
+    STEEL_DIAMOND	(1.0D, 1, 2, false, true),
+    HSS				(1.2D, 2, 0, true, false),
+    HSS_DIAMOND		(1.2D, 2, 3, true, true),
+    DESH			(1.5D, 3, 1, true, true),
+    DESH_DIAMOND	(1.5D, 3, 4, true, true),
+    TCALLOY			(2.0D, 4, 1, true, true),
+    TCALLOY_DIAMOND	(2.0D, 4, 4, true, true),
+    FERRO			(2.5D, 5, 1, true, true),
+    FERRO_DIAMOND	(2.5D, 5, 4, true, true);
+
+    public double speed;
+    public int tier;
+    public int fortune;
+    public boolean vein;
+    public boolean silk;
+
+    private EnumDrillType(double speed, int tier, int fortune, boolean vein, boolean silk) {
+      this.speed = speed;
+      this.tier = tier;
+      this.fortune = fortune;
+      this.vein = vein;
+      this.silk = silk;
+    }
   }
 }

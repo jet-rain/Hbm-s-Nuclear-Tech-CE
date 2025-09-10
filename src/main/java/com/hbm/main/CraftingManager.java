@@ -42,7 +42,6 @@ import net.minecraft.item.crafting.ShapelessRecipes;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.common.crafting.IngredientNBT;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
@@ -113,6 +112,11 @@ public class CraftingManager {
 
 		addRecipeAuto(new ItemStack(ModItems.redstone_sword, 1), "R", "R", "S", 'R', REDSTONE.block(), 'S', KEY_STICK );
 		addRecipeAuto(new ItemStack(ModItems.big_sword, 1), "QIQ", "QIQ", "GSG", 'G', Items.GOLD_INGOT, 'S', KEY_STICK, 'I', Items.IRON_INGOT, 'Q', Items.QUARTZ);
+
+		addShapelessAuto(new ItemStack(ModBlocks.machine_assembly_machine), new ItemStack(ModBlocks.machine_assembler));
+		addShapelessAuto(new ItemStack(ModBlocks.machine_assembly_factory), new ItemStack(ModBlocks.machine_assemfac));
+		addShapelessAuto(new ItemStack(ModBlocks.machine_chemical_plant), new ItemStack(ModBlocks.machine_chemplant));
+		addShapelessAuto(new ItemStack(ModBlocks.machine_chemical_factory), new ItemStack(ModBlocks.machine_chemfac));
 
 		addRecipeAuto(Mats.MAT_IRON.make(ModItems.plate_cast), "BPB", "BPB", "BPB", 'B', STEEL.bolt(), 'P', IRON.plate() );
 		addRecipeAuto(new ItemStack(ModItems.hazmat_cloth_red, 1), "C", "R", "C", 'C', ModItems.hazmat_cloth, 'R', REDSTONE.dust() );
@@ -1562,12 +1566,4 @@ public class CraftingManager {
 		}
 	}
 
-	//B r u h why wasn't the constructor visible in the first place?
-	public static class IngredientNBT2 extends IngredientNBT {
-
-		public IngredientNBT2(ItemStack stack){
-			super(stack);
-		}
-
-	}
 }

@@ -216,10 +216,10 @@ public class AdvGen {
                 "hbm:achburnerpress",
                 new Display()
                         .key("assembly")
-                        .icon(new ItemStack(ModBlocks.machine_assembler))
+                        .icon(new ItemStack(ModBlocks.machine_assembly_machine))
                         .toast(true)
                         .announce(true),
-                "crafting", new ItemStack(ModBlocks.machine_assembler))
+                "crafting", new ItemStack(ModBlocks.machine_assembly_machine))
         );
         batch.add(Templates.obtainAnyItem("achselenium",
                 "hbm:achburnerpress",

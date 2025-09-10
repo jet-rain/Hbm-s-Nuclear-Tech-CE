@@ -1,6 +1,11 @@
 package com.hbm.inventory.container;
 
+import com.hbm.api.energymk2.IBatteryItem;
 import com.hbm.inventory.SlotTakeOnly;
+import com.hbm.items.ModItems;
+import com.hbm.items.machine.IItemFluidIdentifier;
+import com.hbm.items.machine.ItemDrillbit;
+import com.hbm.items.machine.ItemMachineUpgrade;
 import com.hbm.tileentity.machine.TileEntityMachineExcavator;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -44,38 +49,41 @@ public class ContainerMachineExcavator extends Container {
 	}
 
 	@Override
-    public ItemStack transferStackInSlot(EntityPlayer p_82846_1_, int par2)
+    public ItemStack transferStackInSlot(EntityPlayer p_82846_1_, int i)
     {
-		ItemStack var3 = ItemStack.EMPTY;
-		Slot var4 = (Slot) this.inventorySlots.get(par2);
-		
-		if (var4 != null && var4.getHasStack())
-		{
-			ItemStack var5 = var4.getStack();
-			var3 = var5.copy();
-			
-            if (par2 <= 3) {
-				if (!this.mergeItemStack(var5, 4, this.inventorySlots.size(), true))
-				{
+		ItemStack rStack = ItemStack.EMPTY;
+		Slot slot = this.inventorySlots.get(i);
+
+		if(slot != null && slot.getHasStack()) {
+			ItemStack stack = slot.getStack();
+			rStack = stack.copy();
+
+			if(i <= 13) {
+				if(!this.mergeItemStack(stack, 14, this.inventorySlots.size(), true)) {
 					return ItemStack.EMPTY;
 				}
+			} else {
+
+				if(rStack.getItem() instanceof IBatteryItem || rStack.getItem() == ModItems.battery_creative) {
+					if(!this.mergeItemStack(stack, 0, 1, false)) return ItemStack.EMPTY;
+				} else if(rStack.getItem() instanceof IItemFluidIdentifier) {
+					if(!this.mergeItemStack(stack, 1, 2, false)) return ItemStack.EMPTY;
+				} else if(rStack.getItem() instanceof ItemMachineUpgrade) {
+					if(!this.mergeItemStack(stack, 2, 4, false)) return ItemStack.EMPTY;
+				} else if(rStack.getItem() instanceof ItemDrillbit) {
+					if(!this.mergeItemStack(stack, 4, 5, false)) return ItemStack.EMPTY;
+				} else
+					return ItemStack.EMPTY;
 			}
-			else if (!this.mergeItemStack(var5, 0, 3, false))
-			{
-				return ItemStack.EMPTY;
-			}
-			
-			if (var5.getCount() == 0)
-			{
-				var4.putStack(ItemStack.EMPTY);
-			}
-			else
-			{
-				var4.onSlotChanged();
+
+			if(stack.getCount() == 0) {
+				slot.putStack(ItemStack.EMPTY);
+			} else {
+				slot.onSlotChanged();
 			}
 		}
 		
-		return var3;
+		return rStack;
     }
 
 	@Override

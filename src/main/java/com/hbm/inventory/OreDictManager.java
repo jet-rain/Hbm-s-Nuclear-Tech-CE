@@ -633,11 +633,6 @@ public class OreDictManager {
 //		OreDictionary.registerOre(KEY_TOOL_TORCH, new ItemStack(acetylene_torch, 1, OreDictionary.WILDCARD_VALUE));
 
 
-//		for(EnumBedrockOre ore : EnumBedrockOre.values()) {
-//			OreDictionary.registerOre("ore" + ore.oreName, new ItemStack(ModItems.ore_enriched, 1, ore.ordinal()));
-//		}
-
-
         for (NTMMaterial mat : Mats.orderedList) {
             if (mat.smeltable == NTMMaterial.SmeltingBehavior.SMELTABLE) {
                 if (mat.autogen.contains(MaterialShapes.CASTPLATE)) for (String name : mat.names)

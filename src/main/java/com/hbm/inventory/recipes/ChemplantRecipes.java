@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static com.hbm.inventory.OreDictManager.*;
-
+@Deprecated
 public class ChemplantRecipes extends SerializableRecipe {
 
 	public static HashMap<Integer, ChemRecipe> indexMapping = new HashMap();

@@ -19,7 +19,6 @@ import com.hbm.items.bomb.*;
 import com.hbm.items.food.*;
 import com.hbm.items.gear.*;
 import com.hbm.items.machine.*;
-import com.hbm.items.machine.ItemDrillbit.EnumDrillType;
 import com.hbm.items.machine.ItemFELCrystal.EnumWavelengths;
 import com.hbm.items.machine.ItemMachineUpgrade.UpgradeType;
 import com.hbm.items.machine.ItemRBMKRod.EnumBurnFunc;
@@ -288,6 +287,7 @@ public class ModItems {
     public static final Item arc_electrode_burnt = new ItemArcElectrodeBurnt("arc_electrode_burnt").setCreativeTab(MainRegistry.controlTab);
     public static final Item piston_selenium = new ItemBase("piston_selenium").setCreativeTab(MainRegistry.controlTab).setMaxStackSize(1);
     public static final Item piston_set = new ItemPistons("piston_set").setCreativeTab(MainRegistry.controlTab).setMaxStackSize(1);
+    public static final Item drillbit = new ItemDrillbit("drillbit").setCreativeTab(MainRegistry.controlTab).setMaxStackSize(1);
     public static final Item thermo_element = new ItemBase("thermo_element").setMaxStackSize(16).setCreativeTab(MainRegistry.controlTab);
     public static final Item catalytic_converter = new ItemBase("catalytic_converter").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     public static final Item part_lithium = new ItemBase("part_lithium").setCreativeTab(MainRegistry.controlTab);
@@ -1181,19 +1181,6 @@ public class ModItems {
     public static final Item pellet_rtg_gold = new ItemRTGPellet(200, "pellet_rtg_gold").setDecays(EnumDepletedRTGMaterial.MERCURY, 64728L, 4).setCreativeTab(MainRegistry.controlTab);
     public static final Item pellet_rtg_lead = new ItemRTGPellet(600, "pellet_rtg_lead").setDecays(EnumDepletedRTGMaterial.BISMUTH, 3253L, 6).setCreativeTab(MainRegistry.controlTab);
     public static final Item pellet_rtg_balefire = new ItemRTGPellet(6000, "pellet_rtg_balefire").setDecays(EnumDepletedRTGMaterial.NEPTUNIUM, 1000L, 12).setCreativeTab(MainRegistry.controlTab);
-    //Drill Bits
-    public static final Item drillbit_steel = new ItemDrillbit(EnumDrillType.STEEL, "drillbit_steel").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_steel_diamond = new ItemDrillbit(EnumDrillType.STEEL_DIAMOND, "drillbit_steel_diamond").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_hss = new ItemDrillbit(EnumDrillType.HSS, "drillbit_hss").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_hss_diamond = new ItemDrillbit(EnumDrillType.HSS_DIAMOND, "drillbit_hss_diamond").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_desh = new ItemDrillbit(EnumDrillType.DESH, "drillbit_desh").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_desh_diamond = new ItemDrillbit(EnumDrillType.DESH_DIAMOND, "drillbit_desh_diamond").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_tcalloy = new ItemDrillbit(EnumDrillType.TCALLOY, "drillbit_tcalloy").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_tcalloy_diamond = new ItemDrillbit(EnumDrillType.TCALLOY_DIAMOND, "drillbit_tcalloy_diamond").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_ferro = new ItemDrillbit(EnumDrillType.FERRO, "drillbit_ferro").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_ferro_diamond = new ItemDrillbit(EnumDrillType.FERRO_DIAMOND, "drillbit_ferro_diamond").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_dnt = new ItemDrillbit(EnumDrillType.DNT, "drillbit_dnt").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item drillbit_dnt_diamond = new ItemDrillbit(EnumDrillType.DNT_DIAMOND, "drillbit_dnt_diamond").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     //Generic Items
     public static final Item pellet_coal = new ItemFuel("pellet_coal", 320).setCreativeTab(MainRegistry.partsTab);
     public static final Item chlorine_pinwheel = new ItemFluidContainerInfinite(Fluids.CHLORINE, 1, 2, "chlorine_pinwheel").setCreativeTab(MainRegistry.partsTab);
@@ -2841,7 +2828,7 @@ public class ModItems {
 
     public static final Item part_generic = new ItemEnumMulti("part_generic", EnumPartType.class, true, true).setCreativeTab(MainRegistry.partsTab);
     public static final Item item_secret = new ItemEnumMulti("item_secret", EnumSecretType.class, true, true).setCreativeTab(null);
-    // FIXME incorrect rendering
+    public static final Item item_expensive = new ItemEnumMulti("item_expensive", EnumExpensiveType.class, true, true).setCreativeTab(MainRegistry.partsTab);
     public static final Item chemical_dye = new ItemChemicalDye("chemical_dye").setCreativeTab(MainRegistry.partsTab);
     public static final Item crayon = new ItemCrayon("crayon").setCreativeTab(MainRegistry.partsTab);
     public static ToolMaterial enumToolMaterialElecTerra = EnumHelper.addToolMaterial(RefStrings.MODID + ":ELECTERRA", 4, 0, 20.0F, 12.0F, 2);
