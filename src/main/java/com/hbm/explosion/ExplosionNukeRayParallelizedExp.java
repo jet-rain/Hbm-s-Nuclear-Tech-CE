@@ -13,7 +13,7 @@ import com.hbm.util.ChunkUtilExp;
 import com.hbm.util.ConcurrentBitSet;
 import com.hbm.util.MpscIntArrayListCollector;
 import com.hbm.util.SubChunkKey;
-import io.netty.util.internal.shaded.org.jctools.queues.atomic.MpscLinkedAtomicQueue;
+import org.jctools.queues.atomic.MpscLinkedAtomicQueue;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;

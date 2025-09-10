@@ -1,6 +1,6 @@
 package com.hbm.lib;
 
-import io.netty.util.internal.shaded.org.jctools.queues.MpmcArrayQueue;
+import org.jctools.queues.MpmcArrayQueue;
 
 import java.util.ArrayDeque;
 import java.util.Objects;
