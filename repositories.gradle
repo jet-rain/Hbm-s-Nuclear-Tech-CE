@@ -22,4 +22,8 @@ repositories {
         url = 'https://maven.covers1624.net'
     }
 
+    maven {
+        name = 'Maven central'
+        url = 'https://repo1.maven.org/maven2/'
+    }
 }

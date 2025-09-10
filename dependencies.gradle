@@ -45,6 +45,7 @@ dependencies {
     compileOnly rfg.deobf("com.azanor.baubles:Baubles:${version_baubles}")
     compileOnly rfg.deobf("cofh:RedstoneFlux:1.12-${version_redstoneflux}:universal")
     compileOnly rfg.deobf("cofh:CoFHCore:1.12.2-${version_cofhcore}:universal")
+    shadowImplementation 'org.jctools:jctools-core:4.0.5'
 
     implementation rfg.deobf("curse.maven:opencomputers-223008:6608365")
     implementation 'mezz:jei:4.29.1'
