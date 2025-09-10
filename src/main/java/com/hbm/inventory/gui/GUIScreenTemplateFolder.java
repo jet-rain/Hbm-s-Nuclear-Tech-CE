@@ -3,10 +3,8 @@ package com.hbm.inventory.gui;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.recipes.AssemblerRecipes;
-import com.hbm.inventory.recipes.ChemplantRecipes;
 import com.hbm.inventory.recipes.CrucibleRecipes;
 import com.hbm.items.ModItems;
-import com.hbm.items.machine.ItemAssemblyTemplate;
 import com.hbm.items.machine.ItemCassette;
 import com.hbm.items.machine.ItemStamp;
 import com.hbm.lib.RefStrings;
@@ -21,7 +19,6 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.SoundEvents;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.input.Keyboard;
@@ -79,16 +76,7 @@ public class GUIScreenTemplateFolder extends GuiScreen {
 			}
 		}
 
-		Item heldFolderItem = heldItem.getItem();
-		AssemblerRecipes.recipes.forEach((compStack, recipe) -> {
-			if (recipe.folders.contains(heldFolderItem)) {
-				allStacks.add(ItemAssemblyTemplate.writeType(new ItemStack(ModItems.assembly_template), compStack));
-			}
-		});
-
 		if (!this.isJournal) {
-			// Chemistry Templates
-			ChemplantRecipes.recipes.forEach(recipe -> allStacks.add(new ItemStack(ModItems.chemistry_template, 1, recipe.getId())));
 
 			// Crucible Templates
 			CrucibleRecipes.recipes.forEach(recipe -> {

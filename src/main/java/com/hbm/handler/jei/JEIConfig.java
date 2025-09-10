@@ -3,18 +3,16 @@ package com.hbm.handler.jei;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.config.GeneralConfig;
 import com.hbm.dim.SolarSystem;
-import com.hbm.handler.jei.transfer.*;
+import com.hbm.handler.jei.transfer.ExposureChamberTransferInfo;
 import com.hbm.inventory.FluidContainerRegistry;
-import com.hbm.inventory.RecipesCommon;
 import com.hbm.inventory.container.ContainerFurnaceCombo;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.gui.*;
-import com.hbm.inventory.recipes.*;
+import com.hbm.inventory.recipes.DFCRecipes;
 import com.hbm.items.EffectItem;
 import com.hbm.items.ItemEnums;
 import com.hbm.items.ModItems;
-import com.hbm.items.machine.ItemAssemblyTemplate;
 import com.hbm.items.machine.ItemFELCrystal.EnumWavelengths;
 import com.hbm.items.machine.ItemFluidIcon;
 import com.hbm.items.weapon.ItemCustomMissile;
@@ -45,6 +43,7 @@ public class JEIConfig implements IModPlugin {
     public static final String ARC_WELDER = "hbm.arc_welder";
     public static final String ASHPIT = "hbm.ashpit";
     public static final String ASSEMBLY = "hbm.assembly";
+    public static final String ASSEMBLY_MACHINE = "hbm.assembly_machine";
     public static final String BOILER = "hbm.boiler";
     public static final String BOOK = "hbm.book_of";
     public static final String BREEDER = "hbm.breeder";
@@ -109,6 +108,7 @@ public class JEIConfig implements IModPlugin {
     private ArcFurnaceFluidHandler arcFurnaceFluidHandler;
     private ArcFurnaceSolidHandler arcFurnaceSolidHandler;
     private ArcWelderRecipeHandler arcWelderRecipeHandler;
+    private AssemblyMachineRecipeHandler assemblyMachineRecipeHandler;
     private AshpitHandler ashpitHandler;
     private BoilingHandler boilingHandler;
     private CentrifugeRecipeHandler centrifugeRecipeHandler;
@@ -163,8 +163,8 @@ public class JEIConfig implements IModPlugin {
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_coker), COKER);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_compressor), COMPRESSING);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_deuterium_extractor), DEUTERIUM);
-        registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_assembler), ASSEMBLY);
-        registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_assemfac), ASSEMBLY);
+        registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_assembly_machine), ASSEMBLY_MACHINE);
+        registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_assembly_factory), ASSEMBLY_MACHINE);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_arc_furnace), ARC_FURNACE_FLUID);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_arc_furnace), ARC_FURNACE_SOLID);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_chemical_plant), CHEMICAL_PLANT);
@@ -240,7 +240,7 @@ public class JEIConfig implements IModPlugin {
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_radiolysis), RADIOLYSIS);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.furnace_combination), COMBINATION);
 
-        registry.addRecipes(JeiRecipes.getAssemblerRecipes(), ASSEMBLY);
+        registry.addRecipes(assemblyMachineRecipeHandler.getRecipes(), ASSEMBLY_MACHINE);
         registry.addRecipes(JeiRecipes.getCyclotronRecipes(), CYCLOTRON);
         registry.addRecipes(JeiRecipes.getTransmutationRecipes(), TRANSMUTATION);
         registry.addRecipes(PressRecipeHandler.getRecipes(), PRESS);
@@ -309,7 +309,6 @@ public class JEIConfig implements IModPlugin {
         registry.addRecipes(combinationHandler.getRecipes(), COMBINATION);
 
         registry.addRecipeClickArea(GUIMachineCoker.class, 60, 22, 32, 18, COKER);
-        registry.addRecipeClickArea(GUIMachineAssembler.class, 45, 83, 82, 30, ASSEMBLY);
 		registry.addRecipeClickArea(GUIMixer.class, 62, 36, 52, 44, MIXER);
 		registry.addRecipeClickArea(GUIMachineCyclotron.class, 50, 24, 40, 40, CYCLOTRON);
 		registry.addRecipeClickArea(GUIMachinePress.class, 80, 35, 15, 15, PRESS);
@@ -434,7 +433,6 @@ public class JEIConfig implements IModPlugin {
                 new PressRecipeHandler(help),
                 new AlloyFurnaceRecipeHandler(help),
                 shredderHandler = new ShredderRecipeHandler(help),
-                new AssemblerRecipeHandler(help),
                 new RefineryRecipeHandler(help),
                 new RadiolysisRecipeHandler(help),
                 ammoPressHandler = new AmmoPressHandler(help),
@@ -443,6 +441,7 @@ public class JEIConfig implements IModPlugin {
                 arcFurnaceFluidHandler = new ArcFurnaceFluidHandler(help),
                 arcFurnaceSolidHandler = new ArcFurnaceSolidHandler(help),
                 arcWelderRecipeHandler = new ArcWelderRecipeHandler(help),
+                assemblyMachineRecipeHandler = new AssemblyMachineRecipeHandler(help),
                 ashpitHandler = new AshpitHandler(help),
                 boilingHandler = new BoilingHandler(help),
                 centrifugeRecipeHandler = new CentrifugeRecipeHandler(help),
@@ -508,14 +507,6 @@ public class JEIConfig implements IModPlugin {
         return "";
     };
 
-    private static final ISubtypeRegistry.ISubtypeInterpreter assemblyTemplateInterpreter = stack -> {
-        RecipesCommon.ComparableStack output = ItemAssemblyTemplate.getRecipeOutput(stack);
-        if (output != null && output.item != null) {
-            return output.item.getRegistryName().toString() + "@" + output.meta;
-        }
-        return "";
-    };
-
     private static final ISubtypeRegistry.ISubtypeInterpreter metadataInterpreter = stack -> String.valueOf(stack.getMetadata());
 
 	@Override
@@ -537,8 +528,6 @@ public class JEIConfig implements IModPlugin {
             }
             return "";
         });
-        subtypeRegistry.registerSubtypeInterpreter(ModItems.assembly_template, assemblyTemplateInterpreter);
-        subtypeRegistry.registerSubtypeInterpreter(ModItems.chemistry_template, metadataInterpreter);
         subtypeRegistry.registerSubtypeInterpreter(ModItems.crucible_template, metadataInterpreter);
 	}
 
