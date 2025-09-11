@@ -30,6 +30,7 @@ import com.hbm.util.I18nUtil;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -45,6 +46,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
+
 @AutoRegister
 public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase implements ITickable, IEnergyReceiverMK2, IFluidStandardTransceiverMK2, IUpgradeInfoProvider, IControlReceiver, IGUIProvider, TileEntityProxyDyn.IProxyDelegateProvider {
 
@@ -61,6 +64,7 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
 
     public boolean frame = false;
     private AudioWrapper audio;
+    public AssemfacArm[] animations;
 
     public ModuleMachineAssembler[] assemblerModule;
     public UpgradeManagerNT upgradeManager = new UpgradeManagerNT(this);
@@ -183,6 +187,11 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
             this.networkPackNT(100);
         } else {
 
+            for(AssemfacArm animation : animations) animation.update(true || didProcess[0] ||didProcess[1] ||didProcess[2] ||didProcess[3]);
+
+            if(world.getTotalWorldTime() % 20 == 0) {
+                frame = world.getBlockState(pos.up(3)).getBlock() != Blocks.AIR;
+            }
         }
     }
 
@@ -405,5 +414,267 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
         @Override public FluidTankNTM[] getSendingTanks() { return new FluidTankNTM[] {TileEntityMachineAssemblyFactory.this.lps}; }
 
         @Override public FluidTankNTM[] getAllTanks() { return TileEntityMachineAssemblyFactory.this.getAllTanks(); }
+    }
+
+    /**
+     * Carriage consisting of two arms - a striker and a saw
+     * Movement of both arms is inverted, one pedestal can only be serviced by one arm at a time
+     *
+     * @author hbm
+     */
+    public class AssemfacArm {
+
+        public AssemblerArm striker;
+        public AssemblerArm saw;
+
+        Random rand = new Random();
+        AFArmState state = AFArmState.WORKING;
+        double slider = 0;
+        double prevSlider = 0;
+        boolean direction = false;
+        int timeUntilReposition;
+
+        public AssemfacArm() {
+            striker = new AssemblerArm();
+            saw = new AssemblerArm().yepThatsASaw();
+            timeUntilReposition = 200;
+        }
+
+        public void update(boolean working) {
+            this.prevSlider = this.slider;
+
+            if(working) switch(state) {
+                case WORKING: {
+                    timeUntilReposition--;
+                    if(timeUntilReposition <= 0) {
+                        state = AFArmState.RETIRING;
+                    }
+                } break;
+                case RETIRING: {
+                    if(striker.state == ArmState.WAIT && saw.state == ArmState.WAIT) { // only progress as soon as both arms are done moving
+                        state = AFArmState.SLIDING;
+                        direction = !direction;
+                        if(!muffled) MainRegistry.proxy.playSoundClient(pos.getX(), pos.getY(), pos.getZ(), HBMSoundHandler.assemblerStart, SoundCategory.BLOCKS, getVolume(0.25F), 1.25F + world.rand.nextFloat() * 0.25F);
+                    }
+                } break;
+                case SLIDING: {
+                    double sliderSpeed = 1D / 20D; // 20 ticks for transit
+                    if(direction) {
+                        slider += sliderSpeed;
+                        if(slider >= 1) {
+                            slider = 1;
+                            state = AFArmState.WORKING;
+                        }
+                    } else {
+                        slider -= sliderSpeed;
+                        if(slider <= 0) {
+                            slider = 0;
+                            state = AFArmState.WORKING;
+                        }
+                    }
+                    if(state == AFArmState.WORKING) timeUntilReposition = 140 + rand.nextInt(161); // 7 to 15 seconds
+                } break;
+            }
+
+            striker.updateArm(working);
+            saw.updateArm(working);
+        }
+
+        public double getSlider(float interp) {
+            return this.prevSlider + (this.slider - this.prevSlider) * interp;
+        }
+
+        // there's a ton of way to make this more optimized/readable/professional/scrungular but i don't care i am happy this crap works at all
+        public class AssemblerArm { // more fucking nesting!!!11
+
+            public double[] angles = new double[4];
+            public double[] prevAngles = new double[4];
+            public double[] targetAngles = new double[4];
+            public double[] speed = new double[4];
+            public double sawAngle;
+            public double prevSawAngle;
+
+            ArmState state = ArmState.REPOSITION;
+            int actionDelay = 0;
+            boolean saw = false;
+
+            public AssemblerArm() {
+                this.resetSpeed();
+                this.chooseNewArmPoistion();
+            }
+
+            public AssemblerArm yepThatsASaw() { this.saw = true; this.chooseNewArmPoistion(); return this; }
+
+            private void resetSpeed() {
+                speed[0] = 15;	//Pivot
+                speed[1] = 15;	//Arm
+                speed[2] = 15;	//Piston
+                speed[3] = saw ? 0.125 : 0.5;	//Striker
+            }
+
+            public void updateArm(boolean working) {
+                resetSpeed();
+
+                for(int i = 0; i < angles.length; i++) {
+                    prevAngles[i] = angles[i];
+                }
+
+                prevSawAngle = sawAngle;
+
+                if(!working) return;
+
+                if(state == ArmState.CUT || state == ArmState.EXTEND) {
+                    this.sawAngle += 45D;
+                }
+
+                if(actionDelay > 0) {
+                    actionDelay--;
+                    return;
+                }
+
+                switch(state) {
+                    // Move. If done moving, set a delay and progress to EXTEND
+                    case REPOSITION: {
+                        if(move()) {
+                            actionDelay = 2;
+                            state = ArmState.EXTEND;
+                            targetAngles[3] = saw ? -0.375D : -0.75D;
+                        }
+                    } break;
+                    case EXTEND:
+                        if(move()) {
+
+                            if(saw) {
+                                state = ArmState.CUT;
+                                targetAngles[2] = -targetAngles[2];
+                            } else {
+                                state = ArmState.RETRACT;
+                                targetAngles[3] = 0D;
+                                if(!muffled) MainRegistry.proxy.playSoundClient(pos.getX(), pos.getY(), pos.getZ(), HBMSoundHandler.assemblerStrike, SoundCategory.BLOCKS, getVolume(0.5F), 1F);
+                            }
+                        }
+                        break;
+                    case CUT: {
+                        speed[2] = Math.abs(targetAngles[2] / 20D);
+                        if(move()) {
+                            state = ArmState.RETRACT;
+                            targetAngles[3] = 0D;
+                        }
+                    } break;
+                    case RETRACT:
+                        if(move()) {
+                            actionDelay = 2 + rand.nextInt(5);
+                            chooseNewArmPoistion();
+                            state = AssemfacArm.this.state == AFArmState.RETIRING ? ArmState.RETIRE : ArmState.REPOSITION;
+                        }
+                        break;
+                    case RETIRE: {
+                        this.targetAngles[0] = 0;
+                        this.targetAngles[1] = 0;
+                        this.targetAngles[2] = 0;
+                        this.targetAngles[3] = 0;
+
+                        if(move()) {
+                            actionDelay = 2 + rand.nextInt(5);
+                            chooseNewArmPoistion();
+                            state = ArmState.WAIT;
+                        }
+                    } break;
+                    case WAIT: {
+                        if(AssemfacArm.this.state == AFArmState.WORKING) this.state = ArmState.REPOSITION;
+                    } break;
+                }
+            }
+
+            public void chooseNewArmPoistion() {
+
+                double[][] pos = !saw ? new double[][] {
+                        // striker
+                        {10, 10, -10},
+                        {15, 15, -15},
+                        {25, 10, -15},
+                        {30, 0, -10},
+                        {-10, 10, 0},
+                        {-20, 30, -15}
+                } : new double[][] {
+                        // saw
+                        {-15, 15, -10},
+                        {-15, 15, -15},
+                        {-15, 15, 10},
+                        {-15, 15, 15},
+                        {-15, 15, 2},
+                        {-15, 15, -2}
+                };
+
+                int chosen = rand.nextInt(pos.length);
+                this.targetAngles[0] = pos[chosen][0];
+                this.targetAngles[1] = pos[chosen][1];
+                this.targetAngles[2] = pos[chosen][2];
+            }
+
+            private boolean move() {
+                boolean didMove = false;
+
+                for(int i = 0; i < angles.length; i++) {
+                    if(angles[i] == targetAngles[i])
+                        continue;
+
+                    didMove = true;
+
+                    double angle = angles[i];
+                    double target = targetAngles[i];
+                    double turn = speed[i];
+                    double delta = Math.abs(angle - target);
+
+                    if(delta <= turn) {
+                        angles[i] = targetAngles[i];
+                        continue;
+                    }
+
+                    if(angle < target) {
+                        angles[i] += turn;
+                    } else {
+                        angles[i] -= turn;
+                    }
+                }
+
+                return !didMove;
+            }
+
+            public double[] getPositions(float interp) {
+                return new double[] {
+                        BobMathUtil.interp(this.prevAngles[0], this.angles[0], interp),
+                        BobMathUtil.interp(this.prevAngles[1], this.angles[1], interp),
+                        BobMathUtil.interp(this.prevAngles[2], this.angles[2], interp),
+                        BobMathUtil.interp(this.prevAngles[3], this.angles[3], interp),
+                        BobMathUtil.interp(this.prevSawAngle, this.sawAngle, interp)
+                };
+            }
+        }
+    }
+
+    /*
+     * Arms cycle through REPOSITION -> EXTEND -> CUT (if saw) -> RETRACT
+     * If transit is planned, the carriage's state will change to RETIRING
+     * If the carriage is RETIRING, each arm will enter RETIRE state after RETRACT
+     * Once the arm has returned to null position, it changes to WAIT
+     * If both arms WAIT, the carriage switches to SLIDING
+     * Once transit is done, carriage returns to WORKING
+     * If the carriage is WORKING, any arm that is in the WAIT state will return to REPOSITION
+     */
+
+    public static enum AFArmState {
+        WORKING,
+        RETIRING, // waiting for arms to enter WAITING state
+        SLIDING // transit to next position
+    }
+
+    public static enum ArmState {
+        REPOSITION,
+        EXTEND,
+        CUT,
+        RETRACT,
+        RETIRE, // return to null position for carriage transit
+        WAIT // either waiting for or in the middle of carriage transit
     }
 }

@@ -30,13 +30,13 @@ public class RenderAssemblyMachine extends TileEntitySpecialRenderer<TileEntityM
         GlStateManager.pushMatrix();
         GlStateManager.translate(x + 0.5, y, z + 0.5);
         GlStateManager.rotate(90, 0, 1, 0);
-        GL11.glShadeModel(GL11.GL_SMOOTH);
+        GlStateManager.shadeModel(GL11.GL_SMOOTH);
 
         switch (tileEntity.getBlockMetadata() - BlockDummyable.offset) {
-            case 2 -> GL11.glRotatef(0, 0F, 1F, 0F);
-            case 4 -> GL11.glRotatef(90, 0F, 1F, 0F);
-            case 3 -> GL11.glRotatef(180, 0F, 1F, 0F);
-            case 5 -> GL11.glRotatef(270, 0F, 1F, 0F);
+            case 2 -> GlStateManager.rotate(0, 0F, 1F, 0F);
+            case 4 -> GlStateManager.rotate(90, 0F, 1F, 0F);
+            case 3 -> GlStateManager.rotate(180, 0F, 1F, 0F);
+            case 5 -> GlStateManager.rotate(270, 0F, 1F, 0F);
         }
 
         bindTexture(ResourceManager.assembly_machine_tex);
@@ -94,7 +94,7 @@ public class RenderAssemblyMachine extends TileEntitySpecialRenderer<TileEntityM
 
         GlStateManager.popMatrix();
 
-        GL11.glShadeModel(GL11.GL_FLAT);
+        GlStateManager.shadeModel(GL11.GL_FLAT);
 
         GenericRecipe recipe = AssemblyMachineRecipes.INSTANCE.recipeNameMap.get(tileEntity.assemblerModule.recipe);
         if (recipe != null && MainRegistry.proxy.me().getDistanceSq(tileEntity.getPos().getX() + 0.5, tileEntity.getPos().getY() + 1, tileEntity.getPos().getZ() + 0.5) < 35 * 35) {
