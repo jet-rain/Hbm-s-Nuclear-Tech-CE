@@ -29,22 +29,6 @@ public class RenderCyclotron extends TileEntitySpecialRenderer<TileEntityMachine
     GlStateManager.pushMatrix();
     GlStateManager.translate(x + 0.5D, y, z + 0.5D);
 
-    switch (cyc.getBlockMetadata()) {
-      case 14:
-        GlStateManager.rotate(0, 0F, 1F, 0F);
-        break;
-      case 12:
-        GlStateManager.rotate(270, 0F, 1F, 0F);
-        break;
-      case 15:
-        GlStateManager.rotate(180, 0F, 1F, 0F);
-        break;
-      case 13:
-        GlStateManager.rotate(90, 0F, 1F, 0F);
-        break;
-    }
-
-    GlStateManager.enableLighting();
     GlStateManager.enableLighting();
     GlStateManager.disableCull();
     GlStateManager.shadeModel(GL11.GL_SMOOTH);
@@ -136,7 +120,6 @@ public class RenderCyclotron extends TileEntitySpecialRenderer<TileEntityMachine
       RenderHelper.enableStandardItemLighting();
     }
 
-    GlStateManager.shadeModel(GL11.GL_FLAT);
     GlStateManager.enableCull();
     GlStateManager.popMatrix();
   }

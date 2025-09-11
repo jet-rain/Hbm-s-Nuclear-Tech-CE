@@ -381,7 +381,8 @@ public class TileEntityMachinePyroOven extends TileEntityMachinePolluting implem
     @Override public FluidTankNTM[] getReceivingTanks() { return new FluidTankNTM[] { tanks[0] }; }
 
     @Override public Container provideContainer(int ID, EntityPlayer player, World world, int x, int y, int z) { return new ContainerPyroOven(player.inventory, this); }
-    @Override public GuiScreen provideGUI(int ID, EntityPlayer player, World world, int x, int y, int z) { return new GUIPyroOven(player.inventory, this); }
+    @Override
+    @SideOnly(Side.CLIENT) public GuiScreen provideGUI(int ID, EntityPlayer player, World world, int x, int y, int z) { return new GUIPyroOven(player.inventory, this); }
 
     @Override
     public boolean canProvideInfo(ItemMachineUpgrade.UpgradeType type, int level, boolean extendedInfo) {

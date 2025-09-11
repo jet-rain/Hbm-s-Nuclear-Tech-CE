@@ -2,18 +2,16 @@ package com.hbm.inventory.gui;
 
 import com.hbm.inventory.container.ContainerMachineCyclotron;
 import com.hbm.lib.RefStrings;
-import com.hbm.packet.toserver.AuxButtonPacket;
 import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toserver.AuxButtonPacket;
 import com.hbm.tileentity.machine.TileEntityMachineCyclotron;
 import com.hbm.util.I18nUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11; import net.minecraft.client.renderer.GlStateManager;
 
 import java.io.IOException;
 
@@ -26,19 +24,26 @@ public class GUIMachineCyclotron extends GuiInfoContainer {
 		super(new ContainerMachineCyclotron(invPlayer, tile));
 		cyclotron = tile;
 
-		this.xSize = 176;
-		this.ySize = 222;
+		this.xSize = 190;
+		this.ySize = 215;
 	}
 
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float f) {
 		super.drawScreen(mouseX, mouseY, f);
 
-		this.drawElectricityInfo(this, mouseX, mouseY, guiLeft + 80, guiTop + 72, 7, 52, cyclotron.power, TileEntityMachineCyclotron.maxPower);
-		cyclotron.tankCoolant.renderTankInfo(this, mouseX, mouseY, guiLeft + 53, guiTop + 72, 7, 52);
-		cyclotron.tankAmat.renderTankInfo(this, mouseX, mouseY, guiLeft + 134, guiTop + 90, 7, 34);
-		String[] text = I18nUtil.resolveKeyArray("desc.guiacceptupgrades2");
-		this.drawCustomInfoStat(mouseX, mouseY, guiLeft + 21, guiTop + 75, 8, 8, mouseX, mouseY, text);
+		this.drawElectricityInfo(this, mouseX, mouseY, guiLeft + 168, guiTop + 18, 16, 63, cyclotron.power, cyclotron.maxPower);
+
+		cyclotron.tanks[0].renderTankInfo(this, mouseX, mouseY, guiLeft + 11, guiTop + 81, 34, 7);
+		cyclotron.tanks[1].renderTankInfo(this, mouseX, mouseY, guiLeft + 11, guiTop + 90, 34, 7);
+		cyclotron.tanks[2].renderTankInfo(this, mouseX, mouseY, guiLeft + 107, guiTop + 81, 34, 16);
+
+		String[] upgradeText = new String[4];
+		upgradeText[0] = I18nUtil.resolveKey("desc.gui.upgrade");
+		upgradeText[1] = I18nUtil.resolveKey("desc.gui.upgrade.speed");
+		upgradeText[2] = I18nUtil.resolveKey("desc.gui.upgrade.effectiveness");
+		upgradeText[3] = I18nUtil.resolveKey("desc.gui.upgrade.power");
+		this.drawCustomInfoStat(mouseX, mouseY, guiLeft + 49, guiTop + 85, 8, 8, mouseX, mouseY, upgradeText);
 		super.renderHoveredToolTip(mouseX, mouseY);
 	}
 
@@ -47,7 +52,7 @@ public class GUIMachineCyclotron extends GuiInfoContainer {
 		String name = this.cyclotron.hasCustomInventoryName() ? this.cyclotron.getInventoryName() : I18n.format(this.cyclotron.getInventoryName());
 
 		this.fontRenderer.drawString(name, this.xSize / 2 - this.fontRenderer.getStringWidth(name) / 2, 6, 4210752);
-		this.fontRenderer.drawString(I18n.format("container.inventory"), 8, this.ySize - 96 + 2, 4210752);
+		this.fontRenderer.drawString(I18n.format("container.inventory"), 15, this.ySize - 96 + 2, 4210752);
 	}
 	
 	@Override
@@ -64,24 +69,22 @@ public class GUIMachineCyclotron extends GuiInfoContainer {
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float p_146976_1_, int p_146976_2_, int p_146976_3_) {
 		super.drawDefaultBackground();
-		GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
-		GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 		Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
 		drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, ySize);
 
-		int k = (int)cyclotron.getPowerScaled(52);
-		drawTexturedModalRect(guiLeft + 80, guiTop + 124 - k, 212, 52 - k, 7, k);
+		int k = (int) cyclotron.getPowerScaled(63);
+		drawTexturedModalRect(guiLeft + 168, guiTop + 80 - k, 190, 62 - k, 16, k);
 
-		int l = cyclotron.getProgressScaled(36);
-		drawTexturedModalRect(guiLeft + 52, guiTop + 26, 176, 0, l, 36);
+		int l = cyclotron.getProgressScaled(34);
+		drawTexturedModalRect(guiLeft + 48, guiTop + 27, 206, 0, l, 34);
 
-		if(cyclotron.isOn)
-			drawTexturedModalRect(guiLeft + 97, guiTop + 107, 219, 0, 18, 18);
-		
-		this.drawInfoPanel(guiLeft + 21, guiTop + 75, 8, 8, 8);
-		cyclotron.tankCoolant.renderTank(guiLeft + 53, guiTop + 124, this.zLevel, 7, 52);
-		cyclotron.tankAmat.renderTank(guiLeft + 134, guiTop + 124, this.zLevel, 7, 34);
-		GL11.glPopAttrib();
+		if(l > 0)
+			drawTexturedModalRect(guiLeft + 172, guiTop + 4, 190, 63, 9, 12);
+
+		this.drawInfoPanel(guiLeft + 49, guiTop + 85, 8, 8, 8);
+
+		cyclotron.tanks[0].renderTank(guiLeft + 11, guiTop + 88, this.zLevel, 34, 7, 1);
+		cyclotron.tanks[1].renderTank(guiLeft + 11, guiTop + 97, this.zLevel, 34, 7, 1);
+		cyclotron.tanks[2].renderTank(guiLeft + 107, guiTop + 97, this.zLevel, 34, 16, 1);
 	}
 }

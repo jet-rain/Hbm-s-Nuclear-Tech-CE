@@ -29,6 +29,7 @@ public class GUISolidifier extends GuiInfoContainer {
 
         solidifier.tank.renderTankInfo(this, mouseX, mouseY, guiLeft + 35, guiTop + 36, 16, 52);
         this.drawElectricityInfo(this, mouseX, mouseY, guiLeft + 134, guiTop + 18, 16, 52, solidifier.power, solidifier.maxPower);
+        super.renderHoveredToolTip(mouseX, mouseY);
     }
 
     @Override

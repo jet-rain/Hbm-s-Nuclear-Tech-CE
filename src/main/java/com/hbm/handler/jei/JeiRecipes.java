@@ -610,16 +610,27 @@ public class JeiRecipes {
 		
 		return chemRecipes;
 	}
-	
+
 	public static List<CyclotronRecipe> getCyclotronRecipes() {
-		if(cyclotronRecipes != null)
-			 return cyclotronRecipes;
-		Map<ItemStack[], ItemStack> recipes = CyclotronRecipes.getRecipes();
+		if (cyclotronRecipes != null)
+			return cyclotronRecipes;
+		Map<Object[], Object> recipes = CyclotronRecipes.getRecipes();
 		cyclotronRecipes = new ArrayList<>(recipes.size());
-		for(Entry<ItemStack[], ItemStack> e : recipes.entrySet()){
-			cyclotronRecipes.add(new CyclotronRecipe(Arrays.asList(e.getKey()), e.getValue()));
+		for (Entry<Object[], Object> e : recipes.entrySet()) {
+			Object[] key = e.getKey();
+			ItemStack[] stacks;
+			if (key instanceof ItemStack[]) {
+				stacks = (ItemStack[]) key;
+			} else {
+				stacks = new ItemStack[key.length];
+				for (int i = 0; i < key.length; i++) {
+					Object obj = key[i];
+					stacks[i] = obj instanceof ItemStack ? (ItemStack) obj : ItemStack.EMPTY;
+				}
+			}
+			cyclotronRecipes.add(new CyclotronRecipe(Arrays.asList(stacks), (ItemStack) e.getValue()));
 		}
-		
+
 		return cyclotronRecipes;
 	}
 	

@@ -400,7 +400,6 @@ public class MainRegistry {
         BlockCrate.setDrops();
         BedrockOreRegistry.registerBedrockOres();
         ExplosionNukeGeneric.loadSoliniumFromFile();
-        CyclotronRecipes.register();
         HadronRecipes.register();
         MagicRecipes.register();
         SILEXRecipes.register();

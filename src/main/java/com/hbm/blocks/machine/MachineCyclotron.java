@@ -1,7 +1,6 @@
 package com.hbm.blocks.machine;
 
 import com.hbm.blocks.BlockDummyable;
-import com.hbm.blocks.ModBlocks;
 import com.hbm.lib.ForgeDirection;
 import com.hbm.lib.HBMSoundHandler;
 import com.hbm.main.MainRegistry;
@@ -29,7 +28,7 @@ public class MachineCyclotron extends BlockDummyable {
 		if(meta >= 12)
 			return new TileEntityMachineCyclotron();
 		if(meta >= 6)
-			return new TileEntityProxyCombo(false, true, true);
+			return new TileEntityProxyCombo().inventory().power().fluid();
 		return null;
 	}
 
@@ -42,8 +41,8 @@ public class MachineCyclotron extends BlockDummyable {
 
 			if(pos1 == null)
 				return false;
-			
-			TileEntityMachineCyclotron cyc = (TileEntityMachineCyclotron)world.getTileEntity(new BlockPos(pos1[0], pos1[1], pos1[2]));
+			BlockPos tPos = new BlockPos(pos1[0], pos1[1], pos1[2]);
+			if(!(world.getTileEntity(tPos) instanceof TileEntityMachineCyclotron cyc)) return false;
 
 			if(!player.getHeldItemMainhand().isEmpty()) {
 
