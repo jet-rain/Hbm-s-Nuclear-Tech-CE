@@ -74,6 +74,9 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
     public TileEntityMachineAssemblyFactory() {
         super(60);
 
+        animations = new AssemfacArm[2];
+        for(int i = 0; i < animations.length; i++) animations[i] = new AssemfacArm();
+
         this.inputTanks = new FluidTankNTM[4];
         this.outputTanks = new FluidTankNTM[4];
         for(int i = 0; i < 4; i++) {
@@ -85,8 +88,8 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
         this.lps = new FluidTankNTM(Fluids.SPENTSTEAM, 4_000);
 
         this.allTanks = new FluidTankNTM[this.inputTanks.length + this.outputTanks.length + 2];
-        for(int i = 0; i < inputTanks.length; i++) this.allTanks[i] = this.inputTanks[i];
-        for(int i = 0; i < outputTanks.length; i++) this.allTanks[i + this.inputTanks.length] = this.outputTanks[i];
+        System.arraycopy(this.inputTanks, 0, this.allTanks, 0, inputTanks.length);
+        System.arraycopy(this.outputTanks, 0, this.allTanks, this.inputTanks.length, outputTanks.length);
 
         this.allTanks[this.allTanks.length - 2] = this.water;
         this.allTanks[this.allTanks.length - 1] = this.lps;
@@ -187,7 +190,7 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
             this.networkPackNT(100);
         } else {
 
-            for(AssemfacArm animation : animations) animation.update(true || didProcess[0] ||didProcess[1] ||didProcess[2] ||didProcess[3]);
+            for(AssemfacArm animation : animations) animation.update(true);
 
             if(world.getTotalWorldTime() % 20 == 0) {
                 frame = world.getBlockState(pos.up(3)).getBlock() != Blocks.AIR;
@@ -443,37 +446,38 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
         public void update(boolean working) {
             this.prevSlider = this.slider;
 
-            if(working) switch(state) {
-                case WORKING: {
+            if(working) switch (state) {
+                case WORKING -> {
                     timeUntilReposition--;
-                    if(timeUntilReposition <= 0) {
+                    if (timeUntilReposition <= 0) {
                         state = AFArmState.RETIRING;
                     }
-                } break;
-                case RETIRING: {
-                    if(striker.state == ArmState.WAIT && saw.state == ArmState.WAIT) { // only progress as soon as both arms are done moving
+                }
+                case RETIRING -> {
+                    if (striker.state == ArmState.WAIT && saw.state == ArmState.WAIT) { // only progress as soon as both arms are done moving
                         state = AFArmState.SLIDING;
                         direction = !direction;
-                        if(!muffled) MainRegistry.proxy.playSoundClient(pos.getX(), pos.getY(), pos.getZ(), HBMSoundHandler.assemblerStart, SoundCategory.BLOCKS, getVolume(0.25F), 1.25F + world.rand.nextFloat() * 0.25F);
+                        if (!muffled)
+                            MainRegistry.proxy.playSoundClient(pos.getX(), pos.getY(), pos.getZ(), HBMSoundHandler.assemblerStart, SoundCategory.BLOCKS, getVolume(0.25F), 1.25F + world.rand.nextFloat() * 0.25F);
                     }
-                } break;
-                case SLIDING: {
+                }
+                case SLIDING -> {
                     double sliderSpeed = 1D / 20D; // 20 ticks for transit
-                    if(direction) {
+                    if (direction) {
                         slider += sliderSpeed;
-                        if(slider >= 1) {
+                        if (slider >= 1) {
                             slider = 1;
                             state = AFArmState.WORKING;
                         }
                     } else {
                         slider -= sliderSpeed;
-                        if(slider <= 0) {
+                        if (slider <= 0) {
                             slider = 0;
                             state = AFArmState.WORKING;
                         }
                     }
-                    if(state == AFArmState.WORKING) timeUntilReposition = 140 + rand.nextInt(161); // 7 to 15 seconds
-                } break;
+                    if (state == AFArmState.WORKING) timeUntilReposition = 140 + rand.nextInt(161); // 7 to 15 seconds
+                }
             }
 
             striker.updateArm(working);
@@ -515,9 +519,7 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
             public void updateArm(boolean working) {
                 resetSpeed();
 
-                for(int i = 0; i < angles.length; i++) {
-                    prevAngles[i] = angles[i];
-                }
+                System.arraycopy(angles, 0, prevAngles, 0, angles.length);
 
                 prevSawAngle = sawAngle;
 
@@ -532,57 +534,58 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
                     return;
                 }
 
-                switch(state) {
+                switch (state) {
                     // Move. If done moving, set a delay and progress to EXTEND
-                    case REPOSITION: {
-                        if(move()) {
+                    case REPOSITION -> {
+                        if (move()) {
                             actionDelay = 2;
                             state = ArmState.EXTEND;
                             targetAngles[3] = saw ? -0.375D : -0.75D;
                         }
-                    } break;
-                    case EXTEND:
-                        if(move()) {
+                    }
+                    case EXTEND -> {
+                        if (move()) {
 
-                            if(saw) {
+                            if (saw) {
                                 state = ArmState.CUT;
                                 targetAngles[2] = -targetAngles[2];
                             } else {
                                 state = ArmState.RETRACT;
                                 targetAngles[3] = 0D;
-                                if(!muffled) MainRegistry.proxy.playSoundClient(pos.getX(), pos.getY(), pos.getZ(), HBMSoundHandler.assemblerStrike, SoundCategory.BLOCKS, getVolume(0.5F), 1F);
+                                if (!muffled)
+                                    MainRegistry.proxy.playSoundClient(pos.getX(), pos.getY(), pos.getZ(), HBMSoundHandler.assemblerStrike, SoundCategory.BLOCKS, getVolume(0.5F), 1F);
                             }
                         }
-                        break;
-                    case CUT: {
+                    }
+                    case CUT -> {
                         speed[2] = Math.abs(targetAngles[2] / 20D);
-                        if(move()) {
+                        if (move()) {
                             state = ArmState.RETRACT;
                             targetAngles[3] = 0D;
                         }
-                    } break;
-                    case RETRACT:
-                        if(move()) {
+                    }
+                    case RETRACT -> {
+                        if (move()) {
                             actionDelay = 2 + rand.nextInt(5);
                             chooseNewArmPoistion();
                             state = AssemfacArm.this.state == AFArmState.RETIRING ? ArmState.RETIRE : ArmState.REPOSITION;
                         }
-                        break;
-                    case RETIRE: {
+                    }
+                    case RETIRE -> {
                         this.targetAngles[0] = 0;
                         this.targetAngles[1] = 0;
                         this.targetAngles[2] = 0;
                         this.targetAngles[3] = 0;
 
-                        if(move()) {
+                        if (move()) {
                             actionDelay = 2 + rand.nextInt(5);
                             chooseNewArmPoistion();
                             state = ArmState.WAIT;
                         }
-                    } break;
-                    case WAIT: {
-                        if(AssemfacArm.this.state == AFArmState.WORKING) this.state = ArmState.REPOSITION;
-                    } break;
+                    }
+                    case WAIT -> {
+                        if (AssemfacArm.this.state == AFArmState.WORKING) this.state = ArmState.REPOSITION;
+                    }
                 }
             }
 
@@ -663,13 +666,13 @@ public class TileEntityMachineAssemblyFactory extends TileEntityMachineBase impl
      * If the carriage is WORKING, any arm that is in the WAIT state will return to REPOSITION
      */
 
-    public static enum AFArmState {
+    public enum AFArmState {
         WORKING,
         RETIRING, // waiting for arms to enter WAITING state
         SLIDING // transit to next position
     }
 
-    public static enum ArmState {
+    public enum ArmState {
         REPOSITION,
         EXTEND,
         CUT,

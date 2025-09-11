@@ -2,8 +2,8 @@ package com.hbm.inventory.gui;
 
 import com.hbm.lib.RefStrings;
 import com.hbm.main.AdvancementManager;
-import com.hbm.packet.toserver.ItemBobmazonPacket;
 import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toserver.ItemBobmazonPacket;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
@@ -13,13 +13,13 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Items;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.lwjgl.opengl.GL11; import net.minecraft.client.renderer.GlStateManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -213,7 +213,7 @@ public class GUIScreenBobmazon extends GuiScreen {
 		public int rating;
 		public String comment;
 		public String author;
-		
+
 		public Offer(ItemStack offer, Requirement requirement, int cost, int rating, String comment, String author) {
 			this.offer = offer;
 			this.requirement = requirement;
@@ -222,14 +222,13 @@ public class GUIScreenBobmazon extends GuiScreen {
 			this.comment = comment;
 			this.author = author;
 		}
-		
+
 		public Offer(ItemStack offer, Requirement requirement, int cost) {
-			this.offer = offer;
-			this.requirement = requirement;
-			this.cost = cost;
-			this.rating = 0;
-			this.comment = "No Ratings";
-			this.author = "";
+			this(offer, requirement, cost, 0);
+		}
+
+		public Offer(ItemStack offer, Requirement requirement, int cost, int rating) {
+			this(offer, requirement, cost, rating, "No Ratings", "");
 		}
 		
 		public void drawRequirement(GUIScreenBobmazon gui, int x, int y) {
@@ -268,18 +267,16 @@ public class GUIScreenBobmazon extends GuiScreen {
 					gui.fontRenderer.drawString(comment, (x + 20) * 2, (y + 8) * 2, 0x222222);
 					
 				GlStateManager.popMatrix();
-				
-		        GlStateManager.disableLighting();
-				if(offer != null) {
-					gui.itemRender.renderItemAndEffectIntoGUI(null, requirement.getAchievement().getDisplay().getIcon(), x + 1, y + 1);
-				}
-		        GlStateManager.enableLighting();
+
+				GlStateManager.disableLighting();
+				gui.itemRender.renderItemAndEffectIntoGUI(null, requirement.getIconStack(), x + 1, y + 1);
+				GlStateManager.enableLighting();
 		        
 			} catch(Exception ex) { }
 		}
 		
 	}
-	
+
 	public enum Requirement {
 
 		STEEL(AdvancementManager.achBlastFurnace, "achblastfurnace"),
@@ -287,36 +284,64 @@ public class GUIScreenBobmazon extends GuiScreen {
 		CHEMICS(AdvancementManager.achChemplant, "achchemplant"),
 		OIL(AdvancementManager.achDesh, "achdesh"),
 		NUCLEAR(AdvancementManager.achTechnetium, "achtechnetium"),
-		HIDDEN(AdvancementManager.bobHidden, "bobhidden");
-		
+		HIDDEN(AdvancementManager.bobHidden, "bobhidden"),
+		NONE;
+
+		private Advancement achievement;
+		private String advName;
+		private ResourceLocation advId;
+
+		private Requirement() { }
+
 		private Requirement(Advancement achievement, String advName) {
 			this.setAchievement(achievement);
 			this.advName = advName;
+			this.advId = new ResourceLocation(RefStrings.MODID, advName);
 		}
-		
+
 		public boolean fullfills(EntityPlayerMP player) {
-			
-			return player.getAdvancements().getProgress(getAchievement()).isDone();
+			Advancement adv = getAchievement();
+			if (adv == null) {
+				return true;
+			}
+			return player.getAdvancements().getProgress(adv).isDone();
 		}
-		
+
 		public Advancement getAchievement() {
-			if(FMLCommonHandler.instance().getSide().isServer()){
+			if (this == NONE) {
+				return null;
+			}
+			if (FMLCommonHandler.instance().getSide().isServer()){
 				return achievement;
 			}
 			return getAchClient();
 		}
-		
+
 		@SideOnly(Side.CLIENT)
 		private Advancement getAchClient(){
-			return Minecraft.getMinecraft().player.connection.getAdvancementManager().getAdvancementList().getAdvancement(new ResourceLocation(RefStrings.MODID, advName));
+			if (this == NONE) {
+				return null;
+			}
+			if (advId == null && advName != null) {
+				advId = new ResourceLocation(RefStrings.MODID, advName);
+			}
+			return Minecraft.getMinecraft()
+					.player.connection.getAdvancementManager()
+					.getAdvancementList()
+					.getAdvancement(advId);
 		}
 
 		public void setAchievement(Advancement achievement) {
 			this.achievement = achievement;
 		}
 
-		private Advancement achievement;
-		private String advName;
+		public ItemStack getIconStack() {
+			Advancement adv = getAchievement();
+			if (adv != null && adv.getDisplay() != null) {
+				return adv.getDisplay().getIcon();
+			}
+			return new ItemStack(Items.BOOK);
+		}
 	}
 
 }

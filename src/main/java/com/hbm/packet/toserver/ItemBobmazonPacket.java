@@ -30,14 +30,8 @@ public class ItemBobmazonPacket implements IMessage {
 
 	public ItemBobmazonPacket(EntityPlayer player, Offer offer)
 	{
-		if(player.getHeldItemMainhand().getItem() == ModItems.bobmazon_materials)
-			this.offer = BobmazonOfferFactory.materials.indexOf(offer);
-		if(player.getHeldItemMainhand().getItem() == ModItems.bobmazon_machines)
-			this.offer = BobmazonOfferFactory.machines.indexOf(offer);
-		if(player.getHeldItemMainhand().getItem() == ModItems.bobmazon_weapons)
-			this.offer = BobmazonOfferFactory.weapons.indexOf(offer);
-		if(player.getHeldItemMainhand().getItem() == ModItems.bobmazon_tools)
-			this.offer = BobmazonOfferFactory.tools.indexOf(offer);
+		if(player.getHeldItemMainhand().getItem() == ModItems.bobmazon)
+			this.offer = BobmazonOfferFactory.standard.indexOf(offer);
 		if(player.getHeldItemMainhand().getItem() == ModItems.bobmazon_hidden)
 			this.offer = BobmazonOfferFactory.special.indexOf(offer);
 	}
@@ -65,14 +59,8 @@ public class ItemBobmazonPacket implements IMessage {
 				Item mainHand = p.getHeldItemMainhand().getItem();
 				Item offHand = p.getHeldItemOffhand().getItem();
 				Offer offer = null;
-				if(mainHand == ModItems.bobmazon_materials || offHand == ModItems.bobmazon_materials)
-					offer = BobmazonOfferFactory.materials.get(m.offer);
-				if(mainHand == ModItems.bobmazon_machines || offHand == ModItems.bobmazon_machines)
-					offer = BobmazonOfferFactory.machines.get(m.offer);
-				if(mainHand == ModItems.bobmazon_weapons || offHand == ModItems.bobmazon_weapons)
-					offer = BobmazonOfferFactory.weapons.get(m.offer);
-				if(mainHand == ModItems.bobmazon_tools || offHand == ModItems.bobmazon_tools)
-					offer = BobmazonOfferFactory.tools.get(m.offer);
+				if(mainHand == ModItems.bobmazon || offHand == ModItems.bobmazon)
+					offer = BobmazonOfferFactory.standard.get(m.offer);
 				if(mainHand == ModItems.bobmazon_hidden || offHand == ModItems.bobmazon_hidden)
 					offer = BobmazonOfferFactory.special.get(m.offer);
 				
@@ -124,7 +112,7 @@ public class ItemBobmazonPacket implements IMessage {
 				
 				ItemStack stack = player.inventory.getStackInSlot(i);
 				
-				if(stack != null) {
+				if(!stack.isEmpty()) {
 					
 					Item item = stack.getItem();
 					
@@ -153,7 +141,7 @@ public class ItemBobmazonPacket implements IMessage {
 				
 				ItemStack stack = player.inventory.getStackInSlot(i);
 				
-				if(stack != null) {
+				if(!stack.isEmpty()) {
 					
 					Item item = stack.getItem();
 					

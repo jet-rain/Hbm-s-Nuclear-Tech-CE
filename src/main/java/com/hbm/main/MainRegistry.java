@@ -457,7 +457,6 @@ public class MainRegistry {
         evt.registerServerCommand(new CommandPacketInfo());
         AdvancementManager.init(evt.getServer());
         //MUST be initialized AFTER achievements!!
-        BobmazonOfferFactory.reset();
         BobmazonOfferFactory.init();
         RadiationSystemNT.onServerStarting(evt);
     }

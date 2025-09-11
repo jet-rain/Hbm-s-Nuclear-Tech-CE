@@ -45,12 +45,16 @@ import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class FluidDuctStandard extends BlockContainer implements IDynamicModels, ILookOverlay {
 
@@ -113,20 +117,48 @@ public class FluidDuctStandard extends BlockContainer implements IDynamicModels,
 		return new TileEntityPipeBaseNT();
 	}
 
+	/**
+	 * Checks if it can connect to a fluid-capable neighbor.
+	 */
 	private boolean canConnectTo(IBlockAccess world, int x, int y, int z, ForgeDirection dir, FluidType type) {
-		return Library.canConnectFluid(world, x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ, dir, type);
+		BlockPos pos = new BlockPos(x, y, z);
+		BlockPos neighborPos = pos.offset(Objects.requireNonNull(dir.toEnumFacing()));
+		if (Library.canConnectFluid(world, x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ, dir, type)) {
+			return true;
+		}
+
+		TileEntity neighbor = world.getTileEntity(neighborPos);
+		if (neighbor != null && !neighbor.isInvalid()) {
+			EnumFacing facing = dir.getOpposite().toEnumFacing();
+			if (neighbor.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, facing)) {
+				IFluidHandler handler = neighbor.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, facing);
+				if (handler != null) {
+					IFluidTankProperties[] props = handler.getTankProperties();
+					if (props != null && props.length > 0) {
+						for (IFluidTankProperties p : props) {
+							if (p != null && (p.canFill() || p.canDrain())) {
+								return true;
+							}
+						}
+						return false;
+					}
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	private boolean canConnectAt(IBlockAccess world, BlockPos pos, EnumFacing dir, FluidType type) {
-		switch (dir) {
-			case EAST:  return canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.POS_X, type);
-			case WEST:  return canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.NEG_X, type);
-			case UP:    return canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.POS_Y, type);
-			case DOWN:  return canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.NEG_Y, type);
-			case SOUTH: return canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.POS_Z, type);
-			case NORTH: return canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.NEG_Z, type);
-		}
-		return false;
+		return switch (dir) {
+			case EAST -> canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.POS_X, type);
+			case WEST -> canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.NEG_X, type);
+			case UP -> canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.POS_Y, type);
+			case DOWN -> canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.NEG_Y, type);
+			case SOUTH -> canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.POS_Z, type);
+			case NORTH -> canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), Library.NEG_Z, type);
+		};
 	}
 
 	@Override

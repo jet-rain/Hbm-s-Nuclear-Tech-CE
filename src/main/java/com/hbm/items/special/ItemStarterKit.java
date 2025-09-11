@@ -139,6 +139,39 @@ public class ItemStarterKit extends Item {
 			
 			giveHaz(world, player, 2);
 		}
+
+		if(this == ModItems.nuke_commercially_kit)
+		{
+
+			player.inventory.addItemStackToInventory(new ItemStack(ModBlocks.reactor_research, 8));
+			player.inventory.addItemStackToInventory(new ItemStack(ModBlocks.machine_reactor_breeding, 8));
+			player.inventory.addItemStackToInventory(new ItemStack(ModBlocks.machine_fluidtank, 8));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.billet_pu238be, 40));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.ingot_u233, 40));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.ingot_uranium_fuel, 32));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.ingot_plutonium_fuel, 16));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.ingot_mox_fuel, 8));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.inf_water_mk2, 1));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.inf_water_mk2, 1));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.inf_water_mk2, 1));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.rod_empty, 64));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.rod_dual_empty, 64));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.rod_quad_empty, 64));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.fluid_tank_lead_empty, 64));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.fluid_barrel_empty, 64));
+			player.inventory.addItemStackToInventory(new ItemStack(ModBlocks.barrel_steel, 16));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.plate_iron, 64));
+			player.inventory.addItemStackToInventory(new ItemStack(Items.DYE, 64));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.template_folder, 1));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.radaway_flush, 8));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.iv_blood, 8));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.pill_iodine, 8));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.gas_mask_filter_combo, 1));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.gas_mask_filter_combo, 1));
+			player.inventory.addItemStackToInventory(new ItemStack(ModItems.gas_mask_filter_combo, 1));
+
+			giveHaz(world, player, 2);
+		}
 		
 		if(this == ModItems.grenade_kit)
 		{

@@ -2,6 +2,7 @@ package com.hbm.blocks.network.energy;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.items.IDynamicModels;
+import com.hbm.lib.ForgeDirection;
 import com.hbm.lib.Library;
 import com.hbm.lib.RefStrings;
 import com.hbm.render.amlfrom1710.WavefrontObject;
@@ -31,6 +32,8 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.energy.CapabilityEnergy;
+import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -94,14 +97,34 @@ public class BlockCable extends BlockContainer implements IDynamicModels {
 		return 0;
 	}
 
+	/**
+	 * Checks if it can connect to a HE or FE neighbor.
+	 */
+	private boolean canConnectToNeighbor(IBlockAccess world, BlockPos pos, ForgeDirection dir) {
+		if (Library.canConnect(world, pos, dir)) {
+			return true;
+		}
+
+		TileEntity neighbor = world.getTileEntity(pos);
+		if (neighbor != null && !neighbor.isInvalid()) {
+			EnumFacing facing = dir.getOpposite().toEnumFacing();
+			if (neighbor.hasCapability(CapabilityEnergy.ENERGY, facing)) {
+				IEnergyStorage storage = neighbor.getCapability(CapabilityEnergy.ENERGY, facing);
+				return storage != null && (storage.canReceive() || storage.canExtract());
+			}
+		}
+
+		return false;
+	}
+
 	private boolean canConnect(IBlockAccess world, BlockPos pos, EnumFacing dir) {
 		return switch (dir) {
-			case EAST -> Library.canConnect(world, pos, Library.POS_X);
-			case WEST -> Library.canConnect(world, pos, Library.NEG_X);
-			case UP -> Library.canConnect(world, pos, Library.POS_Y);
-			case DOWN -> Library.canConnect(world, pos, Library.NEG_Y);
-			case SOUTH -> Library.canConnect(world, pos, Library.POS_Z);
-			case NORTH -> Library.canConnect(world, pos, Library.NEG_Z);
+			case EAST -> canConnectToNeighbor(world, pos, Library.POS_X);
+			case WEST -> canConnectToNeighbor(world, pos, Library.NEG_X);
+			case UP -> canConnectToNeighbor(world, pos, Library.POS_Y);
+			case DOWN -> canConnectToNeighbor(world, pos, Library.NEG_Y);
+			case SOUTH -> canConnectToNeighbor(world, pos, Library.POS_Z);
+			case NORTH -> canConnectToNeighbor(world, pos, Library.NEG_Z);
 		};
 	}
 

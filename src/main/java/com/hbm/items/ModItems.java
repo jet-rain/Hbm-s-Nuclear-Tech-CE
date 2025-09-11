@@ -1375,7 +1375,7 @@ public class ModItems {
     public static final Item marshmallow_roasted = new ItemLemon(6, 6, false, "marshmallow_roasted").setMaxStackSize(1).setFull3D().setCreativeTab(MainRegistry.consumableTab);
     //Bongespob arcarmoni
     public static final Item spongebob_macaroni = new ItemLemon(5, 5, false, "spongebob_macaroni").setCreativeTab(MainRegistry.consumableTab);
-    public static final Item canned_conserve = new ItemConserve().setCreativeTab(MainRegistry.consumableTab);
+    public static final ItemEnumMultiFood canned_conserve = (ItemEnumMultiFood) new ItemConserve().setCreativeTab(MainRegistry.consumableTab);
     public static final Item can_key = new ItemBase("can_key").setCreativeTab(MainRegistry.consumableTab);
     public static final Item coin_maskman = new ItemCustomLore("coin_maskman").setRarity(EnumRarity.UNCOMMON).setCreativeTab(MainRegistry.consumableTab);
     public static final Item coin_creeper = new ItemCustomLore("coin_creeper").setRarity(EnumRarity.UNCOMMON).setCreativeTab(MainRegistry.consumableTab);
@@ -1685,10 +1685,7 @@ public class ModItems {
     public static final Item journal_pip = new ItemTemplateFolder("journal_pip").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
     public static final Item journal_bj = new ItemTemplateFolder("journal_bj").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
     public static final Item journal_silver = new ItemTemplateFolder("journal_silver").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
-    public static final Item bobmazon_materials = new ItemCatalog("bobmazon_materials").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
-    public static final Item bobmazon_machines = new ItemCatalog("bobmazon_machines").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
-    public static final Item bobmazon_weapons = new ItemCatalog("bobmazon_weapons").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
-    public static final Item bobmazon_tools = new ItemCatalog("bobmazon_tools").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
+    public static final Item bobmazon = new ItemCatalog("bobmazon").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
     public static final Item bobmazon_hidden = new ItemCatalog("bobmazon_hidden").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
     public static final Item siren_track = new ItemCassette("siren_track").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
     public static final Item assembly_template = new ItemAssemblyTemplate("assembly_template").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
@@ -2419,6 +2416,7 @@ public class ModItems {
     public static final Item hazmat_grey_kit = new ItemStarterKit("hazmat_grey_kit").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item nuke_starter_kit = new ItemStarterKit("nuke_starter_kit").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item nuke_advanced_kit = new ItemStarterKit("nuke_advanced_kit").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item nuke_commercially_kit = new ItemStarterKit("nuke_commercially_kit").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item loot_10 = new ItemLootCrate("loot_10").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab);
     public static final Item loot_15 = new ItemLootCrate("loot_15").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab);
     public static final Item loot_misc = new ItemLootCrate("loot_misc").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab);

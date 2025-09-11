@@ -156,10 +156,7 @@ public class ToolRecipes {
         //CraftingManager.addRecipeAuto(new ItemStack(ModItems.rebar_placer), "RDR", "DWD", "RDR", 'R', ModBlocks.rebar, 'D', ModItems.ducttape, 'W', ModItems.wrench );
 
         //Bobmazon
-        CraftingManager.addShapelessAuto(new ItemStack(ModItems.bobmazon_materials), Items.BOOK, GOLD.nugget(), Items.STRING );
-        CraftingManager.addShapelessAuto(new ItemStack(ModItems.bobmazon_machines), Items.BOOK, GOLD.nugget(), new ItemStack(Items.DYE, 1, 1) );
-        CraftingManager.addShapelessAuto(new ItemStack(ModItems.bobmazon_weapons), Items.BOOK, GOLD.nugget(), new ItemStack(Items.DYE, 1, 8) );
-        CraftingManager.addShapelessAuto(new ItemStack(ModItems.bobmazon_tools), Items.BOOK, GOLD.nugget(), new ItemStack(Items.DYE, 1, 2) );
+        CraftingManager.addShapelessAuto(new ItemStack(ModItems.bobmazon), Items.BOOK, Items.GOLD_NUGGET, Items.STRING, KEY_BLUE);
 
         //Blueprints
         //CraftingManager.addShapelessAuto(new ItemStack(ModItems.blueprint_folder, 1, 0), ModItems.blueprints, ModItems.blueprints, ModItems.blueprints );
