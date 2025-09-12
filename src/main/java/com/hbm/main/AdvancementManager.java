@@ -159,6 +159,7 @@ public class AdvancementManager {
         achDriveFail      = adv.getAdvancement(new ResourceLocation(RefStrings.MODID, "achdrivefail")); // NTM SPACE
         progress_dfc      = adv.getAdvancement(new ResourceLocation(RefStrings.MODID, "progress_dfc")); // 1.12.2 exclusive, kept because why not?
         // TODO: Maybe add an achievement for SAFE
+        // not really, it got removed
         root              = adv.getAdvancement(new ResourceLocation(RefStrings.MODID, "root")); // 1.12.2 Root advancement
     }
 
