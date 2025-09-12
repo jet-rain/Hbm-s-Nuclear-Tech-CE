@@ -164,13 +164,13 @@ public class RocketStruct {
 			FluidType oxidizer = stage.thruster.part.getOxidizer();
 
 			if(fuel != null) {
-				int amount = stage.fuselage.part.getTankSize() * stage.fuselageCount;
+				int amount = (int) (stage.fuselage.part.getTankSize() * stage.fuselageCount);
 				if(tanks.containsKey(fuel)) amount += tanks.get(fuel);
 				tanks.put(fuel, amount);
 			}
 
 			if(oxidizer != null) {
-				int amount = stage.fuselage.part.getTankSize() * stage.fuselageCount;
+				int amount = (int) (stage.fuselage.part.getTankSize() * stage.fuselageCount);
 				if(tanks.containsKey(oxidizer)) amount += tanks.get(oxidizer);
 				tanks.put(oxidizer, amount);
 			}
@@ -201,7 +201,7 @@ public class RocketStruct {
 
 		if(stage.fuselage == null) return -1;
 
-		return stage.fuselage.part.getTankSize() * stage.fuselageCount;
+		return (int) (stage.fuselage.part.getTankSize() * stage.fuselageCount);
 	}
 
 	private int getFuelRequired(int stageNum, CelestialBody from, CelestialBody to, boolean fromOrbit, boolean toOrbit) {

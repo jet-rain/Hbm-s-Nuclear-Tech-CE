@@ -351,10 +351,11 @@ public class ItemMissile extends Item {
 		return (Integer) attributes[4];
 	}
 
-	public int getTankSize() {
+	public float getTankSize() {
 		if(type != PartType.FUSELAGE) return 0;
-		if(!(attributes[1] instanceof Integer)) return 0;
-		return (Integer) attributes[1];
+		if(attributes[1] instanceof Integer i) return i;
+		if(attributes[1] instanceof Float f) return f;
+		return 0;
 	}
 	
 	//am i retarded?
