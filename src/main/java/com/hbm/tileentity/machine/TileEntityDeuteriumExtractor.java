@@ -22,8 +22,8 @@ public class TileEntityDeuteriumExtractor extends TileEntityMachineBase implemen
 	public TileEntityDeuteriumExtractor() {
 		super(0, true, true);
 		tanks = new FluidTankNTM[2];
-		tanks[0] = new FluidTankNTM(Fluids.WATER, 0, 1000);
-		tanks[1] = new FluidTankNTM(Fluids.HEAVYWATER, 0, 100);
+		tanks[0] = new FluidTankNTM(Fluids.WATER, 1000);
+		tanks[1] = new FluidTankNTM(Fluids.HEAVYWATER, 100);
 	}
 
 	@Override

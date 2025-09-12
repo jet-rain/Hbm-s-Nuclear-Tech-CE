@@ -8,10 +8,12 @@ import com.hbm.inventory.fluid.Fluids;
 import com.hbm.lib.ForgeDirection;
 import com.hbm.tileentity.IFluidCopiable;
 import com.hbm.uninos.UniNodespace;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ITickable;
-import net.minecraft.world.WorldServer;
 
 @AutoRegister
 public class TileEntityPipeBaseNT extends TileEntity implements IFluidPipeMK2, IFluidCopiable, ITickable {
@@ -22,11 +24,6 @@ public class TileEntityPipeBaseNT extends TileEntity implements IFluidPipeMK2, I
 
     @Override
     public void update() {
-        if(world.isRemote && lastType != type) {
-            world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
-            lastType = type;
-        }
-
         if(!world.isRemote && canUpdate()) {
             if(this.node == null || this.node.expired) {
 
@@ -55,8 +52,10 @@ public class TileEntityPipeBaseNT extends TileEntity implements IFluidPipeMK2, I
         this.type = type;
         this.markDirty();
 
-        if(world instanceof WorldServer server) {
-            server.getPlayerChunkMap().markBlockForUpdate(pos);
+        if (!world.isRemote) {
+            IBlockState state = world.getBlockState(pos);
+            world.notifyBlockUpdate(pos, state, state, 3);
+            world.markBlockRangeForRenderUpdate(pos, pos);
         }
 
         UniNodespace.destroyNode(world, pos, prev.getNetworkProvider());
@@ -88,6 +87,23 @@ public class TileEntityPipeBaseNT extends TileEntity implements IFluidPipeMK2, I
     public boolean canUpdate() {
         return (this.node == null || this.node.net == null || !this.node.net.isValid()) && !this.isInvalid();
     }
+    // is that redundant? probably
+    // do I want visual shit to be gone? yes x10
+    @Override
+    public SPacketUpdateTileEntity getUpdatePacket() {
+        NBTTagCompound nbt = new NBTTagCompound();
+        writeToNBT(nbt);
+        return new SPacketUpdateTileEntity(pos, 0, nbt);
+    }
+
+    @Override
+    public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt) {
+        readFromNBT(pkt.getNbtCompound());
+        if (world != null) {
+            world.markBlockRangeForRenderUpdate(pos, pos);
+        }
+        this.lastType = this.type;
+    }
 
     @Override
     public NBTTagCompound getUpdateTag() {
@@ -100,6 +116,10 @@ public class TileEntityPipeBaseNT extends TileEntity implements IFluidPipeMK2, I
     public void handleUpdateTag(NBTTagCompound tag) {
         super.handleUpdateTag(tag);
         readFromNBT(tag);
+        if (world != null) {
+            world.markBlockRangeForRenderUpdate(pos, pos);
+        }
+        this.lastType = this.type;
     }
 
     @Override

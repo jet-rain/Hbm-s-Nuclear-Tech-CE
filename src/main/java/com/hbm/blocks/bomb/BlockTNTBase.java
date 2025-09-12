@@ -37,8 +37,10 @@ public abstract class BlockTNTBase extends BlockDetonatable implements IToolable
     public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
         super.onBlockAdded(world, pos, state);
         if (world.isBlockPowered(pos)) {
-            this.onPlayerDestroy(world, pos, state);
-            world.setBlockToAir(pos);
+            if (!world.isRemote) {
+                this.prime(world, pos, state.withProperty(META, 1), null);
+                world.setBlockToAir(pos);
+            }
         } else {
             checkAndIgnite(world, pos);
         }
