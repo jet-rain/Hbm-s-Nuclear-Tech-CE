@@ -3,7 +3,6 @@ package com.hbm.blocks.machine;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.inventory.fluid.FluidType;
-import com.hbm.items.ModItems;
 import com.hbm.items.machine.IItemFluidIdentifier;
 import com.hbm.lib.ForgeDirection;
 import com.hbm.tileentity.TileEntityProxyCombo;
@@ -56,7 +55,7 @@ public class MachineFractionTower extends BlockDummyable implements ILookOverlay
 	public boolean onBlockActivated(World world, BlockPos pos1, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ){
 		if(!world.isRemote && !player.isSneaking()) {
 			
-			if(player.getHeldItem(hand).isEmpty() || player.getHeldItem(hand).getItem() == ModItems.fluid_identifier) {
+			if(player.getHeldItem(hand).isEmpty() || player.getHeldItem(hand).getItem() instanceof IItemFluidIdentifier) {
 				int[] pos = this.findCore(world, pos1.getX(), pos1.getY(), pos1.getZ());
 					
 				if(pos == null)
@@ -64,24 +63,18 @@ public class MachineFractionTower extends BlockDummyable implements ILookOverlay
 				
 				TileEntity te = world.getTileEntity(new BlockPos(pos[0], pos[1], pos[2]));
 				
-				if(!(te instanceof TileEntityMachineFractionTower))
+				if(!(te instanceof TileEntityMachineFractionTower frac))
 					return false;
-				
-				TileEntityMachineFractionTower frac = (TileEntityMachineFractionTower) te;
-				
-				if(player.getHeldItem(hand).isEmpty()) {
-					if(world.isRemote){
-						player.sendMessage(new TextComponentTranslation("chat.fractioning.y", pos[1]));
 
-						for(int i = 0; i < frac.tanks.length; i++)
-							player.sendMessage(new TextComponentTranslation(frac.tanks[i].getTankType().getTranslationKey()).appendSibling(new TextComponentString(": " + frac.tanks[i].getFill() + "/" + frac.tanks[i].getMaxFill() + "mB")));
-					}
+				if(player.getHeldItem(hand).isEmpty()) {
+					player.sendMessage(new TextComponentTranslation("chat.fractioning.y", pos[1]));
+
+					for(int i = 0; i < frac.tanks.length; i++)
+						player.sendMessage(new TextComponentTranslation(frac.tanks[i].getTankType().getTranslationKey()).appendSibling(new TextComponentString(": " + frac.tanks[i].getFill() + "/" + frac.tanks[i].getMaxFill() + "mB")));
 				} else {
 					
 					if(world.getTileEntity(new BlockPos(pos[0], pos[1] - 3, pos[2])) instanceof TileEntityMachineFractionTower) {
-						if(world.isRemote){
-							player.sendMessage(new TextComponentTranslation("chat.fractioning.onlybottom"));
-						}
+						player.sendMessage(new TextComponentTranslation("chat.fractioning.onlybottom"));
 					} else {
 						FluidType type = ((IItemFluidIdentifier) player.getHeldItem(hand).getItem()).getType(world, pos[0], pos[1], pos[2], player.getHeldItem(hand));
 						frac.tanks[0].setTankType(type);
@@ -121,12 +114,10 @@ public class MachineFractionTower extends BlockDummyable implements ILookOverlay
 		
 		TileEntity te = world.getTileEntity(new BlockPos(pos[0], pos[1], pos[2]));
 		
-		if(!(te instanceof TileEntityMachineFractionTower))
+		if(!(te instanceof TileEntityMachineFractionTower frac))
 			return;
-		
-		TileEntityMachineFractionTower frac = (TileEntityMachineFractionTower) te;
-		
-		List<String> text = new ArrayList();
+
+		List<String> text = new ArrayList<>();
 
 		for(int i = 0; i < frac.tanks.length; i++){
 			if(frac.tanks[i] != null){

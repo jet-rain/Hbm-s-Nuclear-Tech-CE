@@ -4,7 +4,6 @@ import com.hbm.interfaces.AutoRegister;
 import com.hbm.inventory.container.ContainerMachineSatLinker;
 import com.hbm.inventory.gui.GUIMachineSatLinker;
 import com.hbm.items.ISatChip;
-import com.hbm.items.machine.ItemSatellite;
 import com.hbm.saveddata.satellites.SatelliteSavedData;
 import com.hbm.tileentity.IGUIProvider;
 import net.minecraft.client.gui.GuiScreen;
@@ -82,7 +81,7 @@ public class TileEntityMachineSatLinker extends TileEntity implements ITickable,
 	public void update() {
 		if(!world.isRemote)
 		{
-			if(inventory.getStackInSlot(0).getItem() instanceof ItemSatellite && inventory.getStackInSlot(1).getItem() instanceof ItemSatellite) {
+			if(inventory.getStackInSlot(0).getItem() instanceof ISatChip && inventory.getStackInSlot(1).getItem() instanceof ISatChip) {
 				ISatChip.setFreqS(inventory.getStackInSlot(1), ISatChip.getFreqS(inventory.getStackInSlot(0)));
 			}
 			if(inventory.getStackInSlot(2).getItem() instanceof ISatChip){

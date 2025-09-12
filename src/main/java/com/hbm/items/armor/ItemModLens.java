@@ -86,6 +86,7 @@ public class ItemModLens extends ItemArmorMod implements ISatChip {
                         int aX = mutablePos.getX();
                         int aZ = mutablePos.getZ();
 
+                        if(addIf(ModBlocks.ore_alexandrite, b, 1, aX, seg, aZ, I18nUtil.resolveKey("tile.ore_alexandrite.name"), 0x00ffff, player)) hits++;
                         if(addIf(ModBlocks.ore_oil, b, 300, aX, seg, aZ, I18nUtil.resolveKey("tile.ore_oil.name"), 0xa0a0a0, player)) hits++;
                         if(addIf(ModBlocks.ore_bedrock_oil, b, 300, aX, seg, aZ, I18nUtil.resolveKey("tile.ore_bedrock_oil.name"), 0xa0a0a0, player)) hits++;
                         if(addIf(ModBlocks.ore_coltan, b, 5, aX, seg, aZ, I18nUtil.resolveKey("tile.ore_coltan.name"), 0xa0a000, player)) hits++;

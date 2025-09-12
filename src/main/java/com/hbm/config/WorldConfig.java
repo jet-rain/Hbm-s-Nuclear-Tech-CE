@@ -121,8 +121,8 @@ public class WorldConfig {
 		oilcoalSpawn = convertToInt(CompatibilityConfig.oilcoalSpawn.get(0));
 		gassshaleSpawn = convertToInt(CompatibilityConfig.gassshaleSpawn.get(0));
 		explosivebubbleSpawn = convertToInt(CompatibilityConfig.explosivebubbleSpawn.get(0));
-		alexandriteSpawn = CommonConfig.createConfigInt(config, CATEGORY_OREGEN, "2.20_alexandriteSpawnRate", "Spawns an alexandrite vein every nTH chunk", 100);
-		oilSpawn = CommonConfig.createConfigInt(config, CATEGORY_OREGEN, "2.21_oilSpawnRate", "Spawns an oil bubble every nTH chunk", 100);
+		alexandriteSpawn = convertToInt(CompatibilityConfig.alexandriteSpawn.get(0));
+		oilSpawn = convertToInt(CompatibilityConfig.oilBubbleSpawn.get(0));
 		gasbubbleSpawn = convertToInt(CompatibilityConfig.gasbubbleSpawn.get(0));
 		cinnabarSpawn = convertToInt(CompatibilityConfig.cinnabarSpawn.get(0));
 		cobaltSpawn = convertToInt(CompatibilityConfig.cobaltSpawn.get(0));

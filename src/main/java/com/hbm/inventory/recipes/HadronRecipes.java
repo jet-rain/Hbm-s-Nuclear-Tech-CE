@@ -54,28 +54,12 @@ public class HadronRecipes {
 				true
 				));
 		recipes.add(new HadronRecipe(
-				new ItemStack(ModItems.particle_aschrab),
-				new ItemStack(ModItems.capsule_xen),
-				4000,
-				new ItemStack(ModItems.particle_empty),
-				new ItemStack(ModItems.tiny_singularity),
-				true
-				));
-		recipes.add(new HadronRecipe(
 				new ItemStack(ModItems.particle_hydrogen),
 				new ItemStack(ModItems.particle_lead),
 				5000,
 				new ItemStack(ModItems.particle_higgs),
 				new ItemStack(ModItems.particle_empty),
 				false
-				));
-		recipes.add(new HadronRecipe(
-				new ItemStack(ModItems.particle_muon),
-				new ItemStack(ModItems.singularity),
-				8000,
-				new ItemStack(ModItems.particle_empty),
-				new ItemStack(ModItems.tiny_singularity_counter_resonant),
-				true
 				));
 		recipes.add(new HadronRecipe(
 				new ItemStack(ModItems.particle_higgs),
@@ -102,28 +86,12 @@ public class HadronRecipes {
 				false
 				));
 		recipes.add(new HadronRecipe(
-				new ItemStack(ModItems.particle_tachyon),
-				new ItemStack(ModItems.singularity_counter_resonant),
-				20000,
-				new ItemStack(ModItems.particle_empty),
-				new ItemStack(ModItems.tiny_singularity_super_heated),
-				true
-				));
-		recipes.add(new HadronRecipe(
 				new ItemStack(ModItems.particle_aschrab),
 				new ItemStack(ModItems.particle_aschrab),
 				100000,
 				new ItemStack(ModItems.particle_dark),
 				new ItemStack(ModItems.particle_empty),
 				false
-				));
-		recipes.add(new HadronRecipe(
-				new ItemStack(ModItems.particle_dark),
-				new ItemStack(ModItems.singularity_super_heated),
-				100000,
-				new ItemStack(ModItems.particle_empty),
-				new ItemStack(ModItems.tiny_black_hole),
-				true
 				));
 		recipes.add(new HadronRecipe(
 				new ItemStack(ModItems.particle_muon),
@@ -148,14 +116,6 @@ public class HadronRecipes {
 				new ItemStack(ModItems.particle_empty),
 				new ItemStack(ModItems.ingot_daffergon),
 				false
-				));
-		recipes.add(new HadronRecipe(
-				new ItemStack(ModItems.particle_sparkticle),
-				new ItemStack(ModItems.black_hole),
-				750000,
-				new ItemStack(ModItems.particle_empty),
-				new ItemStack(ModItems.tiny_singularity_spark),
-				true
 				));
 		recipes.add(new HadronRecipe(
 				new ItemStack(ModItems.particle_sparkticle),

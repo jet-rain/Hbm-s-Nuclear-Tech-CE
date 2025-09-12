@@ -84,7 +84,7 @@ public class CannerySILEX extends CanneryBase {
 				.setColors(colorCopper).setOrientation(Orientation.BOTTOM)));
 		scene0.add(new ActionUpdateActor(0, "mode", 3));
 		scene0.add(new ActionWait(20));
-		scene0.add(new ActionCreateActor(3, new ActorFancyPanel(Minecraft.getMinecraft().fontRenderer, -7, -15, new Object[][] {{new ItemStack(ModItems.laser_crystal_dem)}}, 0)
+		scene0.add(new ActionCreateActor(3, new ActorFancyPanel(Minecraft.getMinecraft().fontRenderer, -7, -15, new Object[][] {{new ItemStack(ModItems.laser_crystal_bale)}}, 0)
 				.setColors(colorCopper).setOrientation(Orientation.BOTTOM)));
 		scene0.add(new ActionUpdateActor(0, "mode", 4));
 		scene0.add(new ActionWait(20));

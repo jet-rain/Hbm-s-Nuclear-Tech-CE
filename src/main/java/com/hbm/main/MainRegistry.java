@@ -415,7 +415,6 @@ public class MainRegistry {
         ArmorUtil.register();
         RBMKFuelRecipes.registerRecipes();
         DFCRecipes.register();
-        SAFERecipes.registerRecipes();
         StorageDrumRecipes.registerRecipes();
         NuclearTransmutationRecipes.registerRecipes();
         EngineRecipes.registerEngineRecipes();

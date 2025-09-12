@@ -84,11 +84,8 @@ public class JEIConfig implements IModPlugin {
     public static final String SILEX_DIGAMMA = "hbm.silexdigamma";
     public static final String SILEX_GAMMA = "hbm.silexgamma";
     public static final String SILEX_IR = "hbm.silexir";
-    public static final String SILEX_MICRO = "hbm.silexmicro";
-    public static final String SILEX_RADIO = "hbm.silexradio";
     public static final String SILEX_UV = "hbm.silexuv";
     public static final String SILEX_VISIBLE = "hbm.silexvisible";
-    public static final String SILEX_XRAY = "hbm.silexray";
     public static final String SOLDERING_STATION = "hbm.soldering_station";
     public static final String SOLIDIFICATION = "hbm.solidification";
     public static final String STORAGEDRUM = "hbm.storage_drum";
@@ -218,12 +215,9 @@ public class JEIConfig implements IModPlugin {
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_silex), SILEX);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_rtg_grey), RTG);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_difurnace_rtg_off), RTG);
-        registry.addRecipeCatalyst(new ItemStack(ModItems.laser_crystal_nano), SILEX_RADIO);
-        registry.addRecipeCatalyst(new ItemStack(ModItems.laser_crystal_pentacene), SILEX_MICRO);
         registry.addRecipeCatalyst(new ItemStack(ModItems.laser_crystal_co2), SILEX_IR);
         registry.addRecipeCatalyst(new ItemStack(ModItems.laser_crystal_bismuth), SILEX_VISIBLE);
         registry.addRecipeCatalyst(new ItemStack(ModItems.laser_crystal_cmb), SILEX_UV);
-        registry.addRecipeCatalyst(new ItemStack(ModItems.laser_crystal_dem), SILEX_XRAY);
         registry.addRecipeCatalyst(new ItemStack(ModItems.laser_crystal_bale), SILEX_GAMMA);
         registry.addRecipeCatalyst(new ItemStack(ModItems.laser_crystal_digamma), SILEX_DIGAMMA);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_vacuum_distill), VACUUM);
@@ -292,12 +286,9 @@ public class JEIConfig implements IModPlugin {
         registry.addRecipes(JeiRecipes.getFusionByproducts(), FUSION_BYPRODUCT);
         registry.addRecipes(JeiRecipes.getHadronRecipes(), HADRON);
         registry.addRecipes(JeiRecipes.getSILEXRecipes(), SILEX);
-        registry.addRecipes(JeiRecipes.getSILEXRecipes(EnumWavelengths.RADIO), SILEX_RADIO);
-        registry.addRecipes(JeiRecipes.getSILEXRecipes(EnumWavelengths.MICRO), SILEX_MICRO);
         registry.addRecipes(JeiRecipes.getSILEXRecipes(EnumWavelengths.IR), SILEX_IR);
         registry.addRecipes(JeiRecipes.getSILEXRecipes(EnumWavelengths.VISIBLE), SILEX_VISIBLE);
         registry.addRecipes(JeiRecipes.getSILEXRecipes(EnumWavelengths.UV), SILEX_UV);
-        registry.addRecipes(JeiRecipes.getSILEXRecipes(EnumWavelengths.XRAY), SILEX_XRAY);
         registry.addRecipes(JeiRecipes.getSILEXRecipes(EnumWavelengths.GAMMA), SILEX_GAMMA);
         registry.addRecipes(JeiRecipes.getSILEXRecipes(EnumWavelengths.DRX), SILEX_DIGAMMA);
         registry.addRecipes(JeiRecipes.getRBMKFuelRecipes(), RBMKFUEL);
@@ -484,12 +475,9 @@ public class JEIConfig implements IModPlugin {
                 new StorageDrumRecipeHandler(help),
                 new FluidRecipeHandler(help),
                 new SILEXRecipeHandler(help),
-                new SILEXRadioRecipeHandler(help),
-                new SILEXMicroRecipeHandler(help),
                 new SILEXIrRecipeHandler(help),
                 new SILEXVisibleRecipeHandler(help),
                 new SILEXUVRecipeHandler(help),
-                new SILEXXRayRecipeHandler(help),
                 new SILEXGammaRecipeHandler(help),
                 new SILEXDigammaRecipeHandler(help),
                 new RBMKFuelRecipeHandler(help),

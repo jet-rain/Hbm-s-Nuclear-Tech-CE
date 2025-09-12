@@ -34,16 +34,6 @@ public class RenderStructureMarker extends TileEntitySpecialRenderer<TileEntityS
 		{ null, null }, 
 		{ null, null }, 
 		};
-	public static final TextureAtlasSprite[][] fwatz = 
-		{ 
-		{ null, null }, 
-		{ null, null }, 
-		{ null, null }, 
-		{ null, null }, 
-		{ null, null }, 
-		{ null, null }, 
-		{ null, null }, 
-		};
 
 	@Override
 	public boolean isGlobalRenderer(TileEntityStructureMarker te) {

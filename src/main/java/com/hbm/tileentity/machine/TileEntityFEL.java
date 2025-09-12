@@ -12,8 +12,8 @@ import com.hbm.lib.ForgeDirection;
 import com.hbm.lib.HBMSoundHandler;
 import com.hbm.lib.Library;
 import com.hbm.main.MainRegistry;
-import com.hbm.packet.toclient.LoopedSoundPacket;
 import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toclient.LoopedSoundPacket;
 import com.hbm.sound.AudioWrapper;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.TileEntityMachineBase;
@@ -29,12 +29,12 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.MobEffects;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ITickable;
@@ -115,30 +115,11 @@ public class TileEntityFEL extends TileEntityMachineBase implements ITickable, I
 					
 					for(EntityLivingBase entity : list) {
                         switch (this.mode) {
-                            case RADIO -> {
-                            }
-                            case MICRO -> entity.setFire(2);
-                            case IR -> entity.setFire(4);
-                            case VISIBLE -> entity.addPotionEffect(new PotionEffect(Potion.getPotionById(15), 60 * 60 * 65536, 0));
-                            case UV -> {
-                                entity.setFire(10);
-                                ContaminationUtil.contaminate(entity, HazardType.RADIATION, ContaminationType.CREATIVE, 0.025F);
-                            }
-                            case XRAY -> ContaminationUtil.contaminate(entity, HazardType.RADIATION, ContaminationType.CREATIVE, 1F);
-                            case GAMMA -> {
-                                ContaminationUtil.contaminate(entity, HazardType.RADIATION, ContaminationType.CREATIVE, 1000);
-                                if (Math.random() < 0.01) {
-                                    entity.addPotionEffect(new PotionEffect(Potion.getPotionById(3), 1800, 4, false, false));
-                                    entity.addPotionEffect(new PotionEffect(Potion.getPotionById(5), 1800, 6, false, false));
-                                    entity.addPotionEffect(new PotionEffect(Potion.getPotionById(10), 1800, 6, false, false));
-                                    entity.addPotionEffect(new PotionEffect(Potion.getPotionById(11), 1800, 6, false, false));
-                                    entity.addPotionEffect(new PotionEffect(Potion.getPotionById(21), 1800, 4, false, false));
-                                }
-                            }
-                            case DRX -> {
-                                ContaminationUtil.contaminate(entity, HazardType.RADIATION, ContaminationType.CREATIVE, 21000);
-                                ContaminationUtil.applyDigammaData(entity, 0.1F);
-                            }
+                            case IR -> {}
+                            case VISIBLE -> entity.addPotionEffect(new PotionEffect(MobEffects.BLINDNESS, 60 * 60 * 65536, 0));
+                            case UV -> entity.setFire(10);
+                            case GAMMA -> ContaminationUtil.contaminate(entity, HazardType.RADIATION, ContaminationType.CREATIVE, 25);
+                            case DRX -> ContaminationUtil.applyDigammaData(entity, 0.1F);
                         }
 					}
 					
@@ -180,14 +161,6 @@ public class TileEntityFEL extends TileEntityMachineBase implements ITickable, I
 							float hardness = b.getBlock().getExplosionResistance(null);
 							boolean blocked = false;
                             switch (this.mode) {
-                                case RADIO -> blocked = true;
-                                case MICRO -> {
-                                    if (b.getMaterial().isLiquid()) {
-                                        world.playSound(null, x + 0.5, y + 0.5, z + 0.5, SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.BLOCKS, 1.0F, 1.0F);
-                                        world.setBlockToAir(new BlockPos(x, y, z));
-                                    } else if (b.getMaterial() == Material.GLASS || b.getMaterial().isOpaque())
-                                        blocked = true;
-                                }
                                 case IR -> {
                                     if (b.getMaterial().isOpaque() || b.getMaterial() == Material.GLASS)
                                         blocked = true;
@@ -205,16 +178,6 @@ public class TileEntityFEL extends TileEntityMachineBase implements ITickable, I
                                 case UV -> {
                                     if (b.getMaterial().isOpaque()) {
                                         if (hardness < 100 && world.rand.nextInt(20) == 0) {
-                                            world.playSound(null, x + 0.5, y + 0.5, z + 0.5, SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.BLOCKS, 1.0F, 1.0F);
-                                            world.setBlockState(new BlockPos(x, y, z), Blocks.FIRE.getDefaultState());
-                                        } else {
-                                            blocked = true;
-                                        }
-                                    }
-                                }
-                                case XRAY -> {
-                                    if (b.getMaterial().isOpaque()) {
-                                        if (hardness < 1000 && world.rand.nextInt(10) == 0) {
                                             world.playSound(null, x + 0.5, y + 0.5, z + 0.5, SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.BLOCKS, 1.0F, 1.0F);
                                             world.setBlockState(new BlockPos(x, y, z), Blocks.FIRE.getDefaultState());
                                         } else {
