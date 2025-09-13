@@ -7,6 +7,7 @@ import com.hbm.items.IDynamicModels;
 import com.hbm.lib.ForgeDirection;
 import com.hbm.lib.InventoryHelper;
 import com.hbm.main.MainRegistry;
+import com.hbm.tileentity.IPersistentNBT;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
@@ -217,7 +218,9 @@ public abstract class BlockDummyable extends BlockContainer implements ICustomBl
 		}
 		
 		if(!world.isRemote){
-			world.setBlockState(new BlockPos(x + dir.offsetX * o , y + dir.offsetY * o, z + dir.offsetZ * o), this.getDefaultState().withProperty(META, dir.ordinal() + offset), 3);
+			BlockPos cur = new BlockPos(x + dir.offsetX * o , y + dir.offsetY * o, z + dir.offsetZ * o);
+			world.setBlockState(cur, this.getDefaultState().withProperty(META, dir.ordinal() + offset), 3);
+			IPersistentNBT.restoreData(world, cur, itemStack);
 			fillSpace(world, x, y, z, dir, o);
 		}
 		pos = new BlockPos(pos.getX(), pos.getY() - getHeightOffset(), pos.getZ());

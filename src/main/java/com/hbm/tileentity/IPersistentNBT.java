@@ -28,6 +28,7 @@ public interface IPersistentNBT {
     static void restoreData(World world, BlockPos pos, ItemStack stack) {
         try {
             if (!stack.hasTagCompound()) return;
+            // mlbv: I wonder why there isn't an instanceof check here
             IPersistentNBT tile = (IPersistentNBT) world.getTileEntity(pos);
             tile.readNBT(stack.getTagCompound());
         } catch (Exception ex) {
