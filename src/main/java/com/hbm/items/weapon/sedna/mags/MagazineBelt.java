@@ -39,29 +39,37 @@ public class MagazineBelt implements IMagazine<BulletConfig> {
         for(int i = 0; i < inventory.getSizeInventory(); i++) {
             ItemStack slot = inventory.getStackInSlot(i);
 
-            if(!slot.isEmpty()) {
-                if(first.ammo.matchesRecipe(slot, true)) {
+            if (!slot.isEmpty()) {
+                if (first.ammo.matchesRecipe(slot, true)) {
                     int toRemove = Math.min(slot.getCount(), amount);
                     amount -= toRemove;
                     inventory.decrStackSize(i, toRemove);
                     IMagazine.handleAmmoBag(inventory, first, toRemove);
-                    if(amount <= 0) return;
+                    if (amount <= 0) return;
                 }
 
+
                 boolean infBag = slot.getItem() == ModItems.ammo_bag_infinite;
-                if(slot.getItem() == ModItems.ammo_bag || infBag) {
+                if (slot.getItem() == ModItems.ammo_bag || infBag) {
                     ItemAmmoBag.InventoryAmmoBag bag = new ItemAmmoBag.InventoryAmmoBag(slot);
-                    for(int j = 0; j < bag.getSlots(); j++) {
+                    for (int j = 0; j < bag.getSlots(); j++) {
                         ItemStack bagslot = bag.getStackInSlot(j);
 
-                        if(!bagslot.isEmpty()) {
-                            if(first.ammo.matchesRecipe(bagslot, true)) {
-                                int toRemove = Math.min(bagslot.getCount(), amount);
-                                amount -= toRemove;
-                                if(!infBag) bag.setStackInSlot(j, new ItemStack(bagslot.getItem(), amount, bagslot.getMetadata()) );
-                                IMagazine.handleAmmoBag(inventory, first, toRemove);
-                                if(amount <= 0) return;
+                        if (!bagslot.isEmpty() && first.ammo.matchesRecipe(bagslot, true)) {
+                            int planned = Math.min(bagslot.getCount(), amount);
+                            int actuallyRemoved = planned;
+
+                            if (!infBag) {
+                                ItemStack extracted = bag.extractItem(j, planned, false);
+                                actuallyRemoved = extracted.isEmpty() ? 0 : extracted.getCount();
                             }
+
+                            if (actuallyRemoved > 0) {
+                                amount -= actuallyRemoved;
+                                IMagazine.handleAmmoBag(inventory, first, actuallyRemoved);
+                            }
+
+                            if (amount <= 0) return;
                         }
                     }
                 }
