@@ -42,8 +42,9 @@ public class OilSpot {
                     if (ground == ModBlocks.plant_tall && (meta == MUSTARD_WILLOW_2_LOWER.ordinal() || meta == MUSTARD_WILLOW_3_LOWER.ordinal() || meta == MUSTARD_WILLOW_4_LOWER.ordinal()))
                         continue;
                 }
-
-                if(below.isNormalCube(below.getDefaultState(), world, pos) && !(ground instanceof BlockDeadPlant)) {
+                // proooo-bably somewhere this shit thinks 'aha, mustard willow is a plant, let's make it a dead plant anyway
+                // 'else' is a safeguard here, hopefully
+                else if(below.isNormalCube(below.getDefaultState(), world, pos) && !(ground instanceof BlockDeadPlant)) {
                     if(ground instanceof BlockTallGrass) {
                         if(world.rand.nextInt(10) == 0) {
                             Block block = world.getBlockState(new BlockPos(rX, rY + 1, rZ)).getBlock();

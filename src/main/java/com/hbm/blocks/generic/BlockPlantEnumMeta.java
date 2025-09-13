@@ -127,7 +127,7 @@ public abstract class BlockPlantEnumMeta extends BlockEnumMeta {
     }
 
     protected boolean isOiled(World world, BlockPos pos){
-        return world.getBlockState(pos.down()).getBlock() == ModBlocks.dirt_oily;
+        return (world.getBlockState(pos.down()).getBlock() == ModBlocks.dirt_oily) || (world.getBlockState(pos.down()).getBlock() == ModBlocks.dirt_dead);
 
     }
 
