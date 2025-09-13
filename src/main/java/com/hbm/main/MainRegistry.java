@@ -51,6 +51,7 @@ import com.hbm.potion.HbmPotion;
 import com.hbm.saveddata.satellites.Satellite;
 import com.hbm.tileentity.bomb.TileEntityLaunchPadBase;
 import com.hbm.tileentity.bomb.TileEntityNukeCustom;
+import com.hbm.tileentity.machine.TileEntityMachineRadarNT;
 import com.hbm.tileentity.machine.rbmk.RBMKDials;
 import com.hbm.util.ChunkUtil;
 import com.hbm.util.CrashHelper;
@@ -371,6 +372,8 @@ public class MainRegistry {
         GrenadeDispenserRegistry.registerDispenserBehaviors();
         GrenadeDispenserRegistry.registerDispenserBehaviorFertilizer();
         TileEntityLaunchPadBase.registerLaunchables();
+        TileEntityMachineRadarNT.registerEntityClasses();
+        TileEntityMachineRadarNT.registerConverters();
     }
 
     @EventHandler

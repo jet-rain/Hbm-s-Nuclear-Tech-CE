@@ -64,6 +64,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * Now with SmЯt™ lag-free entity detection! (patent pending)
+ * @author hbm
+ */
 @Optional.InterfaceList({@Optional.Interface(iface = "li.cil.oc.api.network.SimpleComponent", modid = "opencomputers")})
 @AutoRegister
 public class TileEntityMachineRadarNT extends TileEntityMachineBase implements ITickable, IEnergyReceiverMK2, IGUIProvider, IConfigurableMachine, IControlReceiver, SimpleComponent, CompatHandler.OCComponent {
@@ -158,7 +162,7 @@ public class TileEntityMachineRadarNT extends TileEntityMachineBase implements I
 			allocateTargets();
 
 			if(this.lastPower != getRedPower()) {
-				this.markDirty();
+				this.markChanged();
 				this.world.notifyNeighborsOfStateChange(pos, getBlockType(), true);
 			}
 			lastPower = getRedPower();
@@ -339,17 +343,7 @@ public class TileEntityMachineRadarNT extends TileEntityMachineBase implements I
 		int scan = this.getRange();
 
 		IRadarDetectableNT.RadarScanParams params = new IRadarDetectableNT.RadarScanParams(this.scanMissiles, this.scanShells, this.scanPlayers, this.smartMode);
-		
-		this.matchingEntities = world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(
-			    pos.getX() - scan, pos.getY() , pos.getZ() - scan,
-			    pos.getX() + scan, pos.getY() + scan, pos.getZ() + scan
-			));
-		
-		
-		converters.clear();
-		//prevent memory leak
-		registerConverters();
-		
+
 		for(Entity e : matchingEntities) {
 
 			if(e.dimension == world.provider.getDimension() && Math.abs(e.posX - (pos.getX() + 0.5)) <= scan && Math.abs(e.posZ - (pos.getZ() + 0.5)) <= scan && e.posY - pos.getY() > radarBuffer) {
@@ -359,9 +353,9 @@ public class TileEntityMachineRadarNT extends TileEntityMachineBase implements I
 					entries.clear();
 					return;
 				}
-				
-				
+
 				for(Function<Tuple.Triplet<Entity, Object, IRadarDetectableNT.RadarScanParams>, RadarEntry> converter : converters) {
+
 					RadarEntry entry = converter.apply(new Tuple.Triplet(e, this, params));
 					if(entry != null) {
 						this.entries.add(entry);
@@ -484,7 +478,7 @@ public class TileEntityMachineRadarNT extends TileEntityMachineBase implements I
 					}
 				}
 			}
-			if(link != null && link.getItem() == ModItems.radar_linker) {
+			if(!link.isEmpty() && link.getItem() == ModItems.radar_linker) {
 				BlockPos pos = ItemCoordinateBase.getPosition(link);
 
 				if(pos != null) {
@@ -563,9 +557,6 @@ public class TileEntityMachineRadarNT extends TileEntityMachineBase implements I
 	/** List of lambdas that are supplied a Pair with the entity and radar in question to generate a RadarEntry
 	 The converters coming first have the highest priority */
 	public static List<Function<Tuple.Triplet<Entity, Object, IRadarDetectableNT.RadarScanParams>, RadarEntry>> converters = new ArrayList();
-	
-
-	
 	public static List<Class> classes = new ArrayList();
 	public static List<Entity> matchingEntities = new ArrayList();
 
