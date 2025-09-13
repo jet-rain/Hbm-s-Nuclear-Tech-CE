@@ -406,34 +406,19 @@ public class TileEntityMachineRotaryFurnace extends TileEntityMachinePolluting i
   }
 
   @Override
-  public int[] getAccessibleSlotsFromSide(EnumFacing side) {
+  public int[] getAccessibleSlotsFromSide(EnumFacing side, BlockPos pos) {
     EnumFacing dir = EnumFacing.byIndex(this.getBlockMetadata() - 10);
     EnumFacing rot = dir.rotateY();
     BlockPos core = this.pos;
 
-    // Red
-    if (side == dir.getOpposite()) {
-      BlockPos redPos = core.offset(dir, -1).offset(rot, -2);
-      if (this.pos.equals(redPos)) return new int[] {0};
-    }
-
-    // Yellow
-    if (side == dir.getOpposite()) {
-      BlockPos yellowPos = core.offset(dir, -1).offset(rot, -1);
-      if (this.pos.equals(yellowPos)) return new int[] {1};
-    }
-
-    // Green
-    if (side == dir.getOpposite()) {
-      BlockPos greenPos = core.offset(dir, -1);
-      if (this.pos.equals(greenPos)) return new int[] {2};
-    }
-
-    // Fuel
-    if (side == dir) {
-      BlockPos fuelPos = core.offset(dir, 1).offset(rot.getOpposite(), 1);
-      if (this.pos.equals(fuelPos)) return new int[] {4};
-    }
+    //Red
+    if(side == dir.getOpposite() && pos.equals(core.offset(dir, -1).offset(rot, -2))) return new int[] {0};
+    //Yellow
+    if(side == dir.getOpposite() && pos.equals(core.offset(dir, -1).offset(rot, -1))) return new int[] {1};
+    //Green
+    if(side == dir.getOpposite() && pos.equals(core.offset(dir, -1))) return new int[] {2};
+    //Fuel
+    if(side == dir && pos.equals(core.offset(dir, 1).offset(rot, -1))) return new int[] {4};
 
     return new int[] {};
   }
