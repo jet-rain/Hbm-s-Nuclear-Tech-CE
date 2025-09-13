@@ -58,18 +58,18 @@ public class TileEntityPWRController extends TileEntityMachineBase implements IT
     public static final long coreHeatCapacityBase = 10_000_000;
     public static final long hullHeatCapacityBase = 10_000_000;
     public FluidTankNTM[] tanks;
-    public long coreHeat;
-    public long coreHeatCapacity = 10_000_000;
-    public long hullHeat;
-    public double flux;
+    public volatile long coreHeat;
+    public volatile long coreHeatCapacity = 10_000_000;
+    public volatile long hullHeat;
+    public volatile double flux;
 
-    public double rodLevel = 100;
-    public double rodTarget = 100;
+    public volatile double rodLevel = 100;
+    public volatile double rodTarget = 100;
 
-    public int typeLoaded;
-    public int amountLoaded;
-    public double progress;
-    public double processTime;
+    public volatile int typeLoaded;
+    public volatile int amountLoaded;
+    public volatile double progress;
+    public volatile double processTime;
 
     public int rodCount;
     public int connections;
