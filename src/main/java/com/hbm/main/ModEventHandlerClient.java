@@ -2129,12 +2129,12 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
                 }
             }
         }
-
+/*
         //MKU
         if (stack.hasTagCompound()) {
             if (stack.getTagCompound().getBoolean("ntmContagion"))
                 list.add("§4§l[" + I18nUtil.resolveKey("trait.mkuinfected") + "§4§l]");
-        }
+        } */
     }
 
     @SubscribeEvent
