@@ -3,13 +3,10 @@ package com.hbm.tileentity.network;
 import com.hbm.interfaces.AutoRegister;
 import com.hbm.inventory.container.ContainerCraneInserter;
 import com.hbm.inventory.gui.GUICraneInserter;
-import com.hbm.lib.Library;
 import com.hbm.tileentity.IGUIProvider;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.inventory.Container;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
@@ -64,41 +61,65 @@ public class TileEntityCraneInserter extends TileEntityCraneBase implements IGUI
     }
 
     //Unloads output into chests. Capability version.
-    public boolean tryFillContainerCap(IItemHandler chest, int slot) {
-        //Check if we have something to output
-        if(inventory.getStackInSlot(slot).isEmpty())
-            return false;
-
-        return tryInsertItemCap(chest, inventory.getStackInSlot(slot));
+    public boolean tryFillContainerCap(IItemHandler target, int invSlot) {
+        ItemStack stack = inventory.getStackInSlot(invSlot);
+        if(stack.isEmpty()) return false;
+        return tryInsertItemCap(target, stack);
     }
 
     //Unloads output into chests. Capability version.
-    public boolean tryInsertItemCap(IItemHandler chest, ItemStack stack) {
-        //Check if we have something to output
+    public boolean tryInsertItemCap(IItemHandler target, ItemStack stack) {
         if(stack.isEmpty())
             return false;
 
-        for(int i = 0; i < chest.getSlots(); i++) {
+        boolean movedAny = false;
 
-            ItemStack outputStack = stack.copy();
-            if(outputStack.isEmpty() || outputStack.getCount() == 0)
-                return true;
+        for(int i = 0; i < target.getSlots() && !stack.isEmpty(); i++) {
+            ItemStack probe = stack.copy();
+            probe.setCount(1);
+            ItemStack simOne = target.insertItem(i, probe, true);
+            if(!simOne.isEmpty()) {
+                continue;
+            }
 
-            ItemStack chestItem = chest.getStackInSlot(i).copy();
-            if(chestItem.isEmpty() || (Library.areItemStacksCompatible(outputStack, chestItem, false) && chestItem.getCount() < chestItem.getMaxStackSize())) {
-                int fillAmount = Math.min(chestItem.getMaxStackSize()-chestItem.getCount(), outputStack.getCount());
+            int maxTry = Math.min(stack.getCount(), target.getSlotLimit(i));
+            int accepted = findMaxInsertable(target, i, stack, maxTry);
 
-                outputStack.setCount(fillAmount);
+            if(accepted > 0) {
+                ItemStack toInsert = stack.copy();
+                toInsert.setCount(accepted);
+                ItemStack rest = target.insertItem(i, toInsert, false);
 
-                ItemStack rest = chest.insertItem(i, outputStack, true);
-                if(rest.getItem() == Item.getItemFromBlock(Blocks.AIR)){
-                    stack.shrink(outputStack.getCount());
-                    chest.insertItem(i, outputStack, false);
+                int actuallyInserted = accepted - (!rest.isEmpty() ? rest.getCount() : 0);
+                if(actuallyInserted > 0) {
+                    stack.shrink(actuallyInserted);
+                    movedAny = true;
                 }
             }
         }
 
-        return false;
+        return movedAny;
+    }
+
+    private int findMaxInsertable(IItemHandler target, int slot, ItemStack stack, int upperBound) {
+        int lo = 0;
+        int hi = upperBound;
+
+        while (lo < hi) {
+            int mid = (lo + hi + 1) >>> 1;
+
+            ItemStack test = stack.copy();
+            test.setCount(mid);
+            ItemStack res = target.insertItem(slot, test, true);
+
+            if (res.isEmpty()) {
+                lo = mid;
+            } else {
+                hi = mid - 1;
+            }
+        }
+
+        return lo;
     }
 
     @Override
