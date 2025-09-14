@@ -40,7 +40,7 @@ public class ItemRenderBase extends TEISRBase {
 				GlStateManager.translate(0F, 0.3F, 0F);
 				GlStateManager.scale(0.125F, 0.125F, 0.125F);
 				GlStateManager.rotate(90F, 0F, 1F, 0F);
-				renderNonInv(itemStackIn);
+				renderGround();
 			}
 			case FIXED -> {
 				GlStateManager.translate(0F, 0.3F, 0F);
@@ -69,4 +69,5 @@ public class ItemRenderBase extends TEISRBase {
 	public void renderNonInv() { }
 	public void renderInventory() { }
 	public void renderCommon() { }
+    public void renderGround() { }
 }
