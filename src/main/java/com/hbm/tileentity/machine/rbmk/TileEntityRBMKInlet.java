@@ -3,6 +3,7 @@ package com.hbm.tileentity.machine.rbmk;
 import com.hbm.api.fluid.IFluidStandardReceiver;
 import com.hbm.blocks.machine.rbmk.RBMKBase;
 import com.hbm.capability.NTMFluidHandlerWrapper;
+import com.hbm.interfaces.AutoRegister;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTankNTM;
 import com.hbm.lib.ForgeDirection;
@@ -18,6 +19,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 
+@AutoRegister
 public class TileEntityRBMKInlet extends TileEntityLoadedBase implements ITickable, IFluidStandardReceiver, IBufPacketReceiver {
 
 	public FluidTankNTM water;
