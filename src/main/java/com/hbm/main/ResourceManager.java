@@ -649,8 +649,10 @@ public class ResourceManager {
 
 	public static final IModelCustom rbmk_crane_console = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/rbmk/crane_console.obj")).asVBO();
 	public static final IModelCustom rbmk_crane = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/rbmk/crane.obj")).asVBO();
+	public static final IModelCustom rbmk_autoloader = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/rbmk/autoloader.obj")).asVBO();
 	public static final ResourceLocation rbmk_crane_console_tex = new ResourceLocation(RefStrings.MODID, "textures/models/machines/crane_console.png");
 	public static final ResourceLocation rbmk_crane_tex = new ResourceLocation(RefStrings.MODID, "textures/models/machines/rbmk_crane.png");
+	public static final ResourceLocation rbmk_autoloader_tex = new ResourceLocation(RefStrings.MODID, "textures/models/machines/rbmk_autoloader.png");
 	public static final ResourceLocation mini_nuke_tex = new ResourceLocation(RefStrings.MODID, "textures/models/projectiles/mini_nuke.png");
 
 	//TODO: Move this off of old Tess
