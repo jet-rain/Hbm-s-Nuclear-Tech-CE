@@ -1,5 +1,6 @@
 package com.hbm.tileentity.machine.rbmk;
 
+import com.hbm.handler.neutron.RBMKNeutronHandler;
 import com.hbm.interfaces.AutoRegister;
 import com.hbm.inventory.container.ContainerRBMKStorage;
 import com.hbm.inventory.gui.GUIRBMKStorage;
@@ -49,10 +50,16 @@ public class TileEntityRBMKStorage extends TileEntityRBMKSlottedBase implements 
 		inventory.setStackInSlot(fromSlot, ItemStack.EMPTY);
 	}
 
-	@Override
+    @Override
+    public RBMKNeutronHandler.RBMKType getRBMKType() {
+        return RBMKNeutronHandler.RBMKType.OTHER;
+    }
+
+    @Override
 	public ColumnType getConsoleType() {
 		return ColumnType.STORAGE;
 	}
+
 
 	@Override
 	public boolean isItemValidForSlot(int i, ItemStack itemStack) {

@@ -29,7 +29,7 @@ import java.util.function.Function;
  * @parm overlayPath Full resource path to the overlay texture, it will be applied on top of base texture
  * @author MrNorwood
  */
-public class TextureAtlasSpriteMultipass  extends TextureAtlasSprite {
+public class TextureAtlasSpriteMultipass  extends TextureAtlasSprite implements  ICustomizableSprite {
 
     private String overlayPath;
     private String baseTexturePath;
@@ -181,6 +181,7 @@ public class TextureAtlasSpriteMultipass  extends TextureAtlasSprite {
         }
         return result;
     }
+
 
 
 }

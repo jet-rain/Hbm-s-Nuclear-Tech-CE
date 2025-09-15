@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.function.Function;
 
 @SideOnly(Side.CLIENT)
-public class TextureAtlasSpriteMutatable extends TextureAtlasSprite {
+public class TextureAtlasSpriteMutatable extends TextureAtlasSprite implements ICustomizableSprite {
 
     private RGBMutator mutator;
     public String basePath = "textures";
@@ -154,4 +154,5 @@ public class TextureAtlasSpriteMutatable extends TextureAtlasSprite {
             }
         }
     }
+
 }

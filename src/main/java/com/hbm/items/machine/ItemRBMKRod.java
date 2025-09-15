@@ -6,6 +6,7 @@ import com.hbm.tileentity.machine.rbmk.IRBMKFluxReceiver.NType;
 import com.hbm.tileentity.machine.rbmk.RBMKDials;
 import com.hbm.util.I18nUtil;
 import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -20,12 +21,11 @@ import java.util.function.Function;
 public class ItemRBMKRod extends Item {
 
 	public static final double xe135HalflifeMulPerTick = 0.9999241662036941; // 0.5^(1/9140) for a 9.14h halflife
-	
+
 	public ItemRBMKPellet pellet;
 	public String fullName = "";			//full name of the fuel rod
 	public double reactivity;				//endpoint of the function
 	public double selfRate;					//self-inflicted flux from self-igniting fuels
-	public double archLength = 1000;		//used for arches of the function
 	public EnumBurnFunc function = EnumBurnFunc.LOG_TEN;
 	public EnumDepleteFunc depFunc = EnumDepleteFunc.GENTLE_SLOPE;
 	public double xGen = 0.5D;				//multiplier for xenon production
@@ -37,13 +37,14 @@ public class ItemRBMKRod extends Item {
 	public NType nType = NType.SLOW;		//neutronType, the most efficient neutron type for fission
 	public NType rType = NType.FAST;		//releaseType, the type of neutrons released by this fuel
 
+    //Alc's graphical stuff. Perhaps remove?
 	public float fuelR = 0.105F;
 	public float fuelG = 0.247F;
 	public float fuelB = 0.015F;
 	public float cherenkovR = 0.4F;
 	public float cherenkovG = 0.9F;
 	public float cherenkovB = 1F;
-	
+
 	/*   _____
 	 * ,I I I I,
 	 * |'-----'|
@@ -60,7 +61,7 @@ public class ItemRBMKRod extends Item {
 	 * |       |
 	 *  '-----'
 	 *  I I I I
-	 *  
+	 *
 	 *  i drew a fuel rod yay
 	 */
 
@@ -74,13 +75,13 @@ public class ItemRBMKRod extends Item {
 	public ItemRBMKRod(String fullName, String s) {
 		this.setTranslationKey(s);
 		this.setRegistryName(s);
-		
+
 		this.fullName = fullName;
-		
+
 		this.setContainerItem(ModItems.rbmk_fuel_empty);
 		this.setMaxStackSize(1);
 		this.setCreativeTab(MainRegistry.controlTab);
-		
+
 		ModItems.ALL_ITEMS.add(this);
 	}
 
@@ -96,13 +97,6 @@ public class ItemRBMKRod extends Item {
 	public ItemRBMKRod setStats(double funcEnd, double selfRate) {
 		this.reactivity = funcEnd;
 		this.selfRate = selfRate;
-		return this;
-	}
-
-	public ItemRBMKRod setStats(double funcEnd, double selfRate, double archLength) {
-		this.reactivity = funcEnd;
-		this.selfRate = selfRate;
-		this.archLength = archLength;
 		return this;
 	}
 
@@ -156,7 +150,7 @@ public class ItemRBMKRod extends Item {
 		this.cherenkovB = B;
 		return this;
 	}
-	
+
 	/**
 	 * Adjusts the input flux using the poison level
 	 * Generates, then burns poison
@@ -167,103 +161,111 @@ public class ItemRBMKRod extends Item {
 	 * @return outFlux
 	 */
 	public double burn(World world, ItemStack stack, double inFlux) {
-		
-		inFlux += selfRate;
-		
-		double xenon = getPoison(stack) * xe135HalflifeMulPerTick;
-		xenon -= xenonBurnFunc(inFlux);
-		
-		inFlux *= (1D - getPoisonLevel(stack));
+        inFlux += selfRate;
 
-		xenon += xenonGenFunc(inFlux);
-		
-		if(xenon < 0D) xenon = 0D;
-		if(xenon > 100D) xenon = 100D;
-		
-		setPoison(stack, xenon);
-		
-		double outFlux = reactivityFunc(inFlux, getEnrichment(stack)) * RBMKDials.getReactivityMod(world);
-		
-		double y = getYield(stack);
-		y -= inFlux;
-		
-		if(y < 0D) y = 0D;
-		
-		setYield(stack, y);
-		
-		double coreHeat = getCoreHeat(stack);
-		coreHeat += outFlux * heat;
-		setCoreHeat(stack, coreHeat);
-		
-		return outFlux;
+        //if xenon poison is enabled
+        if(RBMKDials.getXenon(world)) {
+            double xenon = getPoison(stack);
+            xenon -= xenonBurnFunc(inFlux);
+
+            inFlux *= (1D - getPoisonLevel(stack));
+
+            xenon += xenonGenFunc(inFlux);
+
+            if(xenon < 0D) xenon = 0D;
+            if(xenon > 100D) xenon = 100D;
+
+            setPoison(stack, xenon);
+        }
+
+        double outFlux = reactivityFunc(inFlux, getEnrichment(stack)) * RBMKDials.getReactivityMod(world);
+
+        //if depletion is enabled
+        if(RBMKDials.getDepletion(world)) {
+            double y = getYield(stack);
+            y -= inFlux;
+
+            if(y < 0D) y = 0D;
+
+            setYield(stack, y);
+        }
+
+        double coreHeat = this.getCoreHeat(stack);
+        coreHeat += outFlux * heat;
+
+        this.setCoreHeat(stack, rectify(coreHeat));
+
+        return outFlux;
+
 	}
 
-	public static double getMeltdownFactor(double meltdownPercent){
+
+    private double rectify(double num) {
+
+        if(num > 1_000_000D) num = 1_000_000D;
+        if(num < 20D || Double.isNaN(num)) num = 20D;
+
+        return num;
+    }
+
+
+    public static double getMeltdownFactor(double meltdownPercent){
 		if(meltdownPercent == 0) return 1;
 		return 1D - 0.3D * (meltdownPercent/100D);
 	}
-	
+
 	/**
 	 * Heat up the core based on the outFlux, then move some heat to the hull
 	 * @param stack
 	 */
 	public void updateHeat(World world, ItemStack stack, double mod) {
-		
-		double coreHeat = getCoreHeat(stack);
-		double hullHeat = getHullHeat(stack);
-		double meltdownPercent = getMeltdownPercent(stack);
-		
-		if(hullHeat > this.meltingPoint) {
-			meltdownPercent += 0.05D * hullHeat/this.meltingPoint;
-			setMeltdownPercent(stack, meltdownPercent);
-		}
+        double coreHeat = this.getCoreHeat(stack);
+        double hullHeat = this.getHullHeat(stack);
 
-		if(coreHeat > hullHeat) {
-			
-			double mid = (coreHeat - hullHeat) / 2D;
-			double heatTransfer = mid * this.diffusion * RBMKDials.getFuelDiffusionMod(world) * mod;
-			coreHeat -= heatTransfer * getMeltdownFactor(meltdownPercent);
-			hullHeat += heatTransfer;
-			
-			setCoreHeat(stack, coreHeat);
-			setHullHeat(stack, hullHeat);
-		}
+        if(coreHeat > hullHeat) {
+
+            double mid = (coreHeat - hullHeat) / 2D;
+
+            coreHeat -= mid * this.diffusion * RBMKDials.getFuelDiffusionMod(world) * mod;
+            hullHeat += mid * this.diffusion * RBMKDials.getFuelDiffusionMod(world) * mod;
+
+            this.setCoreHeat(stack, rectify(coreHeat));
+            this.setHullHeat(stack, rectify(hullHeat));
+        }
 	}
-	
+
 	/**
 	 * return one tick's worth of heat and cool the hull of the fuel rod, this heat goes into the fuel rod assembly block
 	 * @param stack
 	 * @return
 	 */
 	public double provideHeat(World world, ItemStack stack, double heat, double mod) {
-		
-		double hullHeat = getHullHeat(stack);
+        double hullHeat = this.getHullHeat(stack);
 
-		//metldown! the hull melts so the entire structure stops making sense
-		//hull and fuel core heat, fuel skin heat are instantly averaged,
-		//that average is sent to the component which is always fatal
-		if(getMeltdownPercent(stack) >= 100) {
-			setMeltdownPercent(stack, 100);
-			double coreHeat = getCoreHeat(stack);
-			double avg = (heat + hullHeat + coreHeat) / 3D;
-			setCoreHeat(stack, avg);
-			setHullHeat(stack, avg);
-			return avg;
-		}
-		
-		if(hullHeat <= heat)
-			return 0;
-		
-		double ret = (hullHeat - heat) / 2;
-		
-		ret *= RBMKDials.getFuelHeatProvision(world) * mod;
-		
-		hullHeat -= ret;
-		setHullHeat(stack, hullHeat);
-		
-		return ret;
+        //metldown! the hull melts so the entire structure stops making sense
+        //hull and core heats are instantly equalized into 33% of their sum each,
+        //the rest is sent to the component which is always fatal
+        if(hullHeat > this.meltingPoint) {
+            double coreHeat = this.getCoreHeat(stack);
+            double avg = (heat + hullHeat + coreHeat) / 3D;
+            this.setCoreHeat(stack, avg);
+            this.setHullHeat(stack, avg);
+            return avg - heat;
+        }
+
+        if(hullHeat <= heat)
+            return 0;
+
+        double ret = (hullHeat - heat) / 2;
+
+        ret *= RBMKDials.getFuelHeatProvision(world) * mod;
+
+        hullHeat -= ret;
+        this.setHullHeat(stack, hullHeat);
+
+        return ret;
 	}
-	
+
 	public enum EnumBurnFunc {
 		PASSIVE("trait.rbmx.flux.passive"),				//const, no reactivity
 		PLATEU("trait.rbmx.flux.euler"),				//(1 - e^(-x/25)) * reactivity * 100
@@ -274,73 +276,63 @@ public class ItemRBMKRod extends Item {
 		LINEAR("trait.rbmx.flux.linear"),				//x * reactivity
 		QUADRATIC("trait.rbmx.flux.quadratic"),			//x^2 / 100 * reactivity
 		EXPERIMENTAL("trait.rbmx.flux.experimental");	//x * (sin(x) + 1)
-		
+
 		public String title = "";
-		
+
 		EnumBurnFunc(String title) {
 			this.title = title;
 		}
 	}
-	
+
 	/**
 	 * @param enrichment [0;100] ...or at least those are sane levels
 	 * @return the amount of reactivity yielded, unmodified by xenon
 	 */
 	public double reactivityFunc(double in, double enrichment) {
-		
+
 		double flux = in * reactivityModByEnrichment(enrichment);
-		
+
 		switch(this.function) {
 		case PASSIVE: return selfRate * enrichment;
-		case LOG_TEN: return Math.log10(flux + 1) * reactivity;
-		case PLATEU: return (1 - Math.pow(Math.E, -flux / 25D)) * reactivity;
-		case ARCH: return Math.max((flux - (flux * flux / archLength)) * reactivity, 0D);
-		case SIGMOID: return reactivity / (1 + Math.pow(Math.E, -0.1D * flux + 5));
-		case SQUARE_ROOT: return Math.sqrt(flux) * reactivity; //reactivity in decipercent
-		case LINEAR: return flux * reactivity; //reactivity in percent
-		case QUADRATIC: return flux * flux * reactivity; //reactivity in percent
-		case EXPERIMENTAL: return flux * (Math.sin(flux) + 1) * reactivity;
+            case LOG_TEN: return Math.log10(flux + 1) * 0.5D * reactivity;
+            case PLATEU: return (1 - Math.pow(Math.E, -flux / 25D)) * reactivity;
+            case ARCH: return Math.max((flux - (flux * flux / 10000D)) / 100D * reactivity, 0D);
+            case SIGMOID: return reactivity / (1 + Math.pow(Math.E, -(flux - 50D) / 10D));
+            case SQUARE_ROOT: return Math.sqrt(flux) * reactivity / 10D;
+            case LINEAR: return flux / 100D * reactivity;
+            case QUADRATIC: return flux * flux / 10000D * reactivity;
+            case EXPERIMENTAL: return flux * (Math.sin(flux) + 1) * reactivity;
 		}
-		
+
 		return 0;
 	}
-	
+
 	public String getFuncDescription(ItemStack stack) {
 
-		String function;
-		
-		switch(this.function) {
-		case PASSIVE: function = TextFormatting.RED + "" + selfRate;
-			break;
-		case LOG_TEN: function = "log10(%1$s + 1) * %2$s";
-			break;
-		case PLATEU: function = "(1 - e^(-%1$s / 25)) * %2$s";
-			break;
-		case ARCH: function = "(%1$s - %1$s² / "+archLength+") * %2$s";
-			break;
-		case SIGMOID: function = "%2$s / (1 + e^(-0.1 * %1$s + 5)";
-			break;
-		case SQUARE_ROOT: function = "sqrt(%1$s) * %2$s";
-			break;
-		case LINEAR: function = "%1$s * %2$s";
-			break;
-		case QUADRATIC: function = "%1$s² * %2$s";
-			break;
-		case EXPERIMENTAL: function = "%1$s * (sin(%1$s) + 1) * %2$s";
-			break;
-		default: function = "ERROR";
-		}
-		
-		double enrichment = getEnrichment(stack);
-		
+		String function = switch (this.function) {
+            case PASSIVE -> TextFormatting.RED + "" + selfRate;
+            case LOG_TEN -> "log10(%1$s + 1) * 0.5 * %2$s";
+            case PLATEU -> "(1 - e^(-%1$s / 25)) * %2$s";
+            case ARCH -> "(%1$s - %1$s² / 10000) / 100 * %2$s [0;∞]";
+            case SIGMOID -> "%2$s / (1 + e^(-(%1$s - 50) / 10))";
+            case SQUARE_ROOT -> "sqrt(%1$s) * %2$s / 10";
+            case LINEAR -> "%1$s / 100 * %2$s";
+            case QUADRATIC -> "%1$s² / 10000 * %2$s";
+            case EXPERIMENTAL -> "%1$s * (sin(%1$s) + 1) * %2$s";
+            default -> "ERROR";
+        };
+
+
+        double enrichment = getEnrichment(stack);
+
 		if(enrichment < 1) {
 			enrichment = reactivityModByEnrichment(enrichment);
 			String reactivity = TextFormatting.YELLOW + "" + ((int)(this.reactivity * enrichment * 1000D) / 1000D) + TextFormatting.WHITE;
 			String enrichmentPer = TextFormatting.GOLD + " (" + ((int)(enrichment * 1000D) / 10D) + "%)";
-			
+
 			return String.format(function, selfRate > 0 ? "(x" + TextFormatting.RED + " + " + selfRate + TextFormatting.WHITE + ")" : "x", reactivity).concat(enrichmentPer);
 		}
-		
+
 		return String.format(function, selfRate > 0 ? "(x" + TextFormatting.RED + " + " + selfRate + TextFormatting.WHITE + ")" : "x", reactivity);
 	}
 
@@ -353,17 +345,18 @@ public class ItemRBMKRod extends Item {
 	}
 
 	public double reactivityModByEnrichment(double enrichment) {
-		
-		switch(this.depFunc) {
-		default:
-		case LINEAR: return enrichment;
-		case STATIC: return 1D;
-		case BOOSTED_SLOPE: return enrichment + Math.sin((enrichment - 1) * (enrichment - 1) * Math.PI); //x + sin([x - 1]^2 * pi) works
-		case RAISING_SLOPE: return enrichment + (Math.sin(enrichment * Math.PI) / 2D); //x + (sin(x * pi) / 2) actually works
-		case GENTLE_SLOPE: return enrichment + (Math.sin(enrichment * Math.PI) / 3D); //x + (sin(x * pi) / 3) also works
-		}
+
+        return switch (this.depFunc) {
+            case STATIC -> 1D;
+            case BOOSTED_SLOPE ->
+                    enrichment + Math.sin((enrichment - 1) * (enrichment - 1) * Math.PI); //x + sin([x - 1]^2 * pi) works
+            case RAISING_SLOPE ->
+                    enrichment + (Math.sin(enrichment * Math.PI) / 2D); //x + (sin(x * pi) / 2) actually works
+            case GENTLE_SLOPE -> enrichment + (Math.sin(enrichment * Math.PI) / 3D); //x + (sin(x * pi) / 3) also works
+            default -> enrichment;
+        };
 	}
-	
+
 	/**
 	 * Xenon generated per tick, linear function
 	 * @param flux
@@ -372,7 +365,7 @@ public class ItemRBMKRod extends Item {
 	public double xenonGenFunc(double flux) {
 		return flux * xGen;
 	}
-	
+
 	/**
 	 * Xenon burned away per tick, quadratic function
 	 * @param flux
@@ -381,7 +374,7 @@ public class ItemRBMKRod extends Item {
 	public double xenonBurnFunc(double flux) {
 		return (flux * flux) / xBurn;
 	}
-	
+
 	/**
 	 * @param stack
 	 * @return enrichment [0;1]
@@ -389,7 +382,7 @@ public class ItemRBMKRod extends Item {
 	public static double getEnrichment(ItemStack stack) {
 		return getYield(stack) / ((ItemRBMKRod) stack.getItem()).yield;
 	}
-	
+
 	/**
 	 * @param stack
 	 * @return poison [0;1]
@@ -446,55 +439,77 @@ public class ItemRBMKRod extends Item {
 
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> list, ITooltipFlag flag) {
-		
-		list.add(TextFormatting.ITALIC + this.fullName);
-		
-		if(this == ModItems.rbmk_fuel_drx) {
-			
-			if(selfRate > 0 || this.function == EnumBurnFunc.SIGMOID) {
-				list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmx.source"));
-			}
-			
-			list.add(TextFormatting.GREEN + I18nUtil.resolveKey("trait.rbmx.depletion", ((int)(((yield - getYield(stack)) / yield) * 100000)) / 1000D + "%"));
-			list.add(TextFormatting.DARK_PURPLE + I18nUtil.resolveKey("trait.rbmx.xenon", ((int)(getPoison(stack) * 1000D) / 1000D) + "%"));
-			list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmx.splitsWith", I18nUtil.resolveKey(nType.unlocalized + ".x")));
-			list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmx.splitsInto", I18nUtil.resolveKey(rType.unlocalized + ".x")));
-			list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.fluxFunc", TextFormatting.WHITE + getFuncDescription(stack)));
-			list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.funcType", I18nUtil.resolveKey(this.function.title)));
-			list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.xenonGen", TextFormatting.WHITE + "x * " + xGen));
-			list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.xenonBurn", TextFormatting.WHITE + "x² / " + xBurn));
-			list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmx.heat", heat + "°C"));
-			list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmx.diffusion", diffusion + "¹/²"));
-			list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmx.skinTemp", ((int)(getHullHeat(stack) * 10D) / 10D) + "m"));
-			list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmx.coreTemp", ((int)(getCoreHeat(stack) * 10D) / 10D) + "m"));
-			list.add(TextFormatting.DARK_RED + I18nUtil.resolveKey("trait.rbmx.melt", meltingPoint + "m"));
-			list.add(TextFormatting.DARK_RED + I18nUtil.resolveKey("trait.rbmx.meltdown", ((int)(getMeltdownPercent(stack) * 1000D) / 1000D) + "%"));
-			
-		} else {
 
-			if(selfRate > 0 || this.function == EnumBurnFunc.SIGMOID) {
-				list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmk.source"));
-			}
-			
-			list.add(TextFormatting.GREEN + I18nUtil.resolveKey("trait.rbmk.depletion", ((int)(((yield - getYield(stack)) / yield) * 100000D)) / 1000D + "%"));
-			list.add(TextFormatting.DARK_PURPLE + I18nUtil.resolveKey("trait.rbmk.xenon", ((int)(getPoison(stack) * 1000D) / 1000D) + "%"));
-			list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmk.splitsWith", I18nUtil.resolveKey(nType.unlocalized)));
-			list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmk.splitsInto", I18nUtil.resolveKey(rType.unlocalized)));
-			list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.fluxFunc", TextFormatting.WHITE + getFuncDescription(stack)));
-			list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.funcType", I18nUtil.resolveKey(this.function.title)));
-			list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.xenonGen", TextFormatting.WHITE + "x * " + xGen));
-			list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.xenonBurn", TextFormatting.WHITE + "x² / " + xBurn));
-			list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmk.heat", heat + "°C"));
-			list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmk.diffusion", diffusion + "¹/²"));
-			list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmk.skinTemp", ((int)(getHullHeat(stack) * 10D) / 10D) + "°C"));
-			list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmk.coreTemp", ((int)(getCoreHeat(stack) * 10D) / 10D) + "°C"));
-			list.add(TextFormatting.DARK_RED + I18nUtil.resolveKey("trait.rbmk.melt", meltingPoint + "°C"));
-			list.add(TextFormatting.DARK_RED + I18nUtil.resolveKey("trait.rbmk.meltdown", ((int)(getMeltdownPercent(stack) * 1000D) / 1000D) + "%"));
-		}
+
+        list.add(TextFormatting.ITALIC + this.fullName);
+
+        if(this == ModItems.rbmk_fuel_drx) {
+
+            if(ItemRBMKRod.getHullHeat(stack) >= 50 || ItemRBMKRod.getCoreHeat(stack) >= 50) {
+                list.add(TextFormatting.GOLD + I18nUtil.resolveKey("desc.item.wasteCooling"));
+            }
+
+            if(selfRate > 0 || this.function == EnumBurnFunc.SIGMOID) {
+                list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmx.source"));
+            }
+
+            list.add(TextFormatting.GREEN + I18nUtil.resolveKey("trait.rbmx.depletion", ((int)(((yield - getYield(stack)) / yield) * 100000)) / 1000D + "%"));
+            list.add(TextFormatting.DARK_PURPLE + I18nUtil.resolveKey("trait.rbmx.xenon", ((int)(getPoison(stack) * 1000D) / 1000D) + "%"));
+            list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmx.splitsWith", I18nUtil.resolveKey(nType.unlocalized + ".x")));
+            list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmx.splitsInto", I18nUtil.resolveKey(rType.unlocalized + ".x")));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.fluxFunc", TextFormatting.WHITE + getFuncDescription(stack)));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.funcType", this.function.title));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.xenonGen", TextFormatting.WHITE + "x * " + xGen));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.xenonBurn", TextFormatting.WHITE + "x² / " + xBurn));
+            list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmx.heat", heat + "°C"));
+            list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmx.diffusion", diffusion + "¹/²"));
+            list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmx.skinTemp", ((int)(getHullHeat(stack) * 10D) / 10D) + "m"));
+            list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmx.coreTemp", ((int)(getCoreHeat(stack) * 10D) / 10D) + "m"));
+            list.add(TextFormatting.DARK_RED + I18nUtil.resolveKey("trait.rbmx.melt", meltingPoint + "m"));
+
+        } else {
+
+            if(ItemRBMKRod.getHullHeat(stack) >= 50 || ItemRBMKRod.getCoreHeat(stack) >= 50) {
+                list.add(TextFormatting.GOLD + I18nUtil.resolveKey("desc.item.wasteCooling"));
+            }
+
+            if(selfRate > 0 || this.function == EnumBurnFunc.SIGMOID) {
+                list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmk.source"));
+            }
+
+            list.add(TextFormatting.GREEN + I18nUtil.resolveKey("trait.rbmk.depletion", ((int)(((yield - getYield(stack)) / yield) * 100000D)) / 1000D + "%"));
+            list.add(TextFormatting.DARK_PURPLE + I18nUtil.resolveKey("trait.rbmk.xenon", ((int)(getPoison(stack) * 1000D) / 1000D) + "%"));
+            list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmk.splitsWith", I18nUtil.resolveKey(nType.unlocalized)));
+            list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmk.splitsInto", I18nUtil.resolveKey(rType.unlocalized)));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.fluxFunc", TextFormatting.WHITE + getFuncDescription(stack)));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.funcType", this.function.title));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.xenonGen", TextFormatting.WHITE + "x * " + xGen));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.xenonBurn", TextFormatting.WHITE + "x² / " + xBurn));
+            list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmk.heat", heat + "°C"));
+            list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmk.diffusion", diffusion + "¹/²"));
+            list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmk.skinTemp", ((int)(getHullHeat(stack) * 10D) / 10D) + "°C"));
+            list.add(TextFormatting.RED + I18nUtil.resolveKey("trait.rbmk.coreTemp", ((int)(getCoreHeat(stack) * 10D) / 10D) + "°C"));
+            list.add(TextFormatting.DARK_RED + I18nUtil.resolveKey("trait.rbmk.melt", meltingPoint + "°C"));
+        }
+
+		/*list.add(TextFormatting.GREEN + "Depletion: " + ((int)(((yield - getYield(stack)) / yield) * 10000)) / 10000D + "%");
+		list.add(TextFormatting.DARK_PURPLE + "Xenon poison: " + ((getPoison(stack) * 100D) / 100D) + "%");
+		list.add(TextFormatting.BLUE + "Splits with: " + nType.unlocalized);
+		list.add(TextFormatting.BLUE + "Splits into: " + rType.unlocalized);
+		list.add(TextFormatting.YELLOW + "Flux function: " + TextFormatting.WHITE + "" + funcEnd + " * x" + (selfRate > 0 ? (TextFormatting.RED + " + " + selfRate) : ""));
+		list.add(TextFormatting.YELLOW + "Xenon gen function: " + TextFormatting.WHITE + "x * " + xGen);
+		list.add(TextFormatting.YELLOW + "Xenon burn function: " + TextFormatting.WHITE + "x² * " + xBurn);
+		list.add(TextFormatting.GOLD + "Heat per tick at full power: " + heat + "°C");
+		list.add(TextFormatting.GOLD + "Diffusion: " + diffusion + "°C/t");
+		list.add(TextFormatting.RED + "Skin temp: " + ((int)(getHullHeat(stack) * 10D) / 10D) + "°C");
+		list.add(TextFormatting.RED + "Core temp: " + ((int)(getCoreHeat(stack) * 10D) / 10D) + "°C");
+		list.add(TextFormatting.DARK_RED + "Melting point: " + meltingPoint + "°C");*/
+
+
 
 		super.addInformation(stack, worldIn, list, flag);
 	}
-	
+
 	/*  __    __   ____     ________
 	 * |  \  |  | |  __ \  |__    __|
 	 * |   \ |  | | |__| |    |  |
@@ -502,20 +517,21 @@ public class ItemRBMKRod extends Item {
 	 * |  | \   | | |__| |    |  |
 	 * |__|  \__| |_____/     |__|
 	 */
-	
+
 	public static void setYield(ItemStack stack, double yield) {
 		setDouble(stack, "yield", yield);
 	}
-	
+
 	public static double getYield(ItemStack stack) {
-		
+
 		if(stack.getItem() instanceof ItemRBMKRod) {
 			return getDouble(stack, "yield");
 		}
-		
+
 		return 0;
 	}
 
+    //Do we keep meltdown system? It doesn't change reactor's behavior otherwise
 	public static void setMeltdownPercent(ItemStack stack, double meltdownPercent){
 		setDouble(stack, "meltdown", meltdownPercent);
 	}
@@ -523,27 +539,27 @@ public class ItemRBMKRod extends Item {
 	public static double getMeltdownPercent(ItemStack stack){
 		return getDouble(stack, "meltdown");
 	}
-	
+
 	public static void setPoison(ItemStack stack, double xenon) {
 		setDouble(stack, "xenon", xenon);
 	}
-	
+
 	public static double getPoison(ItemStack stack) {
 		return getDouble(stack, "xenon");
 	}
-	
+
 	public static void setCoreHeat(ItemStack stack, double heat) {
 		setDouble(stack, "core", heat);
 	}
-	
+
 	public static double getCoreHeat(ItemStack stack) {
 		return getDouble(stack, "core");
 	}
-	
+
 	public static void setHullHeat(ItemStack stack, double heat) {
 		setDouble(stack, "hull", heat);
 	}
-	
+
 	public static double getHullHeat(ItemStack stack) {
 		return getDouble(stack, "hull");
 	}
@@ -557,23 +573,23 @@ public class ItemRBMKRod extends Item {
 	public double getDurabilityForDisplay(ItemStack stack) {
 		return 1D - getEnrichment(stack);
 	}
-	
+
 	public static void setDouble(ItemStack stack, String key, double yield) {
-		
+
 		if(!stack.hasTagCompound())
 			setNBTDefaults(stack);
-		
+
 		stack.getTagCompound().setDouble(key, yield);
 	}
-	
+
 	public static double getDouble(ItemStack stack, String key) {
-		
+
 		if(!stack.hasTagCompound())
 			setNBTDefaults(stack);
 
 		return stack.getTagCompound().getDouble(key);
 	}
-	
+
 	/**
 	 * Sets up the default values for all NBT data because doing it one-by-one will only correctly set the first called value and the rest stays 0 which is very not good
 	 * @param stack
@@ -585,4 +601,9 @@ public class ItemRBMKRod extends Item {
 		setHullHeat(stack, 20.0D);
 		setMeltdownPercent(stack, 0D);
 	}
+
+    @Override
+    public void onCreated(ItemStack stack, World world, EntityPlayer player) {
+        setNBTDefaults(stack); //minimize the window where NBT screwups can happen
+    }
 }
