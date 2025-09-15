@@ -20,7 +20,7 @@ public class ItemRenderGunAnim extends TileEntityItemStackRenderer {
 	public static final ItemRenderGunAnim INSTANCE = new ItemRenderGunAnim();
 
 	protected ModelB92 b92;
-	
+
 	public TransformType type;
 	public IBakedModel b92ItemModel;
 
@@ -30,7 +30,7 @@ public class ItemRenderGunAnim extends TileEntityItemStackRenderer {
 	
 	@Override
 	public void renderByItem(ItemStack item) {
-		
+		if (type == null) return; // mlbv: for some reason this can be called before a value is assigned to type
 		float lever = 0;
 		
 		GlStateManager.popMatrix();
