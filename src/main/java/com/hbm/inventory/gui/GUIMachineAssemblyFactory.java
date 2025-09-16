@@ -8,13 +8,12 @@ import com.hbm.lib.RefStrings;
 import com.hbm.tileentity.machine.TileEntityMachineAssemblyFactory;
 import com.hbm.util.I18nUtil;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
-import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 
@@ -73,7 +72,7 @@ public class GUIMachineAssemblyFactory extends GuiInfoContainer {
     @Override
     protected void drawGuiContainerBackgroundLayer(float p_146976_1_, int p_146976_2_, int p_146976_3_) {
         super.drawDefaultBackground();
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
         drawTexturedModalRect(guiLeft, guiTop, 0, 0, 256, 140);
         drawTexturedModalRect(guiLeft + 25, guiTop + 140, 25, 140, 231, 100);
@@ -116,17 +115,17 @@ public class GUIMachineAssemblyFactory extends GuiInfoContainer {
                 }
 
                 Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
-                OpenGlHelper.glBlendFunc(770, 771, 1, 0);
-                GL11.glColor4f(1F, 1F, 1F, 0.5F);
-                GL11.glEnable(GL11.GL_BLEND);
+                GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+                GlStateManager.color(1F, 1F, 1F, 0.5F);
+                GlStateManager.enableBlend();
                 this.zLevel = 300F;
                 for(int i = 0; i < recipe.inputItem.length; i++) {
                     Slot slot = this.inventorySlots.inventorySlots.get(assembler.assemblerModule[g].inputSlots[i]);
                     if(!slot.getHasStack()) drawTexturedModalRect(guiLeft + slot.xPos, guiTop + slot.yPos, slot.xPos, slot.yPos, 16, 16);
                 }
                 this.zLevel = 0F;
-                GL11.glColor4f(1F, 1F, 1F, 1F);
-                GL11.glDisable(GL11.GL_BLEND);
+                GlStateManager.color(1F, 1F, 1F, 1F);
+                GlStateManager.disableBlend();
             }
         }
 
