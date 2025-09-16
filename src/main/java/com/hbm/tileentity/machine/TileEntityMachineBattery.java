@@ -56,7 +56,7 @@ public class TileEntityMachineBattery extends TileEntityMachineBase implements I
 	public static final int mode_none = 3;
 	public short redLow = 0;
 	public short redHigh = 2;
-	public ConnectionPriority priority = ConnectionPriority.NORMAL;
+	public ConnectionPriority priority = ConnectionPriority.LOW;
 
 	public byte lastRedstone = 0;
 	
