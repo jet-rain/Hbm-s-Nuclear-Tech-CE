@@ -9,6 +9,7 @@ import com.google.gson.stream.JsonWriter;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.handler.imc.IMCBlastFurnace;
 import com.hbm.inventory.RecipesCommon;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.ModItems;
 import com.hbm.main.MainRegistry;
 import com.hbm.util.Tuple;

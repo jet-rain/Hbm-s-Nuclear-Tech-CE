@@ -1,7 +1,7 @@
 package com.hbm.inventory.container;
 
-import com.hbm.inventory.recipes.AnvilRecipes;
-import com.hbm.inventory.recipes.AnvilSmithingRecipe;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes;
+import com.hbm.inventory.recipes.anvil.AnvilSmithingRecipe;
 import com.hbm.inventory.SlotMachineOutputVanilla;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;

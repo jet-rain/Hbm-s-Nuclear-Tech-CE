@@ -10,6 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import com.hbm.inventory.fluid.FluidStack;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.machine.ItemFluidIcon;
 import com.hbm.util.Tuple.Pair;
 

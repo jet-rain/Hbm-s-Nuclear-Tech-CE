@@ -5,6 +5,8 @@ import com.hbm.config.GeneralConfig;
 import com.hbm.inventory.RecipesCommon;
 import com.hbm.inventory.fluid.FluidStack;
 import com.hbm.inventory.fluid.Fluids;
+import com.hbm.inventory.recipes.loader.GenericRecipe;
+import com.hbm.inventory.recipes.loader.GenericRecipes;
 import com.hbm.items.ItemEnums;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemFluidIcon;

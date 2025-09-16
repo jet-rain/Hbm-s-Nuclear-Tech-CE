@@ -11,7 +11,7 @@ import com.hbm.inventory.OreDictManager.DictFrame;
 import com.hbm.inventory.RecipesCommon.AStack;
 import com.hbm.inventory.RecipesCommon.ComparableStack;
 import com.hbm.inventory.RecipesCommon.OreDictStack;
-import com.hbm.inventory.recipes.SerializableRecipe;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.ItemEnums;
 import com.hbm.items.ItemEnums.EnumAshType;
 import com.hbm.items.ItemEnums.EnumCasingType;

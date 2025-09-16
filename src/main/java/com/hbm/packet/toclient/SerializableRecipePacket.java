@@ -1,6 +1,6 @@
 package com.hbm.packet.toclient;
 
-import com.hbm.inventory.recipes.SerializableRecipe;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.util.BufferUtil;
 import io.netty.buffer.ByteBuf;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;

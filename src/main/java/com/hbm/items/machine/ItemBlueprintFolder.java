@@ -1,7 +1,7 @@
 package com.hbm.items.machine;
 
 import com.google.common.collect.ImmutableMap;
-import com.hbm.inventory.recipes.GenericRecipes;
+import com.hbm.inventory.recipes.loader.GenericRecipes;
 import com.hbm.items.ItemBakedBase;
 import com.hbm.lib.RefStrings;
 import net.minecraft.client.renderer.block.model.IBakedModel;

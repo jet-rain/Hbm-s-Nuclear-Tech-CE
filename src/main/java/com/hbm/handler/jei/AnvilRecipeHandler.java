@@ -3,7 +3,7 @@ package com.hbm.handler.jei;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.machine.NTMAnvil;
 import com.hbm.inventory.RecipesCommon;
-import com.hbm.inventory.recipes.AnvilRecipes;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes;
 import com.hbm.lib.RefStrings;
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.IModRegistry;

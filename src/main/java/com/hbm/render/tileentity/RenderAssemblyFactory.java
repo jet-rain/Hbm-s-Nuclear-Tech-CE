@@ -4,7 +4,7 @@ import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.interfaces.AutoRegister;
 import com.hbm.inventory.recipes.AssemblyMachineRecipes;
-import com.hbm.inventory.recipes.GenericRecipe;
+import com.hbm.inventory.recipes.loader.GenericRecipe;
 import com.hbm.main.MainRegistry;
 import com.hbm.main.ResourceManager;
 import com.hbm.render.item.ItemRenderBase;

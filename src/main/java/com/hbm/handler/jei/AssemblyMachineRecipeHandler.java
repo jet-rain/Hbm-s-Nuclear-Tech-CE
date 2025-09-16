@@ -2,7 +2,7 @@ package com.hbm.handler.jei;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.inventory.recipes.AssemblyMachineRecipes;
-import com.hbm.inventory.recipes.GenericRecipe;
+import com.hbm.inventory.recipes.loader.GenericRecipe;
 import mezz.jei.api.IGuiHelper;
 import net.minecraft.item.ItemStack;
 

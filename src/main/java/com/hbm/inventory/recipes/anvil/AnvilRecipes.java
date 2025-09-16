@@ -1,4 +1,4 @@
-package com.hbm.inventory.recipes;
+package com.hbm.inventory.recipes.anvil;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -13,6 +13,8 @@ import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.material.MaterialShapes;
 import com.hbm.inventory.material.Mats;
 import com.hbm.inventory.material.NTMMaterial;
+import com.hbm.inventory.recipes.AssemblerRecipes;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.ItemEnums;
 import com.hbm.items.ItemEnums.EnumCircuitType;
 import com.hbm.items.ModItems;

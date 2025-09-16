@@ -1,11 +1,11 @@
-package com.hbm.inventory.recipes;
+package com.hbm.inventory.recipes.loader;
 
 import com.hbm.config.GeneralConfig;
 import com.hbm.inventory.RecipesCommon;
 import com.hbm.inventory.fluid.FluidStack;
-import com.hbm.inventory.recipes.GenericRecipes.ChanceOutput;
-import com.hbm.inventory.recipes.GenericRecipes.ChanceOutputMulti;
-import com.hbm.inventory.recipes.GenericRecipes.IOutput;
+import com.hbm.inventory.recipes.loader.GenericRecipes.ChanceOutput;
+import com.hbm.inventory.recipes.loader.GenericRecipes.ChanceOutputMulti;
+import com.hbm.inventory.recipes.loader.GenericRecipes.IOutput;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemFluidIcon;
 import com.hbm.util.BobMathUtil;

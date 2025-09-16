@@ -5,7 +5,7 @@ import com.hbm.blocks.ModBlocks;
 import com.hbm.interfaces.AutoRegister;
 import com.hbm.inventory.fluid.FluidStack;
 import com.hbm.inventory.recipes.ChemicalPlantRecipes;
-import com.hbm.inventory.recipes.GenericRecipe;
+import com.hbm.inventory.recipes.loader.GenericRecipe;
 import com.hbm.main.ResourceManager;
 import com.hbm.render.item.ItemRenderBase;
 import com.hbm.tileentity.machine.TileEntityMachineChemicalPlant;

@@ -1,8 +1,8 @@
 package com.hbm.inventory.gui;
 
-import com.hbm.inventory.recipes.AnvilRecipes;
-import com.hbm.inventory.recipes.AnvilRecipes.AnvilConstructionRecipe;
-import com.hbm.inventory.recipes.AnvilRecipes.AnvilOutput;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes.AnvilConstructionRecipe;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes.AnvilOutput;
 import com.hbm.inventory.RecipesCommon.AStack;
 import com.hbm.inventory.RecipesCommon.ComparableStack;
 import com.hbm.inventory.RecipesCommon.OreDictStack;
@@ -27,7 +27,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.oredict.OreDictionary;
 import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.GL11; import net.minecraft.client.renderer.GlStateManager;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;

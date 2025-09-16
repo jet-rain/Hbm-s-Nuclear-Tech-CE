@@ -16,6 +16,7 @@ import com.hbm.inventory.RecipesCommon.NbtComparableStack;
 import com.hbm.inventory.RecipesCommon.OreDictStack;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.material.Mats;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.ItemEnums.EnumCircuitType;
 import com.hbm.items.ItemEnums.EnumPartType;
 import com.hbm.items.ModItems;

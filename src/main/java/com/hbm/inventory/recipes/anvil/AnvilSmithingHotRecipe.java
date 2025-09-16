@@ -1,4 +1,4 @@
-package com.hbm.inventory.recipes;
+package com.hbm.inventory.recipes.anvil;
 
 import com.hbm.inventory.RecipesCommon.AStack;
 import com.hbm.items.special.ItemHot;

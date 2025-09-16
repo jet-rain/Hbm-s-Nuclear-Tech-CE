@@ -26,7 +26,7 @@ import com.hbm.inventory.gui.GUIArmorTable;
 import com.hbm.inventory.material.Mats;
 import com.hbm.inventory.material.NTMMaterial;
 import com.hbm.inventory.recipes.ChemplantRecipes;
-import com.hbm.inventory.recipes.SerializableRecipe;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.IDynamicModels;
 import com.hbm.items.IModelRegister;
 import com.hbm.items.ModItems;

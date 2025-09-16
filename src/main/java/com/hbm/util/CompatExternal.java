@@ -7,7 +7,7 @@ import com.hbm.api.recipe.IRecipeRegisterListener;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.tank.FluidTankNTM;
-import com.hbm.inventory.recipes.SerializableRecipe;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.tileentity.machine.TileEntityDummy;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;

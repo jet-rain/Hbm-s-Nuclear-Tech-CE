@@ -3,7 +3,7 @@ package com.hbm.qmaw;
 import com.google.gson.*;
 import com.hbm.interfaces.Spaghetti;
 import com.hbm.inventory.RecipesCommon.ComparableStack;
-import com.hbm.inventory.recipes.SerializableRecipe;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.ModItems;
 import com.hbm.main.MainRegistry;
 import net.minecraft.client.Minecraft;

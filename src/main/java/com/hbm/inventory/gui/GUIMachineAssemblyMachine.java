@@ -2,7 +2,7 @@ package com.hbm.inventory.gui;
 
 import com.hbm.inventory.container.ContainerMachineAssemblyMachine;
 import com.hbm.inventory.recipes.AssemblyMachineRecipes;
-import com.hbm.inventory.recipes.GenericRecipe;
+import com.hbm.inventory.recipes.loader.GenericRecipe;
 import com.hbm.items.machine.ItemBlueprints;
 import com.hbm.lib.RefStrings;
 import com.hbm.tileentity.machine.TileEntityMachineAssemblyMachine;

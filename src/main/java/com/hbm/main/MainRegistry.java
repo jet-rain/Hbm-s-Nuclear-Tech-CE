@@ -38,6 +38,8 @@ import com.hbm.inventory.control_panel.ControlEvent;
 import com.hbm.inventory.control_panel.ControlRegistry;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.recipes.*;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.ModItems;
 import com.hbm.items.weapon.GrenadeDispenserRegistry;
 import com.hbm.items.weapon.sedna.mods.WeaponModManager;

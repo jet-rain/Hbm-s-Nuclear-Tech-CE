@@ -1,4 +1,4 @@
-package com.hbm.inventory.recipes;
+package com.hbm.inventory.recipes.loader;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

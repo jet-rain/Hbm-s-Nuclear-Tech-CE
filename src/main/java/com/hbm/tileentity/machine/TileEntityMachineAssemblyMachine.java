@@ -11,7 +11,7 @@ import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTankNTM;
 import com.hbm.inventory.gui.GUIMachineAssemblyMachine;
 import com.hbm.inventory.recipes.AssemblyMachineRecipes;
-import com.hbm.inventory.recipes.GenericRecipe;
+import com.hbm.inventory.recipes.loader.GenericRecipe;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemMachineUpgrade;
 import com.hbm.lib.DirPos;

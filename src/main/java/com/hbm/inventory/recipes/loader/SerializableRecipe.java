@@ -1,4 +1,4 @@
-package com.hbm.inventory.recipes;
+package com.hbm.inventory.recipes.loader;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -11,6 +11,8 @@ import com.hbm.inventory.fluid.FluidStack;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.material.MatDistribution;
+import com.hbm.inventory.recipes.*;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes;
 import com.hbm.items.ModItems;
 import com.hbm.main.MainRegistry;
 import com.hbm.util.Tuple;
@@ -288,7 +290,7 @@ public abstract class SerializableRecipe {
         return new RecipesCommon.ComparableStack(ModItems.nothing);
     }
 
-    static RecipesCommon.AStack[] readAStackArray(JsonArray array) {
+    protected static RecipesCommon.AStack[] readAStackArray(JsonArray array) {
         try {
             RecipesCommon.AStack[] items = new RecipesCommon.AStack[array.size()];
             for (int i = 0; i < items.length; i++) {
@@ -344,7 +346,7 @@ public abstract class SerializableRecipe {
         return new Tuple.Pair<>(new ItemStack(ModItems.nothing), 1F);
     }
 
-    static ItemStack[] readItemStackArray(JsonArray array) {
+    protected static ItemStack[] readItemStackArray(JsonArray array) {
         try {
             ItemStack[] items = new ItemStack[array.size()];
             for (int i = 0; i < items.length; i++) {
@@ -403,7 +405,7 @@ public abstract class SerializableRecipe {
         return null;
     }
 
-    static FluidStack[] readFluidArray(JsonArray array) {
+    protected static FluidStack[] readFluidArray(JsonArray array) {
         try {
             FluidStack[] fluids = new FluidStack[array.size()];
             for (int i = 0; i < fluids.length; i++) {
@@ -426,7 +428,7 @@ public abstract class SerializableRecipe {
         writer.setIndent("  ");
     }
 
-    static boolean matchesIngredients(ItemStack[] inputs, RecipesCommon.AStack[] recipe) {
+    protected static boolean matchesIngredients(ItemStack[] inputs, RecipesCommon.AStack[] recipe) {
 
         List<RecipesCommon.AStack> recipeList = new ArrayList<>();
         Collections.addAll(recipeList, recipe);

@@ -1,7 +1,7 @@
 package com.hbm.handler.jei;
 
-import com.hbm.inventory.recipes.AnvilRecipes;
-import com.hbm.inventory.recipes.AnvilSmithingRecipe;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes;
+import com.hbm.inventory.recipes.anvil.AnvilSmithingRecipe;
 import com.hbm.lib.RefStrings;
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.gui.IDrawable;

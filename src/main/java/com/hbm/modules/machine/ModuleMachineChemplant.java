@@ -3,7 +3,7 @@ package com.hbm.modules.machine;
 import com.hbm.api.energymk2.IEnergyHandlerMK2;
 import com.hbm.inventory.fluid.tank.FluidTankNTM;
 import com.hbm.inventory.recipes.ChemicalPlantRecipes;
-import com.hbm.inventory.recipes.GenericRecipes;
+import com.hbm.inventory.recipes.loader.GenericRecipes;
 import net.minecraftforge.items.ItemStackHandler;
 
 public class ModuleMachineChemplant extends ModuleMachineBase {

@@ -8,6 +8,7 @@ import com.hbm.inventory.RecipesCommon.ComparableStack;
 import com.hbm.inventory.RecipesCommon.OreDictStack;
 import com.hbm.inventory.fluid.FluidStack;
 import com.hbm.inventory.fluid.Fluids;
+import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.ItemEnums;
 import com.hbm.items.ItemEnums.EnumAshType;
 import com.hbm.items.ItemEnums.EnumBriquetteType;

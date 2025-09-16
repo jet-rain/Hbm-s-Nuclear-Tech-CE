@@ -1,8 +1,8 @@
 package com.hbm.inventory.gui;
 
 import com.hbm.interfaces.IControlReceiver;
-import com.hbm.inventory.recipes.GenericRecipe;
-import com.hbm.inventory.recipes.GenericRecipes;
+import com.hbm.inventory.recipes.loader.GenericRecipe;
+import com.hbm.inventory.recipes.loader.GenericRecipes;
 import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toserver.NBTControlPacket;

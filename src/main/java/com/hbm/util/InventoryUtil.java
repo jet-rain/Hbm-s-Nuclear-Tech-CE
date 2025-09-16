@@ -1,6 +1,6 @@
 package com.hbm.util;
 
-import com.hbm.inventory.recipes.AnvilRecipes.AnvilOutput;
+import com.hbm.inventory.recipes.anvil.AnvilRecipes.AnvilOutput;
 import com.hbm.inventory.RecipesCommon.AStack;
 import com.hbm.main.MainRegistry;
 import net.minecraft.entity.player.EntityPlayer;

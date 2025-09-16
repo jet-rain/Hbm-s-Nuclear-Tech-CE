@@ -2,8 +2,8 @@ package com.hbm.modules.machine;
 
 import com.hbm.api.energymk2.IEnergyHandlerMK2;
 import com.hbm.inventory.fluid.tank.FluidTankNTM;
-import com.hbm.inventory.recipes.GenericRecipe;
-import com.hbm.inventory.recipes.GenericRecipes;
+import com.hbm.inventory.recipes.loader.GenericRecipe;
+import com.hbm.inventory.recipes.loader.GenericRecipes;
 import com.hbm.items.machine.ItemBlueprints;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.item.ItemStack;
