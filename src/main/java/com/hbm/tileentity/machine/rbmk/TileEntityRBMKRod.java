@@ -20,6 +20,7 @@ import com.hbm.saveddata.RadiationSavedData;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.machine.rbmk.TileEntityRBMKConsole.ColumnType;
 import com.hbm.util.BufferUtil;
+import com.hbm.util.MutableVec3d;
 import com.hbm.util.ParticleUtil;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.state.IBlockState;
@@ -131,11 +132,6 @@ public class TileEntityRBMKRod extends TileEntityRBMKSlottedBase implements IRBM
 				
 				if(!this.hasLid()) {
 					RadiationSavedData.incrementRad(world, pos, (float) (fluxQuantity * 0.05F), (float) (fluxQuantity * 10F));
-				} else{
-					double meltdownPercent = ItemRBMKRod.getMeltdownPercent(inventory.getStackInSlot(0));
-					if(meltdownPercent > 0){
-						RadiationSavedData.incrementRad(world, pos, (float) (fluxQuantity * 0.05F * meltdownPercent * 0.01D), (float) (fluxQuantity * meltdownPercent * 0.1D));
-					}
 				}
 				
 				super.update();
@@ -172,12 +168,11 @@ public class TileEntityRBMKRod extends TileEntityRBMKSlottedBase implements IRBM
 		}
 	}
 
-	@Override
-	public boolean canExtractItem(int slot, ItemStack itemStack, int amount) {
-		if(itemStack.getItem() instanceof ItemRBMKRod)
-			return !(ItemRBMKRod.getMeltdownPercent(itemStack) > 0);
-		return true;
-	}
+//	@Override
+//	public boolean canExtractItem(int slot, ItemStack itemStack, int amount) {
+//		if(itemStack.getItem() instanceof ItemRBMKRod) return !(ItemRBMKRod.getMeltdownPercent(itemStack) > 0);
+//		return true;
+//	}
 	
 	/**
 	 * SLOW: full efficiency for slow neutrons, fast neutrons have half efficiency
@@ -207,28 +202,36 @@ public class TileEntityRBMKRod extends TileEntityRBMKSlottedBase implements IRBM
 	
 	protected static NType stream;
 
+    private BlockPos posFlux;
+
 	protected void spreadFlux(double flux, double ratio) {
-		if(flux == 0) {
-			// simple way to remove the node from the cache when no flux is going into it!
-			NeutronNodeWorld.removeNode(world, pos);
-			return;
-		}
 
-		NeutronNodeWorld.StreamWorld streamWorld = NeutronNodeWorld.getOrAddWorld(world);
-		RBMKNeutronHandler.RBMKNeutronNode node = (RBMKNeutronHandler.RBMKNeutronNode) streamWorld.getNode(pos);
 
-		if(node == null) {
-			node = RBMKNeutronHandler.makeNode(streamWorld, this);
-			streamWorld.addNode(node);
-		}
+        if(posFlux == null)
+            posFlux = new BlockPos(this.pos);
 
-		for(ForgeDirection dir : fluxDirs) {
+        if(flux == 0) {
+            // simple way to remove the node from the cache when no flux is going into it!
+            NeutronNodeWorld.removeNode(world, pos);
+            return;
+        }
 
-			Vec3d neutronVector = new Vec3d(dir.offsetX, dir.offsetY, dir.offsetZ);
+        NeutronNodeWorld.StreamWorld streamWorld = NeutronNodeWorld.getOrAddWorld(world);
+        RBMKNeutronHandler.RBMKNeutronNode node = (RBMKNeutronHandler.RBMKNeutronNode) streamWorld.getNode(pos);
 
-			// Create new neutron streams
-			new RBMKNeutronHandler.RBMKNeutronStream(node, neutronVector, flux, ratio);
-		}
+        if(node == null) {
+            node = RBMKNeutronHandler.makeNode(streamWorld, this);
+            streamWorld.addNode(node);
+        }
+
+        for(ForgeDirection dir : fluxDirs) {
+
+            MutableVec3d neutronVector = new MutableVec3d (dir.offsetX, dir.offsetY, dir.offsetZ);
+
+            // Create new neutron streams
+            new RBMKNeutronHandler.RBMKNeutronStream(node, neutronVector, flux, ratio);
+        }
+
 	}
 	
 	@Override

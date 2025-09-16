@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
+
 public abstract class TileEntityRBMKControl extends TileEntityRBMKSlottedBase {
 
 	@SideOnly(Side.CLIENT)
@@ -19,8 +20,6 @@ public abstract class TileEntityRBMKControl extends TileEntityRBMKSlottedBase {
 	public double level;
 	public static final double speed = 0.00277D; // it takes around 18 seconds for the thing to fully extend
 	public double targetLevel;
-
-	public byte timer = 0;
 
 	public TileEntityRBMKControl() {
 		super(0);

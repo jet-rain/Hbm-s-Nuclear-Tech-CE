@@ -20,7 +20,6 @@ import java.util.function.Function;
 
 public class ItemRBMKRod extends Item {
 
-	public static final double xe135HalflifeMulPerTick = 0.9999241662036941; // 0.5^(1/9140) for a 9.14h halflife
 
 	public ItemRBMKPellet pellet;
 	public String fullName = "";			//full name of the fuel rod
@@ -458,7 +457,7 @@ public class ItemRBMKRod extends Item {
             list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmx.splitsWith", I18nUtil.resolveKey(nType.unlocalized + ".x")));
             list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmx.splitsInto", I18nUtil.resolveKey(rType.unlocalized + ".x")));
             list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.fluxFunc", TextFormatting.WHITE + getFuncDescription(stack)));
-            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.funcType", this.function.title));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.funcType", I18nUtil.resolveKey(this.function.title)));
             list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.xenonGen", TextFormatting.WHITE + "x * " + xGen));
             list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmx.xenonBurn", TextFormatting.WHITE + "x² / " + xBurn));
             list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmx.heat", heat + "°C"));
@@ -482,7 +481,7 @@ public class ItemRBMKRod extends Item {
             list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmk.splitsWith", I18nUtil.resolveKey(nType.unlocalized)));
             list.add(TextFormatting.BLUE + I18nUtil.resolveKey("trait.rbmk.splitsInto", I18nUtil.resolveKey(rType.unlocalized)));
             list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.fluxFunc", TextFormatting.WHITE + getFuncDescription(stack)));
-            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.funcType", this.function.title));
+            list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.funcType", I18nUtil.resolveKey(this.function.title)));
             list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.xenonGen", TextFormatting.WHITE + "x * " + xGen));
             list.add(TextFormatting.YELLOW + I18nUtil.resolveKey("trait.rbmk.xenonBurn", TextFormatting.WHITE + "x² / " + xBurn));
             list.add(TextFormatting.GOLD + I18nUtil.resolveKey("trait.rbmk.heat", heat + "°C"));
@@ -529,15 +528,6 @@ public class ItemRBMKRod extends Item {
 		}
 
 		return 0;
-	}
-
-    //Do we keep meltdown system? It doesn't change reactor's behavior otherwise
-	public static void setMeltdownPercent(ItemStack stack, double meltdownPercent){
-		setDouble(stack, "meltdown", meltdownPercent);
-	}
-
-	public static double getMeltdownPercent(ItemStack stack){
-		return getDouble(stack, "meltdown");
 	}
 
 	public static void setPoison(ItemStack stack, double xenon) {
@@ -599,7 +589,6 @@ public class ItemRBMKRod extends Item {
 		setYield(stack, ((ItemRBMKRod)stack.getItem()).yield);
 		setCoreHeat(stack, 20.0D);
 		setHullHeat(stack, 20.0D);
-		setMeltdownPercent(stack, 0D);
 	}
 
     @Override
