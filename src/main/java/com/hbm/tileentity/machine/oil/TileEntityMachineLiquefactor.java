@@ -21,6 +21,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.world.World;
@@ -105,6 +106,11 @@ public class TileEntityMachineLiquefactor extends TileEntityMachineBase implemen
     @Override
     public boolean isItemValidForSlot(int i, ItemStack itemStack) {
         return i == 0 && LiquefactionRecipes.getOutput(itemStack) != null;
+    }
+
+    @Override
+    public int[] getAccessibleSlotsFromSide(EnumFacing side) {
+        return new int[] { 0 };
     }
 
     public boolean canProcess() {
