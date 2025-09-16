@@ -239,7 +239,7 @@ public class EntityMist extends Entity {
             teleportRandomly(living);
         }
 
-        //TODO
+        //TODO: implement EntityGlyphid
 //        if(type.hasTrait(FT_Pheromone.class)){
 //
 //            FT_Pheromone pheromone = type.getTrait(FT_Pheromone.class);

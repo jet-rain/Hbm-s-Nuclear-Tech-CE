@@ -259,9 +259,9 @@ public class WeaponRecipes {
         CraftingManager.addRecipeAuto(new ItemStack(ModItems.grenade_burst, 1), "GGG", "GCG", "GGG", 'G', ModItems.grenade_breach, 'C', ModItems.grenade_generic );
         CraftingManager.addRecipeAuto(new ItemStack(ModItems.grenade_cloud), "SPS", "CAC", "SPS", 'S', S.dust(), 'P', ModItems.powder_poison, 'C', CU.dust(), 'A', new ItemStack(ModItems.fluid_tank_full, 1, Fluids.PEROXIDE.getID()) );
         CraftingManager.addRecipeAuto(new ItemStack(ModItems.grenade_pink_cloud), " S ", "ECE", " E ", 'S', ModItems.powder_spark_mix, 'E', ModItems.powder_magic, 'C', ModItems.grenade_cloud );
-        /*CraftingManager.addRecipeAuto(new ItemStack(ModItems.nuclear_waste_pearl), "WWW", "WFW", "WWW", 'W', ModItems.nuclear_waste_tiny, 'F', ModBlocks.block_fallout );
-        CraftingManager.addShapelessAuto(new ItemStack(ModItems.grenade_kyiv), ModItems.canister_napalm, ModItems.bottle2_empty, ModItems.rag );
-        CraftingManager.addRecipeAuto(new ItemStack(ModItems.disperser_canister_empty, 4), " P ", "PGP", " P ", 'P', ANY_HARDPLASTIC.ingot(), 'G', ModBlocks.glass_boron );*/
+//        CraftingManager.addRecipeAuto(new ItemStack(ModItems.nuclear_waste_pearl), "WWW", "WFW", "WWW", 'W', ModItems.nuclear_waste_tiny, 'F', ModBlocks.block_fallout );
+//        CraftingManager.addShapelessAuto(new ItemStack(ModItems.grenade_kyiv), ModItems.canister_napalm, ModItems.bottle2_empty, ModItems.rag );
+        CraftingManager.addRecipeAuto(new ItemStack(ModItems.disperser_canister_empty, 4), " P ", "PGP", " P ", 'P', ANY_HARDPLASTIC.ingot(), 'G', ModBlocks.glass_boron );
 
         //Sticks of explosives
         CraftingManager.addRecipeAuto(new ItemStack(ModItems.stick_dynamite, 4), " S ", "PDP", "PDP", 'S', ModItems.safety_fuse, 'P', Items.PAPER, 'D', ModItems.ball_dynamite );

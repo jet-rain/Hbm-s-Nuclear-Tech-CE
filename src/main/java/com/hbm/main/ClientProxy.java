@@ -47,6 +47,7 @@ import com.hbm.render.anim.sedna.BusAnimationSedna;
 import com.hbm.render.anim.sedna.BusAnimationSequenceSedna;
 import com.hbm.render.anim.sedna.HbmAnimationsSedna;
 import com.hbm.render.entity.ElectricityRenderer;
+import com.hbm.render.entity.RenderMetaSensitiveItem;
 import com.hbm.render.item.ItemRenderMissile;
 import com.hbm.render.item.ItemRenderMissileGeneric;
 import com.hbm.render.item.ItemRenderMissileGeneric.RenderMissileType;
@@ -239,6 +240,8 @@ public class ClientProxy extends ServerProxy {
         registerGrenadeRenderer(EntityGrenadeIFHopwire.class, ModItems.grenade_if_hopwire);
         registerGrenadeRenderer(EntityGrenadeIFNull.class, ModItems.grenade_if_null);
         registerGrenadeRenderer(EntityGrenadeDynamite.class, ModItems.stick_dynamite);
+        registerMetaSensitiveGrenade(EntityDisperserCanister.class, ModItems.disperser_canister);
+        registerMetaSensitiveGrenade(EntityDisperserCanister.class, ModItems.glyphid_gland);
 
         AutoRegistry.registerRenderInfo();
 
@@ -269,6 +272,11 @@ public class ClientProxy extends ServerProxy {
         RenderingRegistry.registerEntityRenderingHandler(clazz, (RenderManager man) -> {
             return new RenderSnowball<E>(man, grenade, Minecraft.getMinecraft().getRenderItem());
         });
+    }
+
+    private <E extends Entity & RenderMetaSensitiveItem.IHasMetaSensitiveRenderer<E>> void registerMetaSensitiveGrenade(Class<E> clazz, Item grenade) {
+        RenderingRegistry.registerEntityRenderingHandler(clazz, (RenderManager man) ->
+                new RenderMetaSensitiveItem<>(man, grenade, Minecraft.getMinecraft().getRenderItem()));
     }
 
     @Override

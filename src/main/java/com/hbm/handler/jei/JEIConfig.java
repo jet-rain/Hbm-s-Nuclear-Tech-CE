@@ -506,6 +506,8 @@ public class JEIConfig implements IModPlugin {
         subtypeRegistry.registerSubtypeInterpreter(ModItems.fluid_barrel_full, metadataFluidContainerInterpreter);
         subtypeRegistry.registerSubtypeInterpreter(ModItems.fluid_tank_lead_full, metadataFluidContainerInterpreter);
         subtypeRegistry.registerSubtypeInterpreter(ModItems.canister_full, metadataFluidContainerInterpreter);
+        subtypeRegistry.registerSubtypeInterpreter(ModItems.disperser_canister, metadataInterpreter);
+        subtypeRegistry.registerSubtypeInterpreter(ModItems.glyphid_gland, metadataInterpreter);
 		subtypeRegistry.registerSubtypeInterpreter(ModItems.missile_custom, stack -> ModItems.missile_custom.getTranslationKey() + "w" +
                 ItemCustomMissile.readFromNBT(stack, "warhead") + "f" + ItemCustomMissile.readFromNBT(stack, "fuselage") + "s" +
                 ItemCustomMissile.readFromNBT(stack, "stability") + "t" + ItemCustomMissile.readFromNBT(stack, "thruster"));

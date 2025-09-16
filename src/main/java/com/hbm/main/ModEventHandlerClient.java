@@ -285,6 +285,10 @@ public class ModEventHandlerClient {
                         ItemFluidTank.fluidTankModel);
                 ModelLoader.setCustomModelResourceLocation(ModItems.fluid_barrel_full, order[i].getID(),
                         ItemFluidTank.fluidBarrelModel);
+                ModelLoader.setCustomModelResourceLocation(ModItems.disperser_canister, order[i].getID(),
+                        ItemDisperser.disperserModel);
+                ModelLoader.setCustomModelResourceLocation(ModItems.glyphid_gland, order[i].getID(),
+                        ItemDisperser.glyphidGlandModel);
             }
         }
         ModelLoader.setCustomModelResourceLocation(ModItems.canister_empty, 0, ItemCanister.fluidCanisterModel);
@@ -594,6 +598,8 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.fluid_tank_lead_full);
         evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.fluid_barrel_full);
         evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.fluid_identifier);
+        evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.disperser_canister);
+        evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.glyphid_gland);
         evt.getItemColors().registerItemColorHandler((stack, tintIndex) -> {
             if (tintIndex == 0) {
                 return ItemFluidIcon.getFluidType(stack).getColor();

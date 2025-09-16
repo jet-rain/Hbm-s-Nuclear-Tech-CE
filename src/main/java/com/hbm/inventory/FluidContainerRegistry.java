@@ -59,6 +59,11 @@ public class FluidContainerRegistry {
 
             if (type.hasNoContainer()) continue;
 
+            if(type.isDispersable()) {
+                FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.disperser_canister, 1, i), new ItemStack(ModItems.disperser_canister_empty), Fluids.fromID(i), 2000));
+                FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.glyphid_gland, 1, i), new ItemStack(ModItems.glyphid_gland_empty), Fluids.fromID(i), 4000));
+            }
+
             FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.fluid_tank_lead_full, 1, id), new ItemStack(ModItems.fluid_tank_lead_empty), type, 1000));
 
             if (type.needsLeadContainer()) continue;

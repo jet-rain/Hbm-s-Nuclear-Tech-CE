@@ -412,6 +412,13 @@ public class ModItems {
     public static final Item inf_water_mk2 = new ItemFluidContainerInfinite(Fluids.WATER, 500, "inf_water_mk2").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     public static final Item inf_water_mk3 = new ItemFluidContainerInfinite(Fluids.WATER, 5000, "inf_water_mk3").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     public static final Item inf_water_mk4 = new ItemFluidContainerInfinite(Fluids.WATER, 50000, "inf_water_mk4").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
+
+    public static final Item disperser_canister_empty = new ItemBase("disperser_canister_empty").setCreativeTab(MainRegistry.weaponTab);
+    public static final Item disperser_canister = new ItemDisperser("disperser_canister", 2000).setContainerItem(ModItems.disperser_canister_empty).setCreativeTab(MainRegistry.weaponTab);
+
+    public static final Item glyphid_gland_empty = new ItemBase("glyphid_gland_empty").setCreativeTab(MainRegistry.weaponTab);
+    public static final Item glyphid_gland = new ItemDisperser("glyphid_gland", 4000).setContainerItem(ModItems.glyphid_gland_empty).setCreativeTab(MainRegistry.weaponTab);
+
     //Activators
     public static final Item detonator = new ItemDetonator("detonator").setMaxStackSize(1).setFull3D().setCreativeTab(MainRegistry.nukeTab);
     public static final Item detonator_multi = new ItemMultiDetonator("detonator_multi").setMaxStackSize(1).setFull3D().setCreativeTab(MainRegistry.nukeTab);
