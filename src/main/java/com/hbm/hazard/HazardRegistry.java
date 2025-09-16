@@ -2,6 +2,7 @@ package com.hbm.hazard;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.config.GeneralConfig;
+import com.hbm.config.RadiationConfig;
 import com.hbm.hazard.modifier.HazardModifierFuelRadiation;
 import com.hbm.hazard.modifier.HazardModifierRBMKHot;
 import com.hbm.hazard.modifier.HazardModifierRBMKRadiation;
@@ -505,7 +506,8 @@ public class HazardRegistry {
 		HazardSystem.register(nuke_fstbmb, makeData(DIGAMMA, 0.01F));
 		//HazardSystem.register(DictFrame.fromOne(ModItems.holotape_image, EnumHoloImage.HOLO_RESTORED), makeData(DIGAMMA, 1F));
 		//HazardSystem.register(holotape_damaged, makeData(DIGAMMA, 1_000F));
-		registerContaminatingDrops();
+        if(RadiationConfig.enableContaminationOnGround)
+		    registerContaminatingDrops();
         HazardRegistry.registerDangerousDrops();
 
 
