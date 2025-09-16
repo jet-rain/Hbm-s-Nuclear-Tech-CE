@@ -47,7 +47,7 @@ public class ItemDisperser extends ItemFluidTank {
     @Override
     @SideOnly(Side.CLIENT)
     public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> items) {
-
+        if (tab != this.getCreativeTab() && tab != CreativeTabs.SEARCH) return;
         FluidType[] order = Fluids.getInNiceOrder();
 
         for (int i = 1; i < order.length; ++i) {
