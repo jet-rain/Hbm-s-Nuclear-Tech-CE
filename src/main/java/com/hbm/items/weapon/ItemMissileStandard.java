@@ -1,5 +1,6 @@
 package com.hbm.items.weapon;
 
+import com.hbm.items.ItemBase;
 import com.hbm.items.special.ItemCustomLore;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
@@ -8,7 +9,7 @@ import net.minecraft.world.World;
 
 import java.util.List;
 
-public class ItemMissileStandard extends ItemCustomLore {
+public class ItemMissileStandard extends ItemBase {
 
 	public final MissileFormFactor formFactor;
 	public final MissileTier tier;
