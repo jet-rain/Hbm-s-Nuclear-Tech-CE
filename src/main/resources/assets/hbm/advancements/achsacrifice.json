@@ -11,7 +11,7 @@
 		},
 		"frame": "challenge"
 	},
-	"parent": "hbm:progress_radspice",
+	"parent": "hbm:root",
 	"criteria": {
 		"impossible": {
 			"trigger": "minecraft:impossible"
