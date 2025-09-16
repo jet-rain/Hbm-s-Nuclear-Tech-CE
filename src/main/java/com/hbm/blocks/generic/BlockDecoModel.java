@@ -65,7 +65,9 @@ public class BlockDecoModel extends BlockEnumMeta {
     @Override
     public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world, BlockPos pos, EntityPlayer player) {
         if(state.getBlock() == ModBlocks.filing_cabinet)
-        return new ItemStack(Item.getItemFromBlock(this), 1, state.getValue(META)%2);
+            return new ItemStack(Item.getItemFromBlock(this), 1, state.getValue(META)%2);
+        if(state.getBlock() == ModBlocks.deco_computer)
+            return new ItemStack(Item.getItemFromBlock(this), 1, 0);
         else
             return super.getPickBlock(state, target, world, pos, player);
     }
