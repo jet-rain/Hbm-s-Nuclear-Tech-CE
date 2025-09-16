@@ -2096,11 +2096,12 @@ public class ModItems {
             .setMeltingPoint(2744)
             .setFuelColor(0.314F, 0.349F, 0.337F);
     public static final ItemRBMKRod rbmk_fuel_lea = new ItemRBMKRod(rbmk_pellet_lea, "rbmk_fuel_lea")
-            	.setYield(100000000D)
-				.setStats(35D, 20)
-				.setFunction(EnumBurnFunc.ARCH)
-				.setHeat(1.75D)
-				.setMeltingPoint(2386)
+            .setYield(100000000D)
+            .setStats(60, 10)
+            .setFunction(EnumBurnFunc.SQUARE_ROOT)
+            .setDepletionFunction(EnumDepleteFunc.RAISING_SLOPE)
+            .setHeat(1.5D)
+            .setMeltingPoint(2386)
             .setFuelColor(0.514F, 0.467F, 0.455F);
     public static final ItemRBMKRod rbmk_fuel_mea = new ItemRBMKRod(rbmk_pellet_mea, "rbmk_fuel_mea")
             .setYield(100000000D)

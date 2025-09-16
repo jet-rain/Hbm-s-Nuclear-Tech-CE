@@ -344,16 +344,14 @@ public class ItemRBMKRod extends Item {
 	}
 
 	public double reactivityModByEnrichment(double enrichment) {
-
-        return switch (this.depFunc) {
-            case STATIC -> 1D;
-            case BOOSTED_SLOPE ->
-                    enrichment + Math.sin((enrichment - 1) * (enrichment - 1) * Math.PI); //x + sin([x - 1]^2 * pi) works
-            case RAISING_SLOPE ->
-                    enrichment + (Math.sin(enrichment * Math.PI) / 2D); //x + (sin(x * pi) / 2) actually works
-            case GENTLE_SLOPE -> enrichment + (Math.sin(enrichment * Math.PI) / 3D); //x + (sin(x * pi) / 3) also works
-            default -> enrichment;
-        };
+        switch(this.depFunc) {
+            default:
+            case LINEAR: return enrichment;
+            case STATIC: return 1D;
+            case BOOSTED_SLOPE: return enrichment + Math.sin((enrichment - 1) * (enrichment - 1) * Math.PI); //x + sin([x - 1]^2 * pi) works
+            case RAISING_SLOPE: return enrichment + (Math.sin(enrichment * Math.PI) / 2D); //x + (sin(x * pi) / 2) actually works
+            case GENTLE_SLOPE: return enrichment + (Math.sin(enrichment * Math.PI) / 3D); //x + (sin(x * pi) / 3) also works
+        }
 	}
 
 	/**
