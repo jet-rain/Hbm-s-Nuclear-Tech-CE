@@ -345,7 +345,7 @@ public abstract class TileEntityRBMKBase extends TileEntityLoadedBase implements
 			Set<String> keys = flush.getKeySet();
 
 			GlStateManager.pushMatrix();
-			float scale = 0.5f;
+			float scale = 1f; //Was there a reason this was 0.5 mov?
 			GlStateManager.scale(scale, scale, 1.0f);
 			int pX = resolution.getScaledWidth() / 2 + 8;
 			int pZ = resolution.getScaledHeight() / 2;
