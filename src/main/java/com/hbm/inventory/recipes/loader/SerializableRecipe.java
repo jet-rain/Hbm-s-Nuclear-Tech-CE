@@ -79,6 +79,7 @@ public abstract class SerializableRecipe {
         //GENERIC
         recipeHandlers.add(AssemblyMachineRecipes.INSTANCE);
         recipeHandlers.add(ChemicalPlantRecipes.INSTANCE);
+        recipeHandlers.add(PUREXRecipes.INSTANCE);
     }
 
     public static void initialize() {

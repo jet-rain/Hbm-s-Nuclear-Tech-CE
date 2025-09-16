@@ -99,6 +99,7 @@ public class JEIConfig implements IModPlugin {
     public static final String RTG = "hbm.rtg";
     public static final String VACUUM = "hbm.vacuum";
     public static final String ZIRNOX = "hbm.zirnox";
+    static final String PUREX = "hbm.purex";
     private AmmoPressHandler ammoPressHandler;
     private AnvilRecipeHandler anvilRecipeHandler;
     private AnvilSmithingRecipeHandler anvilSmithingRecipeHandler;
@@ -484,7 +485,8 @@ public class JEIConfig implements IModPlugin {
                 new FusionRecipeHandler(help),
                 new HadronRecipeHandler(help),
                 new DFCRecipeHandler(help),
-                new BookRecipeHandler(help));
+                new BookRecipeHandler(help),
+                new PUREXRecipeHandler(help));
     }
 
     private static final ISubtypeRegistry.ISubtypeInterpreter metadataFluidContainerInterpreter = stack -> {
