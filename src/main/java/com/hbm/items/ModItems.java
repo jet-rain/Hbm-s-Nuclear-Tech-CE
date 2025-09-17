@@ -2686,6 +2686,7 @@ public class ModItems {
     public static final Item book_secret = new ItemCustomLore("book_secret").setCreativeTab(MainRegistry.polaroidID == 11 ? MainRegistry.consumableTab : null);
     //Drillgon200: Shaking my head... just had to put "FOE" right on it.
     public static final Item book_of_ = new ItemBook("book_of_").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item book_lemegeton = new ItemBookLemegeton("book_lemegeton").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item page_of_ = new ItemEnumMulti("page_of_", ItemEnums.EnumPages.class, true, "page_of_").setMaxStackSize(1).setCreativeTab(null);
     public static final Item crystal_horn = new ItemCustomLore("crystal_horn").setCreativeTab(MainRegistry.partsTab);
     public static final Item crystal_charred = new ItemCustomLore("crystal_charred").setCreativeTab(MainRegistry.partsTab);
