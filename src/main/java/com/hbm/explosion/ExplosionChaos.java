@@ -43,6 +43,7 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 import java.util.List;
 import java.util.Random;
 
+//TODO:This whole class looks outdated as fuck
 public class ExplosionChaos {
 
 	private final static Random random = new Random();
@@ -445,26 +446,28 @@ public class ExplosionChaos {
 		bombStartStrength = (int) f;
 	}
 
+
 	public static void cluster(World world, int x, int y, int z, int count, double gravity) {
-		 cluster(world, x, y, z, count, gravity, 5);
-	}
+        double d1, d2, d3;
+        EntityRocket fragment;
 
-	public static void cluster(World world, int x, int y, int z, int count, double gravity, int size) {
+        for (int i = 0; i < count; i++) {
+            d1 = rand.nextDouble();
+            d2 = rand.nextDouble();
+            d3 = rand.nextDouble();
 
-		double mx = 0;
-		double my = 0;
-		double mz = 0;
-		EntityRocket fragment;
+            if (rand.nextInt(2) == 0) {
+                d1 *= -1;
+            }
 
-		for(int i = 0; i < count; i++) {
-			mx = rand.nextGaussian() * 0.1 * size;
-			my = rand.nextGaussian();
-			mz = rand.nextGaussian() * 0.1 * size;
+            if (rand.nextInt(2) == 0) {
+                d3 *= -1;
+            }
 
-			fragment = new EntityRocket(world, x, y, z, mx, my, mz, gravity);
-			fragment.explosionSize = size;
-			world.spawnEntity(fragment);
-		}
+            fragment = new EntityRocket(world, x, y, z, d1, d2, d3, 0.0125D);
+
+            world.spawnEntity(fragment);
+        }
 	}
 
 	public static void miniMirv(World world, double x, double y, double z) {

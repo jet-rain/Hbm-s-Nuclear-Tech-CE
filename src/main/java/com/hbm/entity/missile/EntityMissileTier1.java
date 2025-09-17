@@ -63,6 +63,7 @@ public abstract class EntityMissileTier1 extends EntityMissileBaseNT {
 		public EntityMissileCluster(World world) { super(world); }
 		public EntityMissileCluster(World world, float x, float y, float z, int a, int b) { super(world, x, y, z, a, b); this.isCluster = true; }
 		@Override public void onImpact() {
+            this.world.createExplosion(this, this.posX, this.posY, this.posZ, 5F, true);
 			ExplosionChaos.cluster(this.world, (int)this.posX, (int)this.posY, (int)this.posZ, 25, 0.25);
 		}
 		@Override public void cluster() { this.onImpact(); }

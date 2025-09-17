@@ -28,6 +28,7 @@ public class ItemMissileStandard extends ItemBase {
 		this.formFactor = form;
 		this.tier = tier;
 		this.fuel = fuel;
+        this.setMaxStackSize(1);
 		this.setFuelCap(this.fuel.defaultCap);
 	}
 
