@@ -344,12 +344,6 @@ public abstract class EntityMissileBaseNT extends EntityThrowableInterp implemen
         }
     }
 
-    @Override
-    public void setDead() {
-        super.setDead();
-        this.clearChunkLoader();
-    }
-
     public void clearChunkLoader() {
         if (!world.isRemote && loaderTicket != null) {
             for (ChunkPos chunk : loadedChunks) {
@@ -357,6 +351,14 @@ public abstract class EntityMissileBaseNT extends EntityThrowableInterp implemen
             }
         }
     }
+
+    @Override
+    public void setDead() {
+        super.setDead();
+        this.clearChunkLoader();
+    }
+
+
 
     @Override
     public String getTranslationKey() {

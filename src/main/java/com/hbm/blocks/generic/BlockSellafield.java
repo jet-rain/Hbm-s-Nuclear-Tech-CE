@@ -2,7 +2,7 @@ package com.hbm.blocks.generic;
 
 import com.google.common.collect.ImmutableMap;
 import com.hbm.blocks.ModBlocks;
-import com.hbm.handler.radiation.RadiationSystemNT;
+import com.hbm.handler.radiation.ChunkRadiationManager;
 import com.hbm.items.IDynamicModels;
 import com.hbm.lib.RefStrings;
 import com.hbm.potion.HbmPotion;
@@ -107,7 +107,7 @@ public class BlockSellafield extends BlockMeta implements IDynamicModels {
         IBlockState currentState = world.getBlockState(pos);
         int level = currentState.getValue(META);
         float netRad = rad * (level + 1);
-        RadiationSystemNT.incrementRad(world, pos, netRad, netRad);
+        ChunkRadiationManager.proxy.incrementRad(world, pos, netRad);
 
         if (rand.nextInt(level == 0 ? 25 : 15) == 0) {
             if (level > 0)
