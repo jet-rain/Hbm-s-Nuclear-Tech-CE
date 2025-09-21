@@ -61,6 +61,7 @@ dependencies {
     runtimeOnlyNonPublishable rfg.deobf("curse.maven:gregic-probe-ceu-1109784:6393352")
     runtimeOnlyNonPublishable rfg.deobf("curse.maven:codechicken-lib-1-8-242818:2779848")
     runtimeOnlyNonPublishable rfg.deobf("curse.maven:mekanism-ce-unofficial-840735:6839240")//DO NOT COMMENT! Needed for FE compatibility testing
+    //And I don't want game to take 5 min to start
 //    runtimeOnlyNonPublishable rfg.deobf("curse.maven:universal-tweaks-705000:6675988")
     runtimeOnlyNonPublishable rfg.deobf("curse.maven:configanytime-870276:5212709")
 //    runtimeOnlyNonPublishable rfg.deobf("curse.maven:fluidlogged-api-485654:3845703")
