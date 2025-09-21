@@ -12,6 +12,7 @@ import net.minecraft.item.Item;
 import org.lwjgl.opengl.GL11;
 @AutoRegister
 public class RenderElectrolyser extends TileEntitySpecialRenderer<TileEntityElectrolyser> implements IItemRendererProvider{
+
     @Override
     public void render(TileEntityElectrolyser te, double x, double y, double z, float interp, int destroyStage, float alpha) {
 
@@ -38,6 +39,12 @@ public class RenderElectrolyser extends TileEntitySpecialRenderer<TileEntityElec
         GlStateManager.popMatrix();
 
     }
+
+    public boolean isGlobalRenderer(TileEntityElectrolyser te)
+    {
+        return true;
+    }
+
 
     @Override
     public Item getItemForRenderer() {
