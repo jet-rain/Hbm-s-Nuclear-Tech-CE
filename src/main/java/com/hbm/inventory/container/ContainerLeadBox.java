@@ -1,5 +1,7 @@
 package com.hbm.inventory.container;
 
+import com.cleanroommc.bogosorter.api.ISortableContainer;
+import com.cleanroommc.bogosorter.api.ISortingContextBuilder;
 import com.hbm.items.tool.ItemLeadBox;
 import com.hbm.util.InventoryUtil;
 import net.minecraft.entity.player.EntityPlayer;
@@ -8,9 +10,12 @@ import net.minecraft.inventory.ClickType;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.items.SlotItemHandler;
 
-public class ContainerLeadBox extends Container {
+// see comments at ContainerCrateTemplate
+@Optional.Interface(iface = "com.cleanroommc.bogosorter.api.ISortableContainer", modid = "bogosorter")
+public class ContainerLeadBox extends Container implements ISortableContainer {
 
     private ItemLeadBox.InventoryLeadBox box;
     private boolean isMainHand;
@@ -85,5 +90,11 @@ public class ContainerLeadBox extends Container {
     public void onContainerClosed(EntityPlayer player) {
         super.onContainerClosed(player);
         this.box.closeInventory();
+    }
+
+    @Override
+    @Optional.Method(modid = "bogosorter")
+    public void buildSortingContext(ISortingContextBuilder builder) {
+        builder.addSlotGroup(0, box.getSlots(), 5);
     }
 }
