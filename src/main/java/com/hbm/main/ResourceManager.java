@@ -551,7 +551,7 @@ public class ResourceManager {
 	public static final IModelCustom bomb_prototype = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/Prototype.obj")).asVBO();
 	public static final IModelCustom bomb_fleija = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/Fleija.obj")).asVBO();
 	public static final IModelCustom bomb_multi = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/BombGeneric.obj")).asVBO();
-	public static final IModelCustom dud = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/BalefireCrashed.obj")).asVBO();
+
 
 	//Landmines
 	public static final IModelCustom mine_ap = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/ap_mine.obj")).asVBO();
@@ -1180,7 +1180,6 @@ public class ResourceManager {
 	public static final ResourceLocation bomb_fleija_tex = new ResourceLocation(RefStrings.MODID, "textures/models/bombs/Fleija.png");
 	public static final ResourceLocation bomb_custom_tex = new ResourceLocation(RefStrings.MODID, "textures/models/bombs/CustomNuke.png");
 	public static final ResourceLocation bomb_multi_tex = new ResourceLocation(RefStrings.MODID, "textures/models/bombs/BombGeneric.png");
-	public static final ResourceLocation dud_tex = new ResourceLocation(RefStrings.MODID, "textures/models/bombs/BalefireCrashed.png");
 
 	//Satellites
 	public static final ResourceLocation sat_base_tex = new ResourceLocation(RefStrings.MODID, "textures/models/sat/sat_base.png");
@@ -1833,7 +1832,16 @@ public class ResourceManager {
 	public static final IModelCustom railgun_rotor = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/railgun_rotor.obj")).asVBO();
 	public static final IModelCustom railgun_main = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/railgun_main.obj")).asVBO();
 
-	//Blood
+    // Dud
+    public static final IModelCustom dud_balefire = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/dud_balefire.obj")).asVBO();
+    public static final IModelCustom dud_conventional = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/dud_conventional.obj")).asVBO();
+    public static final IModelCustom dud_nuke = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/dud_nuke.obj")).asVBO();
+    public static final IModelCustom dud_salted = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/bombs/dud_salted.obj")).asVBO();
+    public static final ResourceLocation dud_balefire_tex = new ResourceLocation(RefStrings.MODID, "textures/models/bombs/dud_balefire.png");
+    public static final ResourceLocation dud_conventional_tex = new ResourceLocation(RefStrings.MODID, "textures/models/bombs/dud_conventional.png");
+    public static final ResourceLocation dud_nuke_tex = new ResourceLocation(RefStrings.MODID, "textures/models/bombs/dud_nuke.png");
+    public static final ResourceLocation dud_salted_tex = new ResourceLocation(RefStrings.MODID, "textures/models/bombs/dud_salted.png");
+    //Blood
 	public static final ResourceLocation blood0 = new ResourceLocation(RefStrings.MODID, "textures/misc/blood0.png");
 	public static final ResourceLocation blood_dec0 = new ResourceLocation(RefStrings.MODID, "textures/misc/blood_dec0.png");
 	public static final ResourceLocation blood_dec1 = new ResourceLocation(RefStrings.MODID, "textures/misc/blood_dec1.png");

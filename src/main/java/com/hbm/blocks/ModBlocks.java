@@ -604,7 +604,7 @@ public class ModBlocks {
 
 	public static final Block bomb_multi = new BombMulti(Material.IRON, "bomb_multi").setCreativeTab(MainRegistry.nukeTab).setResistance(6000.0F);
 
-	public static final Block crashed_balefire = new BlockCrashedBomb(Material.IRON, "crashed_bomb").setCreativeTab(MainRegistry.nukeTab).setBlockUnbreakable().setResistance(100.0F);
+	public static final Block crashed_bomb = new BlockCrashedBomb(Material.IRON, SoundType.METAL,"crashed_bomb").setCreativeTab(MainRegistry.nukeTab).setBlockUnbreakable().setResistance(100.0F);
 	public static final Block fireworks = new BlockFireworks(Material.IRON, "fireworks").setCreativeTab(MainRegistry.nukeTab).setResistance(5.0F);
 
 	public static final Block charge_dynamite = new BlockChargeDynamite("charge_dynamite").setCreativeTab(MainRegistry.nukeTab).setResistance(1.0F);
