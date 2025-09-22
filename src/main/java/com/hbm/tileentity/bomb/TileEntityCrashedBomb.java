@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 import com.hbm.blocks.bomb.BlockCrashedBomb.EnumDudType;
+import com.hbm.interfaces.AutoRegister;
 import com.hbm.util.ContaminationUtil;
 import com.hbm.util.EnumUtil;
 import com.hbm.util.ContaminationUtil.ContaminationType;
@@ -14,6 +15,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.AxisAlignedBB;
 
+@AutoRegister
 public class TileEntityCrashedBomb extends TileEntity {
 
 

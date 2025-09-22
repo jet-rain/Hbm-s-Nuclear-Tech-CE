@@ -15,8 +15,7 @@ import org.lwjgl.opengl.GL11;
 import java.util.Random;
 
 @AutoRegister
-public class RenderCrashedBomb extends TileEntitySpecialRenderer<TileEntityCrashedBomb>
-        implements IItemRendererProvider {
+    public class RenderCrashedBomb extends TileEntitySpecialRenderer<TileEntityCrashedBomb> implements IItemRendererProvider {
 
     public static Random rand = new Random();
 
