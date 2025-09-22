@@ -1,15 +1,22 @@
 package com.hbm.inventory.container;
 
+import com.cleanroommc.bogosorter.api.ISortableContainer;
+import com.cleanroommc.bogosorter.api.ISortingContextBuilder;
 import com.hbm.tileentity.machine.TileEntityCrateTemplate;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
-public class ContainerCrateTemplate extends Container {
+// ISortableContainer is for bogoSorter compatibility. Not needed for other crate containers because they have already done it via mixin,
+// see all classes under package com.cleanroommc.bogosorter.core.mixin.hbm
+// Ideally move these to bogosorter
+@Optional.Interface(iface = "com.cleanroommc.bogosorter.api.ISortableContainer", modid = "bogosorter")
+public class ContainerCrateTemplate extends Container implements ISortableContainer {
 
     private final TileEntityCrateTemplate diFurnace;
 
@@ -66,5 +73,11 @@ public class ContainerCrateTemplate extends Container {
     @Override
     public boolean canInteractWith(EntityPlayer player) {
         return diFurnace.isUseableByPlayer(player);
+    }
+
+    @Override
+    @Optional.Method(modid = "bogosorter")
+    public void buildSortingContext(ISortingContextBuilder builder) {
+        builder.addSlotGroup(0, diFurnace.inventory.getSlots(), 9);
     }
 }
