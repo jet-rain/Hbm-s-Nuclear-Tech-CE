@@ -35,8 +35,6 @@ import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
-import net.minecraftforge.common.property.ExtendedBlockState;
-import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -108,19 +106,33 @@ public class BlockMeta extends BlockBase implements ICustomBlockItem, IDynamicMo
         this.blockFrames = BlockBakeFrame.simpleModelArray(simpleModelTextures);
     }
 
-    @SideOnly(Side.CLIENT)
-    public void registerModel() {
-            for (int meta = 0; meta < this.META_COUNT; meta++) {
-                ModelLoader.setCustomModelResourceLocation(
-                        Item.getItemFromBlock(this),
-                        meta,
-                        new ModelResourceLocation(this.getRegistryName(), "meta=" + meta)
-                );
-            }
+    protected boolean useSpecialRenderer() {
+        return false;
     }
 
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerModel() {
+        if (useSpecialRenderer()) {
+            for (int meta = 0; meta < this.META_COUNT; meta++) {
+                ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this), meta,
+                        new ModelResourceLocation(this.getRegistryName(), "inventory"));
+            }
+            return;
+        }
+        for (int meta = 0; meta < this.META_COUNT; meta++) {
+            ModelLoader.setCustomModelResourceLocation(
+                    Item.getItemFromBlock(this),
+                    meta,
+                    new ModelResourceLocation(this.getRegistryName(), "meta=" + meta)
+            );
+        }
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public void registerSprite(TextureMap map) {
+        if (useSpecialRenderer()) return;
         if (blockFrames == null || blockFrames.length == 0) {
             MainRegistry.logger.error("No block frames defined for " + getRegistryName());
             throw new RuntimeException("No block frames defined for " + getRegistryName());
@@ -131,8 +143,29 @@ public class BlockMeta extends BlockBase implements ICustomBlockItem, IDynamicMo
         }
     }
 
+    @Override
     @SideOnly(Side.CLIENT)
     public void bakeModel(ModelBakeEvent event) {
+        if (useSpecialRenderer()) {
+            try {
+                IModel blockBaseModel = ModelLoaderRegistry.getModel(new ResourceLocation("block/cube_all"));
+                ImmutableMap<String, String> blockTextures = ImmutableMap.of("all", "hbm:blocks/block_steel");
+                IModel blockRetextured = blockBaseModel.retexture(blockTextures);
+                IBakedModel blockBaked = blockRetextured.bake(ModelRotation.X0_Y0, DefaultVertexFormats.BLOCK, ModelLoader.defaultTextureGetter());
+                ModelResourceLocation worldLocation = new ModelResourceLocation(getRegistryName(), "normal");
+                event.getModelRegistry().putObject(worldLocation, blockBaked);
+                IModel itemBaseModel = ModelLoaderRegistry.getModel(new ResourceLocation("item/generated"));
+                ImmutableMap<String, String> itemTextures = ImmutableMap.of("layer0", "hbm:blocks/" + getRegistryName().getPath());
+                IModel itemRetextured = itemBaseModel.retexture(itemTextures);
+                IBakedModel itemBaked = itemRetextured.bake(ModelRotation.X0_Y0, DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
+                ModelResourceLocation inventoryLocation = new ModelResourceLocation(getRegistryName(), "inventory");
+                event.getModelRegistry().putObject(inventoryLocation, itemBaked);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }
         for (int meta = 0; meta < META_COUNT; meta++) {
             BlockBakeFrame blockFrame = blockFrames[meta % blockFrames.length];
             try {
@@ -171,7 +204,7 @@ public class BlockMeta extends BlockBase implements ICustomBlockItem, IDynamicMo
         return Arrays.asList(new ItemStack(Item.getItemFromBlock(this), 1, meta));
     }
 
-
+    @Override
     public void registerItem() {
         ItemBlock itemBlock = new MetaBlockItem(this, separateTranslationKeys);
         itemBlock.setRegistryName(this.getRegistryName());
@@ -210,6 +243,12 @@ public class BlockMeta extends BlockBase implements ICustomBlockItem, IDynamicMo
     @Override
     @SideOnly(Side.CLIENT)
     public StateMapperBase getStateMapper(ResourceLocation loc) {
+        if (useSpecialRenderer()) return new StateMapperBase() {
+            @Override
+            protected ModelResourceLocation getModelResourceLocation(IBlockState state) {
+                return new ModelResourceLocation(loc, "normal");
+            }
+        };
         return new StateMapperBase() {
             @Override
             protected ModelResourceLocation getModelResourceLocation(IBlockState state) {
@@ -292,8 +331,11 @@ public class BlockMeta extends BlockBase implements ICustomBlockItem, IDynamicMo
         public void registerModels() {
             for (int meta = 0; meta < metaBlock.META_COUNT; meta++) {
                 MainRegistry.logger.info("Registering model for " + this.block.getRegistryName() + " meta=" + meta);
-                ModelLoader.setCustomModelResourceLocation(this, meta,
-                        new ModelResourceLocation(this.getRegistryName(), "meta=" + meta));
+                if (metaBlock.useSpecialRenderer()) {
+                    ModelLoader.setCustomModelResourceLocation(this, meta, new ModelResourceLocation(this.getRegistryName(), "inventory"));
+                } else {
+                    ModelLoader.setCustomModelResourceLocation(this, meta, new ModelResourceLocation(this.getRegistryName(), "meta=" + meta));
+                }
             }
         }
     }

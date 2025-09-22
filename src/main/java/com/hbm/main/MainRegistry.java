@@ -313,7 +313,6 @@ public class MainRegistry {
         SiegeTier.registerTiers();
         HazardRegistry.registerItems();
         WeaponModManager.init();
-        PotionRecipes.registerPotionRecipes();
 
         proxy.registerRenderInfo();
         HbmWorld.mainRegistry();

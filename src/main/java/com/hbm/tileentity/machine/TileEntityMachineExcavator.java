@@ -7,6 +7,7 @@ import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.gas.BlockGasBase;
 import com.hbm.blocks.generic.BlockBedrockOreTE.TileEntityBedrockOre;
+import com.hbm.blocks.generic.BlockDepth;
 import com.hbm.entity.item.EntityMovingItem;
 import com.hbm.interfaces.AutoRegister;
 import com.hbm.interfaces.IControlReceiver;
@@ -276,8 +277,10 @@ public class TileEntityMachineExcavator extends TileEntityMachineBase implements
 							break;
 						}
 						
-						if(shouldIgnoreBlock(bState, drillPos)) continue;
-						
+                        if(b instanceof BlockDepth) {
+                            this.enableDrill = false;
+                        }
+                        if(shouldIgnoreBlock(bState, drillPos)) continue;
 						ignoreAll = false;
 						
 						combinedHardness += bState.getBlockHardness(world, drillPos);

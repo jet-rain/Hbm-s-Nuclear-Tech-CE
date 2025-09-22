@@ -80,7 +80,7 @@ public class RenderFallout extends Render<EntityFalloutRain> {
         if (d <= entity.getScale()) {
             rendererUpdateCount++;
             long time = System.nanoTime();
-            float t = (time - lastTime) / 50000000;
+            float t = (float) (time - lastTime) / 50000000;
             if (t <= 1.0F)
                 renderRainSnow(t);
             else
@@ -216,13 +216,11 @@ public class RenderFallout extends Render<EntityFalloutRain> {
  
             if (b1 >= 0) {
                 tessellator.draw();
-                // System.out.println("Fired!");
             }
  
             GlStateManager.enableCull();
             GlStateManager.disableBlend();
             GlStateManager.alphaFunc(GL11.GL_GREATER, 0.1F);
-            // this.disableLightmap((double)partialTick);
         }
     }
  
