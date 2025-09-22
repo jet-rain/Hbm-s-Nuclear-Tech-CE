@@ -91,7 +91,7 @@ public class Dud extends WorldGenerator
 			return false;
 		}
 		
-		world.setBlockState(pos, ModBlocks.crashed_balefire.getDefaultState().withProperty(BlockHorizontal.FACING, EnumFacing.values()[rand.nextInt(4) + 2]), 3);
+		world.setBlockState(pos, ModBlocks.crashed_bomb.getDefaultState());
 		if(GeneralConfig.enableDebugMode)
 			System.out.print("[Debug] Successfully spawned dud at " + pos.getX() + " " + pos.getY() +" " + pos.getZ() + "\n");
 		return true;

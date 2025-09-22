@@ -88,7 +88,7 @@ public class ModBlocks {
     public static final Block concrete_super_broken = new BlockFallingBaked(Material.ROCK, "concrete_super_broken", "concrete_super_broken").setCreativeTab(MainRegistry.blockTab).setHardness(10.0F).setResistance(20.0F);
 
     public static final Block concrete_asbestos = new BlockOutgas(true, 20, true, "concrete_asbestos").setCreativeTab(MainRegistry.blockTab).setHardness(15.0F).setResistance(1500.0F);
-	public static final Block concrete_pillar = new BlockRotatablePillar(Material.ROCK, "concrete_pillar").setCreativeTab(MainRegistry.blockTab).setHardness(15.0F).setResistance(180.0F);
+	public static final Block concrete_pillar = new BlockRadResistantPillar(Material.ROCK, "concrete_pillar").setCreativeTab(MainRegistry.blockTab).setHardness(15.0F).setResistance(180.0F);
 
 	public static final Block ducrete_smooth = new BlockRadResistant(Material.ROCK, "ducrete_smooth").setCreativeTab(MainRegistry.blockTab).setHardness(20.0F).setResistance(500.0F);
 	public static final Block ducrete = new BlockRadResistant(Material.ROCK, "ducrete").setCreativeTab(MainRegistry.blockTab).setHardness(20.0F).setResistance(500.0F);
@@ -604,7 +604,7 @@ public class ModBlocks {
 
 	public static final Block bomb_multi = new BombMulti(Material.IRON, "bomb_multi").setCreativeTab(MainRegistry.nukeTab).setResistance(6000.0F);
 
-	public static final Block crashed_balefire = new BlockCrashedBomb(Material.IRON, "crashed_bomb").setCreativeTab(MainRegistry.nukeTab).setBlockUnbreakable().setResistance(100.0F);
+	public static final Block crashed_bomb = new BlockCrashedBomb(Material.IRON, SoundType.METAL,"crashed_bomb").setCreativeTab(MainRegistry.nukeTab).setBlockUnbreakable().setResistance(100.0F);
 	public static final Block fireworks = new BlockFireworks(Material.IRON, "fireworks").setCreativeTab(MainRegistry.nukeTab).setResistance(5.0F);
 
 	public static final Block charge_dynamite = new BlockChargeDynamite("charge_dynamite").setCreativeTab(MainRegistry.nukeTab).setResistance(1.0F);
