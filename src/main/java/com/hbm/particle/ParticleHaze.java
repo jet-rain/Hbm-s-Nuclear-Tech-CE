@@ -70,7 +70,6 @@ public class ParticleHaze extends Particle {
 		GlStateManager.color(1.0F, 1.0F, 1.0F, alpha * 0.1F);
 		GlStateManager.disableLighting();
 		GlStateManager.enableBlend();
-        GlStateManager.enableAlpha();
 		GlStateManager.enableRescaleNormal();
 		GlStateManager.alphaFunc(GL11.GL_GREATER, 0);
 		GlStateManager.depthMask(false);

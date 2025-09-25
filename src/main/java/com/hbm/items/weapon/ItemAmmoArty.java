@@ -286,9 +286,10 @@ public class ItemAmmoArty extends Item {
                     }
                 }
                 for(int i = 0; i < 5; i++) {
-                    NBTTagCompound haze = new NBTTagCompound();
-                    haze.setString("type", "haze");
-                    PacketThreading.createAllAroundThreadedPacket(new AuxParticlePacketNT(haze, mop.hitVec.x + shell.world.rand.nextGaussian() * 10, mop.hitVec.y, mop.hitVec.z + shell.world.rand.nextGaussian() * 10), new NetworkRegistry.TargetPoint(shell.dimension, shell.posX, shell.posY, shell.posZ, 150));
+                    //FIXME:Some alpha stuff, inspite of it being enabled it insists on fucking breaking
+//                    NBTTagCompound haze = new NBTTagCompound();
+//                    haze.setString("type", "haze");
+//                    PacketThreading.createAllAroundThreadedPacket(new AuxParticlePacketNT(haze, mop.hitVec.x + shell.world.rand.nextGaussian() * 10, mop.hitVec.y, mop.hitVec.z + shell.world.rand.nextGaussian() * 10), new NetworkRegistry.TargetPoint(shell.dimension, shell.posX, shell.posY, shell.posZ, 150));
                 }
                 NBTTagCompound data = new NBTTagCompound();
                 data.setString("type", "rbmkmush");

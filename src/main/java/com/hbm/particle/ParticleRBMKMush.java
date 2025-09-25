@@ -43,6 +43,7 @@ public class ParticleRBMKMush extends Particle {
 	
 	@Override
 	public void renderParticle(BufferBuilder buffer, Entity entityIn, float partialTicks, float rotationX, float rotationZ, float rotationYZ, float rotationXY, float rotationXZ){
+        GlStateManager.enableAlpha();
 		Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
 		NTMRenderHelper.resetParticleInterpPos(entityIn, partialTicks);
 
@@ -57,7 +58,6 @@ public class ParticleRBMKMush extends Particle {
 		GlStateManager.glNormal3f(0, 1, 0);
 		OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
 		GlStateManager.disableLighting();
-        GlStateManager.enableAlpha();
 		GlStateManager.enableBlend();
 		GlStateManager.depthMask(false);
 		RenderHelper.disableStandardItemLighting();
