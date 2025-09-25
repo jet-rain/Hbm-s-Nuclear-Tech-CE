@@ -53,7 +53,7 @@ public class ArmorTrenchmaster extends ArmorFSB {
     public void addInformation(ItemStack stack, World world, List<String> list, ITooltipFlag flagIn) {
         super.addInformation(stack, world, list, flagIn);
 
-        //list.add(EnumChatFormatting.RED + "  " + I18nUtil.resolveKey("armor.fasterReload"));
+        //list.add(TextFormatting.RED + "  " + I18nUtil.resolveKey("armor.fasterReload"));
         list.add("§c" + "  " + I18nUtil.resolveKey("armor.moreAmmo"));
     }
 
