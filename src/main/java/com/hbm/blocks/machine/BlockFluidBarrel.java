@@ -1,8 +1,12 @@
 package com.hbm.blocks.machine;
 
+import com.hbm.blocks.IPersistentInfoProvider;
+import com.hbm.blocks.ITooltipProvider;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BaseBarrel;
 import com.hbm.inventory.fluid.FluidType;
+import com.hbm.inventory.fluid.Fluids;
+import com.hbm.inventory.fluid.tank.FluidTankNTM;
 import com.hbm.items.machine.IItemFluidIdentifier;
 import com.hbm.lib.InventoryHelper;
 import com.hbm.main.MainRegistry;
@@ -17,6 +21,7 @@ import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
@@ -29,6 +34,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fml.common.network.internal.FMLNetworkHandler;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,7 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class BlockFluidBarrel extends BlockContainer {
+public class BlockFluidBarrel extends BlockContainer implements ITooltipProvider, IPersistentInfoProvider {
 
 	private static final ThreadLocal<List<ItemStack>> HARVEST_DROPS = new ThreadLocal<>();
 	private int capacity;
@@ -60,8 +66,16 @@ public class BlockFluidBarrel extends BlockContainer {
 	public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face) {
 		return BlockFaceShape.UNDEFINED;
 	}
-	
-	@Override
+
+    @Override
+    public void addInformation(ItemStack stack, NBTTagCompound persistentTag, EntityPlayer player, List list, boolean ext) {
+        FluidTankNTM tank = new FluidTankNTM(Fluids.NONE, 0);
+        tank.readFromNBT(persistentTag, "tank");
+        list.add(TextFormatting.YELLOW + "" + tank.getFill() + "/" + tank.getMaxFill() + "mB " + tank.getTankType().getLocalizedName());
+    }
+
+
+    @Override
 	public void addInformation(ItemStack stack, World player, List<String> list, ITooltipFlag advanced) {
 		if(this == ModBlocks.barrel_plastic) {
 			list.add(TextFormatting.AQUA + I18nUtil.resolveKey("desc.capacity", "12,000"));
