@@ -37,6 +37,10 @@ public class TileEntityGeysir extends TileEntity implements ITickable {
 			timer--;
 			
 			IBlockState state = world.getBlockState(pos);
+			if (!(state.getBlock() instanceof BlockGeysir) || !state.getPropertyKeys().contains(BlockGeysir.ACTIVE)) {
+				this.invalidate();
+				return;
+			}
 			boolean active = state.getValue(BlockGeysir.ACTIVE);
 			
 			if(timer <= 0) {
