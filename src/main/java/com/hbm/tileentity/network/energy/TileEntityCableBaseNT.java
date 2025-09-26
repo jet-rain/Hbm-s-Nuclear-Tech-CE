@@ -11,6 +11,7 @@ import com.hbm.interfaces.AutoRegister;
 import com.hbm.lib.DirPos;
 import com.hbm.lib.ForgeDirection;
 import com.hbm.tileentity.TileEntityLoadedBase;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
@@ -50,6 +51,9 @@ public class TileEntityCableBaseNT extends TileEntityLoadedBase implements IEner
 	private void handleFETransfers(PowerNetMK2 net) {
 		for (DirPos con : this.node.connections) {
 			BlockPos neighborPos = con.getPos();
+			if (!world.isBlockLoaded(neighborPos)) continue;
+			IBlockState state = world.getBlockState(neighborPos);
+			if (!state.getBlock().hasTileEntity(state)) continue;
 			ForgeDirection dir = con.getDir();
 
 			if (dir == ForgeDirection.UNKNOWN) {
