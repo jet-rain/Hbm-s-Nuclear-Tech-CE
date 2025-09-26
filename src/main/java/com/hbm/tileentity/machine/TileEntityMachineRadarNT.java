@@ -101,7 +101,7 @@ public class TileEntityMachineRadarNT extends TileEntityMachineBase implements I
 	public byte[] map = new byte[40_000];
 	public boolean clearFlag = false;
 
-	public List<RadarEntry> entries = new ArrayList<>();
+	public volatile List<RadarEntry> entries = new ArrayList<>();
 
 	@Override
 	public String getConfigName() {
@@ -289,12 +289,13 @@ public class TileEntityMachineRadarNT extends TileEntityMachineBase implements I
 		this.showMap = buf.readBoolean();
 		this.jammed = buf.readBoolean();
 		int count = buf.readInt();
-		this.entries.clear();
+		List<RadarEntry> entries = new ArrayList<>();
 		for(int i = 0; i < count; i++) {
 			RadarEntry entry = new RadarEntry();
 			entry.fromBytes(buf);
-			this.entries.add(entry);
+			entries.add(entry);
 		}
+		this.entries = entries;
 		if(buf.readBoolean()) { // clear flag
 			this.map = new byte[40_000];
 		} else {
