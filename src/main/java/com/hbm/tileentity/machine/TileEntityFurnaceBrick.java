@@ -31,7 +31,7 @@ import java.util.HashMap;
 public class TileEntityFurnaceBrick extends TileEntityMachineBase implements IGUIProvider, ITickable {
 
     private static final int[] slotsTop = new int[] { 0 };
-    private static final int[] slotsBottom = new int[] { 2, 1, 3 };
+    private static final int[] slotsBottom = new int[] { 2, 3 }; // intentionally modified from 1.7 to avoid fuels being sucked out
     private static final int[] slotsSides = new int[] {1};
 
     public static HashMap<Item, Integer> burnSpeed = new HashMap();

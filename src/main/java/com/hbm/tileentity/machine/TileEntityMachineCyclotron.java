@@ -32,6 +32,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -82,19 +83,21 @@ public class TileEntityMachineCyclotron extends TileEntityMachineBase implements
 	public String getName() {
 		return "container.cyclotron";
 	}
-	// TODO need to replace this somehow
+
 	@Override
-	public int[] getAccessibleSlotsFromSide(EnumFacing e) {
-		int side = e.getIndex();
-		if(side == 2) // North
-			return new int[] { 6, 7, 8 }; // C
-		if(side == 3) // South
-			return new int[] { 9, 10, 11 }; // Fluids
-		if(side == 4) // West
-			return new int[] { 0, 1, 2 }; // A
-		if(side == 5) // East
-			return new int[] { 3, 4, 5 }; // B
-		return new int[] { };
+	public int[] getAccessibleSlotsFromSide(EnumFacing side, BlockPos accessor) {
+		int x = accessor.getX(), z = accessor.getZ();
+		int xCoord = pos.getX(), zCoord = pos.getZ();
+		for(int i = 2; i < 6; i++) {
+			ForgeDirection dir = ForgeDirection.getOrientation(i);
+			ForgeDirection rot = dir.getRotation(ForgeDirection.UP);
+
+			if(x == xCoord + dir.offsetX * 2 + rot.offsetX && z == zCoord + dir.offsetZ * 2 + rot.offsetZ) return new int[] {0, 3, 6, 7, 8};
+			if(x == xCoord + dir.offsetX * 2 && z == zCoord + dir.offsetZ * 2) return new int[] {1, 4, 6, 7, 8};
+			if(x == xCoord + dir.offsetX * 2 - rot.offsetX && z == zCoord + dir.offsetZ * 2 - rot.offsetZ) return new int[] {2, 5, 6, 7, 8};
+		}
+
+		return new int[] {6, 7, 8};
 	}
 	
 	@Override

@@ -418,7 +418,7 @@ public class OreDictManager {
     public static void registerOres() {
 
         //VANILLA - Fixed
-        COAL.coal(2F).gem(Items.COAL).dustSmall(powder_coal_tiny).dust(powder_coal);
+        COAL.gem(Items.COAL).dustSmall(powder_coal_tiny).dust(powder_coal);
         IRON.crystal(crystal_iron).plate(plate_iron).dust(powder_iron).ore(ore_gneiss_iron);
         GOLD.crystal(crystal_gold).plate(plate_gold).dust(powder_gold).ore(ore_gneiss_gold);
         LAPIS.crystal(crystal_lapis).dust(powder_lapis);

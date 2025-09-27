@@ -178,7 +178,7 @@ public class TileEntityFurnaceIron extends TileEntityMachineBase implements IGUI
 	public boolean isItemValidForSlot(int i, ItemStack itemStack) {
 		
 		if(i == 0)
-			return FurnaceRecipes.instance().getSmeltingResult(itemStack) != null;
+			return !FurnaceRecipes.instance().getSmeltingResult(itemStack).isEmpty();
 		
 		if(i < 3)
 			return burnModule.getBurnTime(itemStack) > 0;

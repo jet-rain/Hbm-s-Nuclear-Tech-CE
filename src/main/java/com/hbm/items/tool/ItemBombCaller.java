@@ -1,6 +1,7 @@
 package com.hbm.items.tool;
 
 import com.hbm.entity.logic.EntityBomber;
+import com.hbm.items.ItemBakedBase;
 import com.hbm.items.ModItems;
 import com.hbm.lib.HBMSoundHandler;
 import com.hbm.lib.Library;
@@ -26,18 +27,17 @@ import net.minecraft.world.World;
 import java.util.List;
 import java.util.Map;
 
-public class ItemBombCaller extends Item {
+public class ItemBombCaller extends ItemBakedBase {
 
-	public ItemBombCaller(String s) {
-		this.setRegistryName(s);
-		this.setTranslationKey(s);
-		this.setCreativeTab(MainRegistry.consumableTab);
-		this.setHasSubtypes(true);
 
-		ModItems.ALL_ITEMS.add(this);
-	}
 
-	@Override
+    public ItemBombCaller(String s) {
+        super(s, s);
+        this.setCreativeTab(MainRegistry.consumableTab);
+        this.setHasSubtypes(true);
+    }
+
+    @Override
 	public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
 		return enchantment != Enchantments.UNBREAKING && enchantment != Enchantments.MENDING && super.canApplyAtEnchantingTable(stack, enchantment);
 	}

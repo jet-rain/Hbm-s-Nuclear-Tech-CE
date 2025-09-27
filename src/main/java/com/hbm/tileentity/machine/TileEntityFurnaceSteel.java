@@ -229,7 +229,7 @@ public class TileEntityFurnaceSteel extends TileEntityMachineBase implements IGU
 		}
         ItemStack itemStack = FurnaceRecipes.instance().getSmeltingResult(inventory.getStackInSlot(index));
         
-		if(itemStack == null || itemStack.isEmpty())
+		if(itemStack.isEmpty())
 		{
 			return false;
 		}
@@ -260,7 +260,7 @@ public class TileEntityFurnaceSteel extends TileEntityMachineBase implements IGU
 	public boolean isItemValidForSlot(int i, ItemStack itemStack) {
 		
 		if(i < 3)
-			return FurnaceRecipes.instance().getSmeltingResult(itemStack) != null;
+			return !FurnaceRecipes.instance().getSmeltingResult(itemStack).isEmpty();
 		
 		return false;
 	}
