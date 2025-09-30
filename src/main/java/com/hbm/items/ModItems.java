@@ -5,6 +5,8 @@ import com.hbm.blocks.ICustomBlockItem;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BlockModDoor;
 import com.hbm.blocks.machine.ItemSelfcharger;
+import com.hbm.blocks.network.FluidDuctBox;
+import com.hbm.blocks.network.FluidDuctStandard;
 import com.hbm.config.BombConfig;
 import com.hbm.handler.ability.IToolAreaAbility;
 import com.hbm.handler.ability.IToolHarvestAbility;
@@ -151,8 +153,8 @@ public class ModItems {
         ItemSimpleConsumable.giveSoundAndDecrement(stack, user, HBMSoundHandler.radawayUse, new ItemStack(ModItems.iv_empty));
         ItemSimpleConsumable.addPotionEffect(user, HbmPotion.radaway, 200, 24);
     }).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item gun_kit_1 = new ItemConsumable("gun_kit_1").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item gun_kit_2 = new ItemConsumable("gun_kit_2").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item gun_kit_1 = new ItemRepairKit("gun_kit_1", 10).setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item gun_kit_2 = new ItemRepairKit("gun_kit_2",100).setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item radaway_strong = new ItemSimpleConsumable("radaway_strong").setUseActionServer((stack, user) -> {
         ItemSimpleConsumable.giveSoundAndDecrement(stack, user, HBMSoundHandler.radawayUse, new ItemStack(ModItems.iv_empty));
         ItemSimpleConsumable.addPotionEffect(user, HbmPotion.radaway, 100, 99);
@@ -396,7 +398,7 @@ public class ModItems {
     public static final Item canister_napalm = new ItemCustomLore("canister_napalm").setCreativeTab(MainRegistry.controlTab);
     public static final Item gas_empty = new ItemBase("gas_empty").setCreativeTab(MainRegistry.controlTab);
     public static final Item gas_full = new ItemGasCanister("gas_full").setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.gas_empty);
-    public static final Item cell = new ItemCell("cell").setMaxStackSize(64).setCreativeTab(MainRegistry.controlTab);
+    public static final Item cell = new ItemCell("cell").setCreativeTab(MainRegistry.controlTab);
 
     // Th3_Sl1ze: welp, technically balefire is not a fluid, so I guess I have to make it a separate item?..
     public static final Item cell_balefire = new ItemBakedBase("cell_balefire").setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.cell);
@@ -1982,6 +1984,7 @@ public class ModItems {
     public static final Item turret_biometry = new ItemTurretBiometry("turret_biometry").setFull3D().setMaxStackSize(1).setCreativeTab(MainRegistry.weaponTab);
     public static final Item designator_arty_range = new ItemDesignatorArtyRange("designator_arty_range").setCreativeTab(MainRegistry.missileTab);
     public static final Item book_guide = new ItemGuideBook("book_guide_book").setCreativeTab(MainRegistry.consumableTab);
+    public static final Item book_lore = new ItemBookLore("book_lore").setCreativeTab(null);
     public static final Item rune_blank = new ItemCustomLore("rune_blank").setCreativeTab(MainRegistry.partsTab).setMaxStackSize(1);
     public static final Item rune_isa = new ItemCustomLore("rune_isa").setCreativeTab(MainRegistry.partsTab).setMaxStackSize(1);
     public static final Item rune_dagaz = new ItemCustomLore("rune_dagaz").setCreativeTab(MainRegistry.partsTab).setMaxStackSize(1);
@@ -2867,6 +2870,8 @@ public class ModItems {
             if (block instanceof ICustomBlockItem) {
                 ((ICustomBlockItem) block).registerItem();
             } else if (block instanceof BlockModDoor) {
+            } else if (block instanceof FluidDuctBox || block instanceof FluidDuctStandard) {
+                ForgeRegistries.ITEMS.register(new ItemBlock(block).setRegistryName(block.getRegistryName()).setHasSubtypes(true));
             } else {
                 ForgeRegistries.ITEMS.register(new ItemBlock(block).setRegistryName(block.getRegistryName()));
             }

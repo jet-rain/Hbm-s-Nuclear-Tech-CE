@@ -2,6 +2,7 @@ package com.hbm.blocks.machine;
 
 import com.hbm.render.block.BlockBakeFrame;
 import com.hbm.tileentity.machine.TileEntityCharger;
+import com.hbm.world.gen.nbt.INBTBlockTransformable;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyDirection;
 import net.minecraft.block.state.BlockStateContainer;
@@ -17,7 +18,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-public class Charger extends BlockContainerBakeable {
+public class Charger extends BlockContainerBakeable implements INBTBlockTransformable {
 
     public static final PropertyDirection FACING = PropertyDirection.create("facing", EnumFacing.Plane.HORIZONTAL);
 
@@ -55,11 +56,12 @@ public class Charger extends BlockContainerBakeable {
     }
 
     @Override
-    public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state, EntityLivingBase player, ItemStack stack) {
-        int i = MathHelper.floor((double)(player.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
-        EnumFacing facing = EnumFacing.byHorizontalIndex(i);
-        world.setBlockState(pos, state.withProperty(FACING, facing), 2);
+    public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing facing,
+                                            float hitX, float hitY, float hitZ,
+                                            int meta, EntityLivingBase placer) {
+        return this.getDefaultState().withProperty(FACING, facing);
     }
+
 
     @Override
     public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess world, BlockPos pos) {
@@ -93,5 +95,10 @@ public class Charger extends BlockContainerBakeable {
     @Override
     protected BlockStateContainer createBlockState() {
         return new BlockStateContainer(this, FACING);
+    }
+
+    @Override
+    public int transformMeta(int meta, int coordBaseMode) {
+        return INBTBlockTransformable.transformMetaDeco(meta, coordBaseMode);
     }
 }
