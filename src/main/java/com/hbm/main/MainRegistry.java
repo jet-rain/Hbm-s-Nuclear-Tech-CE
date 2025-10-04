@@ -35,6 +35,7 @@ import com.hbm.interfaces.Spaghetti;
 import com.hbm.inventory.BedrockOreRegistry;
 import com.hbm.inventory.FluidContainerRegistry;
 import com.hbm.inventory.OreDictManager;
+import com.hbm.inventory.RecipesCommon;
 import com.hbm.inventory.control_panel.ControlEvent;
 import com.hbm.inventory.control_panel.ControlRegistry;
 import com.hbm.inventory.fluid.Fluids;
@@ -59,6 +60,7 @@ import com.hbm.tileentity.machine.rbmk.RBMKDials;
 import com.hbm.util.ChunkUtil;
 import com.hbm.util.CrashHelper;
 import com.hbm.util.DamageResistanceHandler;
+import com.hbm.util.MobUtil;
 import com.hbm.world.ModBiomes;
 import com.hbm.world.PlanetGen;
 import com.hbm.world.feature.OreCave;
@@ -434,6 +436,8 @@ public class MainRegistry {
 
         ItemPoolConfigJSON.initialize();
 
+        MobUtil.intializeMobPools();
+
         //Drillgon200: expand the max entity radius for the hunter chopper
         if (World.MAX_ENTITY_RADIUS < 5)
             World.MAX_ENTITY_RADIUS = 5;
@@ -470,6 +474,7 @@ public class MainRegistry {
     public void serverStopping(FMLServerStoppingEvent evt) {
         RadiationSystemNT.onServerStopping(evt);
         ChunkUtil.onServerStopping();
+        RecipesCommon.onServerStopping();
     }
 
     @EventHandler
