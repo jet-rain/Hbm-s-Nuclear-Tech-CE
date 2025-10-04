@@ -1,5 +1,6 @@
 package com.hbm.tileentity;
 
+import com.hbm.api.tile.IWorldRenameable;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.capability.NTMEnergyCapabilityWrapper;
 import com.hbm.capability.NTMFluidHandlerWrapper;
@@ -32,12 +33,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 @Spaghetti("Not spaghetti in itself, but for the love of god please use this base class for all machines")
-public abstract class TileEntityMachineBase extends TileEntityLoadedBase {
+public abstract class TileEntityMachineBase extends TileEntityLoadedBase implements IWorldRenameable {
 
     public ItemStackHandler inventory;
     private boolean enablefluidWrapper = false;
     private boolean enableEnergyWrapper = false;
     private String customName;
+    private boolean destroyedByCreativePlayer = false;
 
     @Deprecated
     public TileEntityMachineBase(int scount) {
@@ -92,16 +94,19 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase {
         this.world.markChunkDirty(this.pos, this);
     }
 
-    public String getInventoryName() {
-        return this.hasCustomInventoryName() ? this.customName : getName();
+    @Override
+    public String getName() {
+        return this.hasCustomName() ? this.customName : getDefaultName();
     }
 
-    public abstract String getName();
+    public abstract String getDefaultName();
 
-    public boolean hasCustomInventoryName() {
+    @Override
+    public boolean hasCustomName() {
         return this.customName != null && !this.customName.isEmpty();
     }
 
+    @Override
     public void setCustomName(String name) {
         this.customName = name;
     }
@@ -270,6 +275,14 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase {
                 block2.neighborChanged(world.getBlockState(offsetPos), world, offsetPos, this.getBlockType(), this.getPos());
             }
         }
+    }
+
+    public void setDestroyedByCreativePlayer() {
+        destroyedByCreativePlayer = true;
+    }
+
+    public boolean isDestroyedByCreativePlayer() {
+        return destroyedByCreativePlayer;
     }
 
     // TODO: Consume air from connected tanks if available
