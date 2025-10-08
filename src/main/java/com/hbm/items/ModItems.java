@@ -309,10 +309,6 @@ public class ModItems {
     public static final Item battery_sc_gold = new ItemSelfcharger(2500, "battery_sc_gold").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     public static final Item battery_sc_lead = new ItemSelfcharger(5000, "battery_sc_lead").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     public static final Item battery_sc_americium = new ItemSelfcharger(10000, "battery_sc_americium").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item battery_sc_balefire = new ItemSelfcharger(25000, "battery_sc_balefire").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item battery_sc_schrabidium = new ItemSelfcharger(50000, "battery_sc_schrabidium").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item battery_sc_yharonite = new ItemSelfcharger(500000, "battery_sc_yharonite").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item battery_sc_electronium = new ItemSelfcharger(50000000000L, "battery_sc_electronium").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     public static final Item battery_creative = new ItemSelfcharger(Long.MAX_VALUE, "battery_creative").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     //Energy items
     public static final Item battery_generic = new ItemBattery(5000, 100, 100, "battery_generic").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
@@ -2859,6 +2855,12 @@ public class ModItems {
             .addAbility(IToolAreaAbility.HAMMER_FLAT, 3)
             .addAbility(IToolAreaAbility.RECURSION, 5);
 
+    public static final Item bucket_mud = new ItemModBucket("bucket_mud", () -> ModBlocks.mud_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
+    public static final Item bucket_acid = new ItemModBucket("bucket_acid", () -> ModBlocks.acid_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
+    public static final Item bucket_toxic = new ItemModBucket("bucket_toxic", () -> ModBlocks.toxic_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
+    public static final Item bucket_schrabidic_acid = new ItemModBucket("bucket_schrabidic_acid", () -> ModBlocks.schrabidic_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
+    public static final Item bucket_sulfuric_acid = new ItemModBucket("bucket_sulfuric_acid", () -> ModBlocks.sulfuric_acid_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
+
     public static void preInit() {
         GunFactory.init();
         excludeNEI.add(item_secret);
@@ -2883,5 +2885,4 @@ public class ModItems {
 
     public static void postInit() {
     }
-
 }
