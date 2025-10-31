@@ -1,0 +1,8 @@
+{
+	"parent": "block/cube_bottom_top",
+	"textures": {
+		"top": "hbm:blocks/waste_earth_bop_daisy_top",
+		"bottom": "minecraft:blocks/dirt",
+		"side": "hbm:blocks/waste_earth_bop_daisy"
+	}
+}
