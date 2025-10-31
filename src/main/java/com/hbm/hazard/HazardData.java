@@ -1,5 +1,6 @@
 package com.hbm.hazard;
 
+import com.hbm.config.RadiationConfig;
 import com.hbm.hazard.type.HazardTypeBase;
 
 import java.util.ArrayList;
@@ -23,14 +24,15 @@ public class HazardData {
 	List<HazardEntry> entries = new ArrayList();
 	
 	public HazardData addEntry(final HazardTypeBase hazard) {
-		return this.addEntry(hazard, 1F, false);
+        return this.addEntry(hazard, 1D, false);
 	}
-	
-	public HazardData addEntry(final HazardTypeBase hazard, final float level) {
+
+    public HazardData addEntry(final HazardTypeBase hazard, final double level) {
+		if(hazard == HazardRegistry.CONTAMINATING && !RadiationConfig.enableContaminationOnGround) return this;
 		return this.addEntry(hazard, level, false);
 	}
-	
-	public HazardData addEntry(final HazardTypeBase hazard, final float level, final boolean override) {
+
+    public HazardData addEntry(final HazardTypeBase hazard, final double level, final boolean override) {
 		this.entries.add(new HazardEntry(hazard, level));
 		this.doesOverride = override;
 		return this;

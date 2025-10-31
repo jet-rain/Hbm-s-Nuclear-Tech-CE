@@ -30,7 +30,6 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -53,7 +52,8 @@ public class MachineFluidTank extends BlockDummyable implements IPersistentInfoP
 	@Override
 	public TileEntity createNewTileEntity(World world, int meta) {
 		if(meta >= 12) return new TileEntityMachineFluidTank();
-		if(meta >= 6) return new TileEntityProxyCombo(false, false, true);
+        // mlbv: added inventory support for https://github.com/MisterNorwood/Hbm-s-Nuclear-Tech-CE/issues/891
+        if (meta >= 6) return new TileEntityProxyCombo(true, false, true);
 		return null;
 	}
 
@@ -143,11 +143,6 @@ public class MachineFluidTank extends BlockDummyable implements IPersistentInfoP
     }
 
     @Override
-    public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world, BlockPos pos, EntityPlayer player) {
-        return IPersistentNBT.getPickBlock(world, pos, state);
-    }
-
-    @Override
     public void dropBlockAsItemWithChance(World worldIn, BlockPos pos, IBlockState state, float chance, int fortune) {
     }
 
@@ -162,10 +157,9 @@ public class MachineFluidTank extends BlockDummyable implements IPersistentInfoP
 		int[] posC = this.findCore(world, pos.getX(), pos.getY(), pos.getZ());
 		if(posC == null) return;
 		TileEntity core = world.getTileEntity(new BlockPos(posC[0], posC[1], posC[2]));
-		if(!(core instanceof TileEntityMachineFluidTank)) return;
+		if(!(core instanceof TileEntityMachineFluidTank tank)) return;
 
-		TileEntityMachineFluidTank tank = (TileEntityMachineFluidTank) core;
-		if(tank.lastExplosion == explosion) return;
+        if(tank.lastExplosion == explosion) return;
 		tank.lastExplosion = explosion;
 
 		if(!tank.hasExploded) {
@@ -180,6 +174,7 @@ public class MachineFluidTank extends BlockDummyable implements IPersistentInfoP
 				for(EntityPlayer p : players) AdvancementManager.grantAchievement(p, AdvancementManager.achInferno);
 			}
 		} else {
+            tank.shouldDrop = false;
 			world.setBlockToAir(new BlockPos(posC[0], posC[1], posC[2]));
 		}
 	}

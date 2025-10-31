@@ -19,6 +19,7 @@ public class WasteMycelium extends WasteEarth {
 
     public WasteMycelium(Material materialIn, SoundType type, boolean tick, String s) {
         super(materialIn, type, tick, s);
+
     }
 
     @Override

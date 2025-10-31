@@ -31,6 +31,7 @@ import com.hbm.items.IDynamicModels;
 import com.hbm.items.IModelRegister;
 import com.hbm.items.ModItems;
 import com.hbm.items.RBMKItemRenderers;
+import com.hbm.items.armor.ArmorNo9;
 import com.hbm.items.armor.ItemArmorMod;
 import com.hbm.items.armor.JetpackBase;
 import com.hbm.items.gear.ArmorFSB;
@@ -112,6 +113,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityItemStackRenderer;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -123,6 +125,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.MovementInput;
 import net.minecraft.util.ResourceLocation;
@@ -268,27 +271,10 @@ public class ModEventHandlerClient {
         FluidType[] order = Fluids.getInNiceOrder();
         for (i = 0; i < order.length; i++) {
             if (!order[i].hasNoID()) {
-                ModelLoader.setCustomModelResourceLocation(ModItems.fluid_identifier, order[i].getID(),
-                        ItemForgeFluidIdentifier.identifierModel);
-                if (order[i].getContainer(Fluids.CD_Canister.class) != null) {
-//                    ModelLoader.setCustomModelResourceLocation(ModItems.canister_generic, order[i].getID(),
-//                            FluidCanisterRender.INSTANCE.setModelLocation(ItemCanister.getStackFromFluid(order[i])));
-                }
-
                 ModelLoader.setCustomModelResourceLocation(ModItems.fluid_duct, order[i].getID(), ItemFFFluidDuct.ductLoc);
                 if (order[i].getContainer(Fluids.CD_Gastank.class) != null) {
                     ModelLoader.setCustomModelResourceLocation(ModItems.gas_full, order[i].getID(), ItemGasCanister.gasCansiterFullModel);
                 }
-                ModelLoader.setCustomModelResourceLocation(ModItems.fluid_tank_lead_full, order[i].getID(),
-                        ItemFluidTank.fluidTankLeadFullModel);
-                ModelLoader.setCustomModelResourceLocation(ModItems.fluid_tank_full, order[i].getID(),
-                        ItemFluidTank.fluidTankModel);
-                ModelLoader.setCustomModelResourceLocation(ModItems.fluid_barrel_full, order[i].getID(),
-                        ItemFluidTank.fluidBarrelModel);
-                ModelLoader.setCustomModelResourceLocation(ModItems.disperser_canister, order[i].getID(),
-                        ItemDisperser.disperserModel);
-                ModelLoader.setCustomModelResourceLocation(ModItems.glyphid_gland, order[i].getID(),
-                        ItemDisperser.glyphidGlandModel);
             }
         }
         ModelLoader.setCustomModelResourceLocation(ModItems.canister_empty, 0, ItemCanister.fluidCanisterModel);
@@ -539,7 +525,6 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         swapModels(ModItems.detonator_laser, reg);
         swapModels(ModItems.boltgun, reg);
 
-        swapModels(ModItems.fluid_identifier, reg);
         swapModels(ModItems.fluid_barrel_full, reg);
         swapModels(ModItems.fluid_tank_full, reg);
         swapModels(ModItems.fluid_tank_lead_full, reg);
@@ -556,9 +541,17 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
             swapModels(item, reg);
         }
 
-        for (Object renderer : TileEntityRendererDispatcher.instance.renderers.values()) {
+        for (TileEntitySpecialRenderer<? extends TileEntity> renderer : TileEntityRendererDispatcher.instance.renderers.values()) {
             if (renderer instanceof IItemRendererProvider prov) {
                 for (Item item : prov.getItemsForRenderer()) {
+                    swapModels(item, reg);
+                }
+            }
+        }
+
+        for (Item renderer : Item.REGISTRY) {
+            if (renderer instanceof IItemRendererProvider provider) {
+                for (Item item : provider.getItemsForRenderer()) {
                     swapModels(item, reg);
                 }
             }
@@ -597,7 +590,6 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.fluid_tank_full);
         evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.fluid_tank_lead_full);
         evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.fluid_barrel_full);
-        evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.fluid_identifier);
         evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.disperser_canister);
         evt.getItemColors().registerItemColorHandler(fluidMetaHandler, ModItems.glyphid_gland);
         evt.getItemColors().registerItemColorHandler((stack, tintIndex) -> {
@@ -624,6 +616,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         ItemAutogen.registerColorHandlers(evt);
         IDynamicModels.registerItemColorHandlers(evt);
         ItemChemicalDye.registerColorHandlers(evt);
+        ItemKitCustom.registerColorHandlers(evt);
     }
 
     @SubscribeEvent
@@ -960,6 +953,8 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
 
     @SubscribeEvent
     public void clientTick(ClientTickEvent e) {
+        Minecraft mc = Minecraft.getMinecraft();
+        ArmorNo9.updateWorldHook(mc.world);
         if (e.phase == Phase.END) {
             if (!firstPersonAuxParticles.isEmpty()) {
                 Iterator<ParticleFirstPerson> i = firstPersonAuxParticles.iterator();
@@ -1605,16 +1600,16 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
             if (!(ArmorFSB.hasFSBArmorHelmet(player) && ((ArmorFSB) player.inventory.armorInventory.get(3).getItem()).customGeiger)) {
                 if (Library.hasInventoryItem(player.inventory, ModItems.geiger_counter) || hasBauble(player, ModItems.geiger_counter)) {
 
-                    float rads = (float) Library.getEntRadCap(player).getRads();
+                    double rads = Library.getEntRadCap(player).getRads();
 
-                    RenderScreenOverlay.renderRadCounter(event.getResolution(), rads, Minecraft.getMinecraft().ingameGUI);
+                    RenderScreenOverlay.renderRadCounter(event.getResolution(), (float) rads, Minecraft.getMinecraft().ingameGUI);
                 }
             }
             if (Library.hasInventoryItem(player.inventory, ModItems.digamma_diagnostic) || hasBauble(player, ModItems.digamma_diagnostic)) {
 
-                float digamma = (float) Library.getEntRadCap(player).getDigamma();
+                double digamma = Library.getEntRadCap(player).getDigamma();
 
-                RenderScreenOverlay.renderDigCounter(event.getResolution(), digamma, Minecraft.getMinecraft().ingameGUI);
+                RenderScreenOverlay.renderDigCounter(event.getResolution(), (float) digamma, Minecraft.getMinecraft().ingameGUI);
             }
             if (JetpackHandler.hasJetpack(player)) {
                 JetpackHandler.renderHUD(player, event.getResolution());

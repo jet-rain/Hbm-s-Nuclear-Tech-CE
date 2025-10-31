@@ -5,6 +5,7 @@ import com.hbm.animloader.AnimationWrapper.EndType;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.bomb.DigammaMatter;
+import com.hbm.blocks.fluid.FluidFogHandler;
 import com.hbm.blocks.generic.BMPowerBox;
 import com.hbm.blocks.generic.BlockModDoor;
 import com.hbm.blocks.generic.TrappedBrick;
@@ -13,13 +14,13 @@ import com.hbm.blocks.machine.rbmk.RBMKDebrisRadiating;
 import com.hbm.config.GeneralConfig;
 import com.hbm.entity.grenade.*;
 import com.hbm.entity.particle.*;
+import com.hbm.entity.projectile.EntityAcidBomb;
 import com.hbm.entity.projectile.EntityDischarge;
 import com.hbm.handler.*;
 import com.hbm.handler.HbmKeybinds.EnumKeybind;
 import com.hbm.items.IAnimatedItem;
 import com.hbm.items.ModItems;
 import com.hbm.items.RBMKItemRenderers;
-import com.hbm.items.machine.ItemFluidIDMulti;
 import com.hbm.items.weapon.sedna.factory.GunFactoryClient;
 import com.hbm.lib.HBMSoundHandler;
 import com.hbm.lib.RecoilHandler;
@@ -87,17 +88,20 @@ import net.minecraft.client.renderer.entity.RenderSnowball;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.tileentity.TileEntityItemStackRenderer;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult.Type;
@@ -165,6 +169,7 @@ public class ClientProxy extends ServerProxy {
 
     @Override
     public void init(FMLInitializationEvent evt) {
+        FluidFogHandler.init();
         // All previous color handler registrations here have been moved to ModEventHandlerClient#itemColorsEvent
         // and ModEventHandlerClient#blockColorsEvent
     }
@@ -243,6 +248,9 @@ public class ClientProxy extends ServerProxy {
         registerGrenadeRenderer(EntityGrenadeIFHopwire.class, ModItems.grenade_if_hopwire);
         registerGrenadeRenderer(EntityGrenadeIFNull.class, ModItems.grenade_if_null);
         registerGrenadeRenderer(EntityGrenadeDynamite.class, ModItems.stick_dynamite);
+        registerGrenadeRenderer(EntityAcidBomb.class, Items.SLIME_BALL);
+        registerGrenadeRenderer(EntityGrenadeBouncyGeneric.class, ModItems.stick_dynamite_fishing);
+        registerGrenadeRenderer(EntityGrenadeImpactGeneric.class, ModItems.grenade_kyiv);
         registerMetaSensitiveGrenade(EntityDisperserCanister.class, ModItems.disperser_canister);
         registerMetaSensitiveGrenade(EntityDisperserCanister.class, ModItems.glyphid_gland);
 
@@ -355,6 +363,7 @@ public class ClientProxy extends ServerProxy {
         registerItemRenderer(ModItems.missile_endo, new ItemRenderMissileGeneric(RenderMissileType.TYPE_THERMAL), reg);
         registerItemRenderer(ModItems.missile_exo, new ItemRenderMissileGeneric(RenderMissileType.TYPE_THERMAL), reg);
         registerItemRenderer(ModItems.missile_doomsday, new ItemRenderMissileGeneric(RenderMissileType.TYPE_DOOMSDAY), reg);
+        registerItemRenderer(ModItems.missile_doomsday_rusted, new ItemRenderMissileGeneric(RenderMissileType.TYPE_DOOMSDAY), reg);
         registerItemRenderer(ModItems.missile_carrier, new ItemRenderMissileGeneric(RenderMissileType.TYPE_CARRIER), reg);
     }
 
@@ -690,6 +699,25 @@ public class ClientProxy extends ServerProxy {
                             vec = vec.rotateYaw(360F / count);
                         }
                     }
+                    case "foamSplash" -> {
+                        double strength = data.getDouble("range");
+
+                        Vec3d vec = new Vec3d(strength, 0, 0);
+
+                        for(int i = 0; i < count; i++) {
+
+                            vec = vec.rotateYaw((float) Math.toRadians(rand.nextFloat() * 360F));
+                            // TODO
+                            /*ParticleFoam fx = new ParticleFoam(man, world, x + vec.xCoord, y, z + vec.zCoord);
+                            fx.maxAge = 50;
+                            fx.motionY = 0;
+                            fx.motionX = 0;
+                            fx.motionZ = 0;
+                            Minecraft.getMinecraft().effectRenderer.addEffect(fx);
+
+                            vec.rotateAroundY(360 / count);*/
+                        }
+                    }
                     default -> throw new IllegalStateException("Unexpected value: " + mode);
                 }
             }
@@ -775,6 +803,36 @@ public class ClientProxy extends ServerProxy {
                     }
                     default -> throw new IllegalStateException("Unexpected value: " + mode);
                 }
+            }
+            case "muke" -> {
+                ParticleMukeWave wave = new ParticleMukeWave(world, x, y, z);
+                Minecraft.getMinecraft().effectRenderer.addEffect(wave);
+
+                for(double d = 0.0D; d <= 1.6D; d += 0.1) {
+                    ParticleMukeCloud cloud = new ParticleMukeCloud(world, x, y, z, rand.nextGaussian() * 0.05, d + rand.nextGaussian() * 0.02, rand.nextGaussian() * 0.05);
+                    Minecraft.getMinecraft().effectRenderer.addEffect(cloud);
+                }
+                for(int i = 0; i < 50; i++) {
+                    ParticleMukeCloud cloud = new ParticleMukeCloud(world, x, y + 0.5, z, rand.nextGaussian() * 0.5, rand.nextInt(5) == 0 ? 0.02 : 0, rand.nextGaussian() * 0.5);
+                    Minecraft.getMinecraft().effectRenderer.addEffect(cloud);
+                }
+                for(int i = 0; i < 15; i++) {
+                    double ix = rand.nextGaussian() * 0.2;
+                    double iz = rand.nextGaussian() * 0.2;
+
+                    if(ix * ix + iz * iz > 0.75) {
+                        ix *= 0.5;
+                        iz *= 0.5;
+                    }
+
+                    double iy = 1.6 + (rand.nextDouble() * 2 - 1) * (0.75 - (ix * ix + iz * iz)) * 0.5;
+
+                    ParticleMukeCloud cloud = new ParticleMukeCloud(world, x, y, z, ix, iy + rand.nextGaussian() * 0.02, iz);
+                    Minecraft.getMinecraft().effectRenderer.addEffect(cloud);
+                }
+                player.hurtTime = 15;
+                player.maxHurtTime = 15;
+                player.attackedAtYaw = 0F;
             }
             case "ufo" -> {
                 if (GeneralConfig.instancedParticles) {
@@ -1644,6 +1702,7 @@ public class ClientProxy extends ServerProxy {
             case CRANE_LOAD -> HbmKeybinds.craneLoadKey.isKeyDown();
             case ABILITY_CYCLE -> HbmKeybinds.abilityCycle.isKeyDown();
             case ABILITY_ALT -> HbmKeybinds.abilityAlt.isKeyDown();
+            case TOOL_ALT -> HbmKeybinds.copyToolAlt.isKeyDown();
             case GUN_PRIMARY -> Mouse.isButtonDown(0);
             case GUN_SECONDARY -> HbmKeybinds.gunSecondaryKey.isKeyDown();
             case GUN_TERTIARY -> HbmKeybinds.gunTertiaryKey.isKeyDown();
@@ -1712,10 +1771,19 @@ public class ClientProxy extends ServerProxy {
             entry.getKey().setTileEntityItemStackRenderer(entry.getValue());
         }
 
-        for (Object renderer : TileEntityRendererDispatcher.instance.renderers.values()) {
+        for (TileEntitySpecialRenderer<? extends TileEntity> renderer : TileEntityRendererDispatcher.instance.renderers.values()) {
             if (renderer instanceof IItemRendererProvider prov) {
                 for (Item item : prov.getItemsForRenderer()) {
                     item.setTileEntityItemStackRenderer(prov.getRenderer(item));
+                }
+            }
+        }
+
+        // same crap but for items directly because why invent a new solution when this shit works just fine
+        for (Item renderer : Item.REGISTRY) {
+            if (renderer instanceof IItemRendererProvider provider) {
+                for (Item item : provider.getItemsForRenderer()) {
+                    item.setTileEntityItemStackRenderer(provider.getRenderer(item));
                 }
             }
         }
@@ -1781,7 +1849,6 @@ public class ClientProxy extends ServerProxy {
 
         ParticleRenderLayer.register();
         BobmazonOfferFactory.init();
-        ItemFluidIDMulti.registerItemColors();
     }
 
     @Override

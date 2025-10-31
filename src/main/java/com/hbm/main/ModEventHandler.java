@@ -1,8 +1,10 @@
 package com.hbm.main;
 
 import com.google.common.collect.Multimap;
+import com.hbm.blocks.BlockEnums;
 import com.hbm.blocks.IStepTickReceiver;
 import com.hbm.blocks.ModBlocks;
+import com.hbm.blocks.generic.BlockOutgas;
 import com.hbm.capability.HbmCapability;
 import com.hbm.capability.HbmCapability.IHBMData;
 import com.hbm.capability.HbmLivingCapability;
@@ -24,17 +26,15 @@ import com.hbm.entity.projectile.EntityBurningFOEQ;
 import com.hbm.events.CheckLadderEvent;
 import com.hbm.events.InventoryChangedEvent;
 import com.hbm.handler.*;
-import com.hbm.integration.groovy.HbmGroovyPropertyContainer;
 import com.hbm.handler.pollution.PollutionHandler;
 import com.hbm.handler.threading.PacketThreading;
 import com.hbm.hazard.HazardSystem;
+import com.hbm.integration.groovy.HbmGroovyPropertyContainer;
 import com.hbm.interfaces.IBomb;
 import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.IEquipReceiver;
 import com.hbm.items.ModItems;
-import com.hbm.items.armor.ItemArmorMod;
-import com.hbm.items.armor.ItemModRevive;
-import com.hbm.items.armor.ItemModShackles;
+import com.hbm.items.armor.*;
 import com.hbm.items.food.ItemConserve;
 import com.hbm.items.gear.ArmorFSB;
 import com.hbm.items.special.ItemHot;
@@ -62,6 +62,7 @@ import com.hbm.uninos.UniNodespace;
 import com.hbm.util.*;
 import com.hbm.util.ArmorRegistry.HazardClass;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
@@ -94,6 +95,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.storage.loot.*;
 import net.minecraft.world.storage.loot.conditions.LootCondition;
 import net.minecraft.world.storage.loot.conditions.RandomChanceWithLooting;
@@ -317,10 +319,10 @@ public class ModEventHandler {
                         entity.setItemStackToSlot(EntityEquipmentSlot.LEGS, new ItemStack(ModItems.ajr_legs, 1));
                         entity.setItemStackToSlot(EntityEquipmentSlot.FEET, new ItemStack(ModItems.ajr_boots, 1));
                     }*/ if (randomArmorNumber < 2 << 8) { //1:256
-                        entity.setItemStackToSlot(EntityEquipmentSlot.HEAD, new ItemStack(ModItems.t45_helmet, 1));
-                        entity.setItemStackToSlot(EntityEquipmentSlot.CHEST, new ItemStack(ModItems.t45_plate, 1));
-                        entity.setItemStackToSlot(EntityEquipmentSlot.LEGS, new ItemStack(ModItems.t45_legs, 1));
-                        entity.setItemStackToSlot(EntityEquipmentSlot.FEET, new ItemStack(ModItems.t45_boots, 1));
+                        entity.setItemStackToSlot(EntityEquipmentSlot.HEAD, new ItemStack(ModItems.t51_helmet, 1));
+                        entity.setItemStackToSlot(EntityEquipmentSlot.CHEST, new ItemStack(ModItems.t51_plate, 1));
+                        entity.setItemStackToSlot(EntityEquipmentSlot.LEGS, new ItemStack(ModItems.t51_legs, 1));
+                        entity.setItemStackToSlot(EntityEquipmentSlot.FEET, new ItemStack(ModItems.t51_boots, 1));
                     } else  if (randomArmorNumber < 2 << 10) { //1:64
                         entity.setItemStackToSlot(EntityEquipmentSlot.HEAD, new ItemStack(ModItems.security_helmet, 1, world.rand.nextInt(ModItems.titanium_helmet.getMaxDamage(ItemStack.EMPTY))));
                         entity.setItemStackToSlot(EntityEquipmentSlot.CHEST, new ItemStack(ModItems.security_plate, 1, world.rand.nextInt(ModItems.titanium_plate.getMaxDamage(ItemStack.EMPTY))));
@@ -684,50 +686,67 @@ public class ModEventHandler {
     // Drillgon200: So 1.12.2's going to ignore ISpecialArmor if the damage is
     // unblockable, huh?
     @SubscribeEvent
-    public void onEntityHurt(LivingHurtEvent e) {
-        EntityLivingBase ent = e.getEntityLiving();
-        if (e.getEntityLiving() instanceof EntityPlayer player) {
+    public void onEntityHurt(LivingHurtEvent event) {
+        EntityLivingBase e = event.getEntityLiving();
+        if (event.getEntityLiving() instanceof EntityPlayer player) {
             IHBMData props = HbmCapability.getData(player);
             if(props.getShield() > 0) {
-                float reduce = Math.min(props.getShield(), e.getAmount());
+                float reduce = Math.min(props.getShield(), event.getAmount());
                 props.setShield(props.getShield() - reduce);
-                e.setAmount(e.getAmount() - reduce);
+                event.setAmount(event.getAmount() - reduce);
             }
             props.setLastDamage(player.ticksExisted);
-            if (ArmorUtil.checkArmor(e.getEntityLiving(), ModItems.euphemium_helmet, ModItems.euphemium_plate, ModItems.euphemium_legs, ModItems.euphemium_boots)) {
-                e.setCanceled(true);
+            if (ArmorUtil.checkArmor(event.getEntityLiving(), ModItems.euphemium_helmet, ModItems.euphemium_plate, ModItems.euphemium_legs, ModItems.euphemium_boots)) {
+                event.setCanceled(true);
             }
         }
-        ArmorFSB.handleHurt(e);
 
+        if(HbmLivingProps.getContagion(event.getEntityLiving()) > 0 && event.getAmount() < 100)
+            event.setAmount(event.getAmount() * 2F);
+
+        // mlbv: these below does not exist on 1.7, schedule for removal?
         /// V1 ///
-        if (EntityDamageUtil.wasAttackedByV1(e.getSource())) {
-            EntityPlayer attacker = (EntityPlayer) e.getSource().getImmediateSource();
+        if (EntityDamageUtil.wasAttackedByV1(event.getSource())) {
+            EntityPlayer attacker = (EntityPlayer) event.getSource().getImmediateSource();
 
             NBTTagCompound data = new NBTTagCompound();
             data.setString("type", "vanillaburst");
-            data.setInteger("count", (int) Math.min(ent.getMaxHealth() / 2F, 250));
+            data.setInteger("count", (int) Math.min(e.getMaxHealth() / 2F, 250));
             data.setDouble("motion", 0.1D);
             data.setString("mode", "blockdust");
             data.setInteger("block", Block.getIdFromBlock(Blocks.REDSTONE_BLOCK));
-            PacketThreading.createAllAroundThreadedPacket(new AuxParticlePacketNT(data, ent.posX, ent.posY + ent.height * 0.5, ent.posZ), new TargetPoint(ent.dimension, ent.posX, ent.posY, ent.posZ, 50));
+            PacketThreading.createAllAroundThreadedPacket(new AuxParticlePacketNT(data, e.posX, e.posY + e.height * 0.5, e.posZ), new TargetPoint(e.dimension, e.posX, e.posY, e.posZ, 50));
 
-            if (attacker.getDistanceSq(ent) < 25) {
-                attacker.heal(e.getAmount() * 0.5F);
+            if (attacker.getDistanceSq(e) < 25) {
+                attacker.heal(event.getAmount() * 0.5F);
             }
         }
 
+        /// ARMOR MODS ///
         for (int i = 2; i < 6; i++) {
 
-            ItemStack armor = ent.getItemStackFromSlot(EntityEquipmentSlot.values()[i]);
+            ItemStack armor = e.getItemStackFromSlot(EntityEquipmentSlot.values()[i]);
 
             if (!armor.isEmpty() && ArmorModHandler.hasMods(armor)) {
 
                 for (ItemStack mod : ArmorModHandler.pryMods(armor)) {
 
                     if (mod != null && mod.getItem() instanceof ItemArmorMod) {
-                        ((ItemArmorMod) mod.getItem()).modDamage(e, armor);
+                        ((ItemArmorMod) mod.getItem()).modDamage(event, armor);
                     }
+                }
+            }
+        }
+
+        if(e instanceof EntityPlayer player) {
+
+            /// FSB ARMOR ///
+            if(player.getItemStackFromSlot(EntityEquipmentSlot.CHEST).getItem() instanceof ArmorFSB fsb)
+                fsb.handleHurt(event);
+
+            for(ItemStack stack : player.inventory.armorInventory) {
+                if(stack != null && stack.getItem() instanceof IDamageHandler) {
+                    ((IDamageHandler)stack.getItem()).handleDamage(event, stack);
                 }
             }
         }
@@ -737,14 +756,23 @@ public class ModEventHandler {
     public void onEntityAttacked(LivingAttackEvent event) {
         EntityLivingBase e = event.getEntityLiving();
 
-        if (e instanceof EntityPlayer player && ArmorUtil.checkArmor(e, ModItems.euphemium_helmet, ModItems.euphemium_plate, ModItems.euphemium_legs, ModItems.euphemium_boots)) {
-            if (event.getSource() != ModDamageSource.digamma) {
-                HbmCapability.plink(player, SoundEvents.ENTITY_ITEM_BREAK, 5.0F, 1.0F + e.getRNG().nextFloat() * 0.5F);
-                event.setCanceled(true);
+        if (e instanceof EntityPlayer player) {
+            if (ArmorUtil.checkArmor(e, ModItems.euphemium_helmet, ModItems.euphemium_plate, ModItems.euphemium_legs, ModItems.euphemium_boots)) {
+                if (event.getSource() != ModDamageSource.digamma) {
+                    HbmCapability.plink(player, SoundEvents.ENTITY_ITEM_BREAK, 5.0F, 1.0F + e.getRNG().nextFloat() * 0.5F);
+                    event.setCanceled(true);
+                }
+            } else {
+                if (player.getItemStackFromSlot(EntityEquipmentSlot.CHEST).getItem() instanceof ArmorFSB fsb){
+                    fsb.handleAttack(event);
+                }
+                for(ItemStack stack : player.inventory.armorInventory) {
+                    if(stack != null && stack.getItem() instanceof IAttackHandler) {
+                        ((IAttackHandler)stack.getItem()).handleAttack(event, stack);
+                    }
+                }
             }
         }
-
-        ArmorFSB.handleAttack(event);
     }
 
     @SubscribeEvent
@@ -754,7 +782,8 @@ public class ModEventHandler {
 
     @SubscribeEvent
     public void onEntityFall(LivingFallEvent event) {
-        ArmorFSB.handleFall(event.getEntityLiving());
+        if (event.getEntityLiving() instanceof EntityPlayerMP playerMP)
+            ArmorFSB.handleFall(playerMP);
     }
 
     // only for the ballistic gauntlet! contains dangerous conditional returns!
@@ -808,6 +837,10 @@ public class ModEventHandler {
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         EntityPlayer player = event.player;
+
+        if (player.getItemStackFromSlot(EntityEquipmentSlot.CHEST).getItem() instanceof ArmorFSB fsb) {
+            fsb.handleTick(event);
+        }
 
         if (player.posY > 300 && player.posY < 1000) {
             Vec3 vec = Vec3.createVectorHelper(3 * rand.nextDouble(), 0, 0);
@@ -1046,7 +1079,7 @@ public class ModEventHandler {
                     }
 
                     //Shackles
-                    if (revive.getItem() instanceof ItemModShackles && HbmLivingProps.getRadiation(event.getEntityLiving()) < 1000F) {
+                    if (revive.getItem() instanceof ItemModShackles && HbmLivingProps.getRadiation(event.getEntityLiving()) < 1000D) {
 
                         revive.setItemDamage(revive.getItemDamage() + 1);
 
@@ -1091,7 +1124,7 @@ public class ModEventHandler {
 
                 ItemStack stack = player.inventory.getStackInSlot(i);
 
-                if (stack != null && stack.getItem() == ModItems.detonator_deadman) {
+                if (stack.getItem() == ModItems.detonator_deadman) {
 
                     if (stack.getTagCompound() != null) {
 
@@ -1118,7 +1151,6 @@ public class ModEventHandler {
     public void onLivingUpdate(LivingUpdateEvent event) {
         if (event.isCancelable() && event.isCanceled())
             return;
-        ArmorFSB.handleTick(event.getEntityLiving());
         NonNullList<ItemStack> handInventory = event.getEntityLiving().handInventory;
         NonNullList<ItemStack> armorArray =event.getEntityLiving().armorArray;
 
@@ -1180,54 +1212,136 @@ public class ModEventHandler {
     public void onEntityJump(LivingJumpEvent event) {
         if (event.isCancelable() && event.isCanceled())
             return;
-        ArmorFSB.handleJump(event.getEntityLiving());
+        if (event.getEntityLiving() instanceof EntityPlayer player){
+            if (player.getItemStackFromSlot(EntityEquipmentSlot.CHEST).getItem() instanceof ArmorFSB)
+                ArmorFSB.handleJump(player);
+        }
     }
 
     @SubscribeEvent
     public void blockBreak(BlockEvent.BreakEvent event) {
+        // Early validation checks
+        if (event.isCancelable() && event.isCanceled()) {
+            return;
+        }
+
         EntityPlayer player = event.getPlayer();
-        if (event.isCancelable() && event.isCanceled())
+        if (!(player instanceof EntityPlayerMP playerMP)) {
             return;
-        if (!(player instanceof EntityPlayerMP playerMP))
-            return;
+        }
 
         Block block = event.getState().getBlock();
+        World world = event.getWorld();
+        BlockPos pos = event.getPos();
 
-        if(block == ModBlocks.stone_gneiss && !AdvancementManager.hasAdvancement(playerMP, AdvancementManager.achStratum)) {
-            AdvancementManager.grantAchievement(playerMP, AdvancementManager.achStratum);
-            event.setExpToDrop(500);
+        // Handle different block types
+        handleGneissBreak(block, playerMP, event);
+        handleCoalBreak(block, world, pos);
+        handleAsbestosBreak(block, event);
+        handleLeadPollution(player, world, pos);
+    }
+
+    // Constants
+    private static final int GNEISS_XP_REWARD = 500;
+    private static final int COAL_GAS_SPAWN_CHANCE = 2;
+    private static final int LEAD_EFFECT_DURATION = 100;
+    private static final float LEAD_LOW_THRESHOLD = 5.0f;
+    private static final float LEAD_MID_THRESHOLD = 10.0f;
+    private static final float LEAD_HIGH_THRESHOLD = 25.0f;
+
+    private void handleGneissBreak(Block block, EntityPlayerMP player, BlockEvent.BreakEvent event) {
+        if (block == ModBlocks.stone_gneiss &&
+                !AdvancementManager.hasAdvancement(player, AdvancementManager.achStratum)) {
+            AdvancementManager.grantAchievement(player, AdvancementManager.achStratum);
+            event.setExpToDrop(GNEISS_XP_REWARD);
+        }
+    }
+
+    private void handleCoalBreak(Block block, World world, BlockPos pos) {
+        if (!GeneralConfig.enableCoalGas || (block != Blocks.COAL_ORE && block != Blocks.COAL_BLOCK && block != ModBlocks.ore_lignite)) {
+            return;
         }
 
-        if (block == Blocks.COAL_ORE || block == Blocks.COAL_BLOCK || block == ModBlocks.ore_lignite) {
-
-            for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
-
-                int x = event.getPos().getX() + dir.offsetX;
-                int y = event.getPos().getY() + dir.offsetY;
-                int z = event.getPos().getZ() + dir.offsetZ;
-                BlockPos bPos = new BlockPos(x, y, z);
-
-                if (event.getWorld().rand.nextInt(2) == 0 && event.getWorld().getBlockState(bPos).getBlock() == Blocks.AIR)
-                    event.getWorld().setBlockState(bPos, ModBlocks.gas_coal.getDefaultState());
-            }
-        }
-
-        if (RadiationConfig.enablePollution && RadiationConfig.enableLeadFromBlocks) {
-            if (!ArmorRegistry.hasProtection(player, EntityEquipmentSlot.HEAD, HazardClass.PARTICLE_FINE)) {
-
-                float metal = PollutionHandler.getPollution(player.world, event.getPos(), PollutionHandler.PollutionType.HEAVYMETAL);
-
-                if (metal < 5) return;
-
-                if (metal < 10) {
-                    player.addPotionEffect(new PotionEffect(HbmPotion.lead, 100, 0));
-                } else if (metal < 25) {
-                    player.addPotionEffect(new PotionEffect(HbmPotion.lead, 100, 1));
-                } else {
-                    player.addPotionEffect(new PotionEffect(HbmPotion.lead, 100, 2));
+        // Spawn coal gas in adjacent air blocks
+        for (EnumFacing dir : EnumFacing.values()) {
+            if (world.rand.nextInt(COAL_GAS_SPAWN_CHANCE) == 0) {
+                BlockPos adjacentPos = pos.offset(dir);
+                if (isAirBlock(world, adjacentPos)) {
+                    world.setBlockState(adjacentPos, ModBlocks.gas_coal.getDefaultState(), 3);
                 }
             }
         }
+    }
+
+    private void handleAsbestosBreak(Block block, BlockEvent.BreakEvent event) {
+        if (shouldSpawnAsbestosGas(block, event.getState())) {
+            scheduleAsbestosGasSpawn(event.getWorld(), event.getPos());
+        }
+    }
+
+    private boolean shouldSpawnAsbestosGas(Block block, IBlockState state) {
+        if(!GeneralConfig.enableAsbestosDust){
+            return false;
+        }
+        else if (block == ModBlocks.stone_resource) {
+            int meta = block.getMetaFromState(state);
+            return meta == BlockEnums.EnumStoneType.ASBESTOS.ordinal();
+        }
+        else if (block == ModBlocks.basalt_ore) {
+            int meta = block.getMetaFromState(state);
+            return meta == BlockEnums.EnumBasaltOreType.ASBESTOS.ordinal();
+        }
+
+        return false;
+    }
+
+    private void scheduleAsbestosGasSpawn(World world, BlockPos pos) {
+        if (world.isRemote) {
+            return;
+        }
+
+        ((WorldServer) world).addScheduledTask(() -> {
+            if (isAirBlock(world, pos)) {
+                world.setBlockState(pos, ModBlocks.gas_asbestos.getDefaultState(), 3);
+            }
+        });
+    }
+
+    private void handleLeadPollution(EntityPlayer player, World world, BlockPos pos) {
+        if (!RadiationConfig.enablePollution || !RadiationConfig.enableLeadFromBlocks) {
+            return;
+        }
+
+        if (ArmorRegistry.hasProtection(player, EntityEquipmentSlot.HEAD, HazardClass.PARTICLE_FINE)) {
+            return;
+        }
+
+        float metalPollution = PollutionHandler.getPollution(
+                world, pos, PollutionHandler.PollutionType.HEAVYMETAL
+        );
+
+        applyLeadEffect(player, metalPollution);
+    }
+
+    private void applyLeadEffect(EntityPlayer player, float metalPollution) {
+        if (metalPollution < LEAD_LOW_THRESHOLD) {
+            return;
+        }
+
+        int amplifier;
+        if (metalPollution < LEAD_MID_THRESHOLD) {
+            amplifier = 0;
+        } else if (metalPollution < LEAD_HIGH_THRESHOLD) {
+            amplifier = 1;
+        } else {
+            amplifier = 2;
+        }
+
+        player.addPotionEffect(new PotionEffect(HbmPotion.lead, LEAD_EFFECT_DURATION, amplifier));
+    }
+
+    private boolean isAirBlock(World world, BlockPos pos) {
+        return world.getBlockState(pos).getBlock() == Blocks.AIR;
     }
 
     @SubscribeEvent

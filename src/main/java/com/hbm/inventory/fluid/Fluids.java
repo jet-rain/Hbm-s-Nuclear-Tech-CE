@@ -348,11 +348,11 @@ public class Fluids {
         UF6 = new FluidType("UF6", 0xD1CEBE, 4, 0, 2, EnumSymbol.RADIATION).addTraits(new FT_VentRadiation(0.2F), new FT_Corrosive(15), GASEOUS);
         PUF6 = new FluidType("PUF6", 0x4C4C4C, 4, 0, 4, EnumSymbol.RADIATION).addTraits(new FT_VentRadiation(0.1F), new FT_Corrosive(15), GASEOUS);
         SAS3 = new FluidType("SAS3", 0x4ffffc, 5, 0, 4, EnumSymbol.RADIATION).addTraits(new FT_VentRadiation(1F), new FT_Corrosive(30), LIQUID);
-        SCHRABIDIC = new FluidType("SCHRABIDIC", 0x006B6B, 5, 0, 5, EnumSymbol.ACID).addTraits(new FT_VentRadiation(1F), new FT_Corrosive(75), new FT_Poison(true, 2), LIQUID);
+        SCHRABIDIC = new FluidType("SCHRABIDIC", 0x006B6B, 5, 0, 5, EnumSymbol.ACID).addTraits(new FT_VentRadiation(1F), new FT_Corrosive(75), new FT_Poison(true, 2), LIQUID).setFFNameOverride("schrabidic_fluid");
         AMAT = new FluidType("AMAT", 0x010101, 5, 0, 5, EnumSymbol.ANTIMATTER).addTraits(ANTI, GASEOUS);
         ASCHRAB = new FluidType("ASCHRAB", 0xb50000, 5, 0, 5, EnumSymbol.ANTIMATTER).addTraits(ANTI, GASEOUS);
         PEROXIDE = new FluidType("PEROXIDE", 0xfff7aa, 3, 0, 3, EnumSymbol.OXIDIZER).addTraits(new FT_Corrosive(40), LIQUID);
-        WATZ = new FluidType("WATZ", 0x86653E, 4, 0, 3, EnumSymbol.ACID).addTraits(new FT_Corrosive(60), new FT_VentRadiation(0.1F), LIQUID, VISCOUS, new FT_Polluting().release(PollutionHandler.PollutionType.POISON, POISON_EXTREME));
+        WATZ = new FluidType("WATZ", 0x86653E, 4, 0, 3, EnumSymbol.ACID).addTraits(new FT_Corrosive(60), new FT_VentRadiation(0.1F), LIQUID, VISCOUS, new FT_Polluting().release(PollutionHandler.PollutionType.POISON, POISON_EXTREME)).setFFNameOverride("mud_fluid");
         CRYOGEL = new FluidType("CRYOGEL", 0x32ffff, 2, 0, 0, EnumSymbol.CROYGENIC).setTemp(-170).addTraits(LIQUID, VISCOUS);
         HYDROGEN = new FluidType("HYDROGEN", 0x4286f4, 3, 4, 0, EnumSymbol.CROYGENIC).setTemp(-260).addContainers(new CD_Gastank(0x4286f4, 0xffffff)).addTraits(new FT_Flammable(5_000), new FT_Combustible(FuelGrade.HIGH, 10_000), LIQUID, EVAP, new FT_Rocket(380, 700_000));
         OXYGEN = new FluidType("OXYGEN", 0x98bdf9, 3, 0, 0, EnumSymbol.CROYGENIC).setTemp(-100).addContainers(new CD_Gastank(0x98bdf9, 0xffffff)).addTraits(LIQUID, EVAP);
@@ -391,7 +391,7 @@ public class Fluids {
         PETROIL_LEADED = new FluidType("PETROIL_LEADED", 0x44413d, 1, 3, 0, EnumSymbol.NONE).addContainers(new CD_Canister(0x2331F6)).addTraits(new FT_Flammable(125_000), new FT_Combustible(FuelGrade.MEDIUM, 450_000), LIQUID, P_FUEL_LEADED);
         GASOLINE_LEADED = new FluidType("GASOLINE_LEADED", 0x445772, 1, 2, 0, EnumSymbol.NONE).addContainers(new CD_Canister(0x2F775A)).addTraits(new FT_Flammable(400_000), new FT_Combustible(FuelGrade.HIGH, 1_500_000), LIQUID, P_FUEL_LEADED);
         COALGAS_LEADED = new FluidType("COALGAS_LEADED", 0x445772, 1, 2, 0, EnumSymbol.NONE).addContainers(new CD_Canister(0x1E155F)).addTraits(new FT_Flammable(75_000), new FT_Combustible(FuelGrade.MEDIUM, 250_000), LIQUID, P_FUEL_LEADED);
-        SULFURIC_ACID = new FluidType("SULFURIC_ACID", 0xB0AA64, 3, 0, 2, EnumSymbol.ACID).addTraits(new FT_Corrosive(50), LIQUID);
+        SULFURIC_ACID = new FluidType("SULFURIC_ACID", 0xB0AA64, 3, 0, 2, EnumSymbol.ACID).setFFNameOverride("sulfuric_acid").addTraits(new FT_Corrosive(50), LIQUID);
         COOLANT_HOT = new FluidType("COOLANT_HOT", 0x99525E, 1, 0, 0, EnumSymbol.NONE).setTemp(600).addTraits(LIQUID);
         MUG = new FluidType("MUG", 0x4B2D28, 0, 0, 0, EnumSymbol.NONE).addTraits(DELICIOUS, LIQUID);
         MUG_HOT = new FluidType("MUG_HOT", 0x6B2A20, 0, 0, 0, EnumSymbol.NONE).setTemp(500).addTraits(DELICIOUS, LIQUID);
@@ -1265,7 +1265,7 @@ public class Fluids {
             }
 
             FluidRegistry.registerFluid(compatFluid);
-            // EOS: I don't know why there is a bucket registration for each liquid.
+            FluidRegistry.addBucketForFluid(compatFluid);
         }
     }
 

@@ -2,7 +2,8 @@
   "parent": "hbm:achwatz",
   "display": {
     "icon": {
-      "item": "forge:bucketfilled"
+      "item": "forge:bucketfilled",
+      "nbt": "{FluidName:\"mud_fluid\",Amount:1000}"
     },
     "title": {
       "translate": "achievement.watzBoom"

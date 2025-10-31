@@ -26,6 +26,10 @@ public final class HBMSoundHandler {
     public static SoundEvent b92Reload;
     public static SoundEvent techBleep;
     public static SoundEvent techBoop;
+    public static SoundEvent hornNearSingle;
+    public static SoundEvent hornNearDual;
+    public static SoundEvent hornFarSingle;
+    public static SoundEvent hornFarDual;
     public static SoundEvent reactorLoop;
     public static SoundEvent reactorStart;
     public static SoundEvent reactorStop;
@@ -135,8 +139,6 @@ public final class HBMSoundHandler {
     public static SoundEvent geiger4;
     public static SoundEvent geiger5;
     public static SoundEvent geiger6;
-    public static SoundEvent geiger7;
-    public static SoundEvent geiger8;
     public static SoundEvent voices1;
     public static SoundEvent voices2;
     public static SoundEvent voices3;
@@ -417,6 +419,10 @@ public final class HBMSoundHandler {
         b92Reload = register("weapon.b92Reload");
         techBleep = register("item.techBleep");
         techBoop = register("item.techBoop");
+        hornNearSingle = register("block.hornNearSingle");
+        hornNearDual = register("block.hornNearDual");
+        hornFarSingle = register("block.hornFarSingle");
+        hornFarDual = register("block.hornFarDual");
         reactorLoop = register("block.reactorLoop");
         reactorStart = register("block.reactorStart");
         reactorStop = register("block.reactorStop");
@@ -529,8 +535,6 @@ public final class HBMSoundHandler {
         geiger4 = register("item.geiger4");
         geiger5 = register("item.geiger5");
         geiger6 = register("item.geiger6");
-        geiger7 = register("item.geiger7");
-        geiger8 = register("item.geiger8");
         voices1 = register("item.voices1");
         voices2 = register("item.voices2");
         voices3 = register("item.voices3");
@@ -739,7 +743,7 @@ public final class HBMSoundHandler {
         assemblerCut = register("block.assemblerCut");
         tubeFwoomp = register("weapon.reload.tubeFwoomp");
 
-        geigerSounds = new SoundEvent[]{geiger1, geiger2, geiger3, geiger4, geiger5, geiger6, geiger7, geiger8};
+        geigerSounds = new SoundEvent[]{geiger1, geiger2, geiger3, geiger4, geiger5, geiger6};
         voiceSounds = new SoundEvent[]{voices1, voices2, voices3, voices4, voices5, voices6, voices7, voices8};
         boilerGroanSounds = new SoundEvent[]{boiler_groan1, boiler_groan2, boiler_groan3};
     }

@@ -19,10 +19,7 @@ import com.hbm.items.ItemEnums.EnumCircuitType;
 import com.hbm.items.ItemEnums.EnumPartType;
 import com.hbm.items.ItemEnums.ScrapType;
 import com.hbm.items.ModItems;
-import com.hbm.items.machine.ItemArcElectrode;
-import com.hbm.items.machine.ItemBattery;
-import com.hbm.items.machine.ItemBreedingRod;
-import com.hbm.items.machine.ItemFuelRod;
+import com.hbm.items.machine.*;
 import com.hbm.items.machine.ItemZirnoxRod.EnumZirnoxType;
 import com.hbm.items.tool.ItemConveyorWand;
 import com.hbm.items.tool.ItemDrone;
@@ -264,8 +261,8 @@ public class CraftingManager {
 		addRecipeAuto(new ItemStack(Item.getItemFromBlock(ModBlocks.machine_electric_furnace_off), 1), "BBB", "WFW", "RRR", 'B', BE.ingot(), 'R', ModItems.coil_tungsten, 'W', CU.plateCast(), 'F', Item.getItemFromBlock(Blocks.FURNACE) );
 		addRecipeAuto(new ItemStack(ModBlocks.red_wire_coated, 16), "WRW", "RIR", "WRW", 'W', ModItems.plate_polymer, 'I', MINGRADE.ingot(), 'R', MINGRADE.wireFine() );
 	    // TODO: paintable cables
-		/*addRecipeAuto(new ItemStack(ModBlocks.red_cable_paintable, 16), "WRW", "RIR", "WRW", 'W', STEEL.plate(), 'I', MINGRADE.ingot(), 'R', MINGRADE.wireFine() );
-		if (ModBlocks.oc_cable_paintable != null)
+		addRecipeAuto(new ItemStack(ModBlocks.red_cable_paintable, 16), "WRW", "RIR", "WRW", 'W', STEEL.plate(), 'I', MINGRADE.ingot(), 'R', MINGRADE.wireFine() );
+		/*if (ModBlocks.oc_cable_paintable != null)
 			addRecipeAuto(new ItemStack(ModBlocks.oc_cable_paintable, 16), "WRW", "RIR", "WRW", 'W', STEEL.plate(), 'I', REDSTONE.dust(), 'R', MINGRADE.wireFine() );*/
 		addRecipeAuto(new ItemStack(ModBlocks.cable_switch, 1), "S", "W", 'S', Blocks.LEVER, 'W', ModBlocks.red_wire_coated );
 		addRecipeAuto(new ItemStack(ModBlocks.cable_detector, 1), "S", "W", 'S', REDSTONE.dust(), 'W', ModBlocks.red_wire_coated );
@@ -358,7 +355,6 @@ public class CraftingManager {
 		addRecipeAuto(new ItemStack(ModItems.blades_steel, 1), "PIP", 'P', STEEL.plate(), 'I', new ItemStack(ModItems.blades_steel, 1, OreDictionary.WILDCARD_VALUE) );
 		addRecipeAuto(new ItemStack(ModItems.blades_titanium, 1), "PIP", 'P', TI.plate(), 'I', new ItemStack(ModItems.blades_titanium, 1, OreDictionary.WILDCARD_VALUE) );
 		addRecipeAuto(new ItemStack(ModItems.blades_advanced_alloy, 1), "PIP", 'P', ALLOY.plate(), 'I', new ItemStack(ModItems.blades_advanced_alloy, 1, OreDictionary.WILDCARD_VALUE) );
-		// TODO: redo SILEX recipes/crystals
 		addRecipeAuto(new ItemStack(ModItems.laser_crystal_co2, 1), "QDQ", "NCN", "QDQ", 'Q', ModBlocks.glass_quartz, 'D', DESH.ingot(), 'N', NB.ingot(), 'C', new ItemStack(ModItems.fluid_tank_full, 1, Fluids.CARBONDIOXIDE.getID()) );
 		addRecipeAuto(new ItemStack(ModItems.laser_crystal_bismuth, 1), "QUQ", "BCB", "QTQ", 'Q', ModBlocks.glass_quartz, 'U', U.ingot(), 'T', TH232.ingot(), 'B', ModItems.nugget_bismuth, 'C', ModItems.crystal_rare );
 		addRecipeAuto(new ItemStack(ModItems.laser_crystal_cmb, 1), "QBQ", "CSC", "QBQ", 'Q', ModBlocks.glass_quartz, 'B', CMB.ingot(), 'C', SBD.ingot(), 'S', new ItemStack(ModItems.cell, 1, Fluids.AMAT.getID()) );
@@ -450,9 +446,9 @@ public class CraftingManager {
 		addRecipeAuto(new ItemStack(Item.getItemFromBlock(ModBlocks.reinforced_sand), 4), "FBF", "BFB", "FBF", 'F', Blocks.IRON_BARS, 'B', Blocks.SANDSTONE );
 		// TODO
 		/*addShapelessAuto(new ItemStack(ModBlocks.lamp_tritium_green_off, 1), KEY_ANYGLASS, P_RED.dust(), Fluids.TRITIUM.getDict(1_000), S.dust() );
-		addShapelessAuto(new ItemStack(ModBlocks.lamp_tritium_blue_off, 1), KEY_ANYGLASS, P_RED.dust(), Fluids.TRITIUM.getDict(1_000), AL.dust() );
+		addShapelessAuto(new ItemStack(ModBlocks.lamp_tritium_blue_off, 1), KEY_ANYGLASS, P_RED.dust(), Fluids.TRITIUM.getDict(1_000), AL.dust() );*/
 		addRecipeAuto(new ItemStack(ModBlocks.lantern, 1), "PGP", " S ", " S ", 'P', KEY_ANYPANE, 'G', Items.GLOWSTONE_DUST, 'S', ModBlocks.steel_beam );
-		addRecipeAuto(new ItemStack(ModBlocks.spotlight_incandescent, 8), "G", "T", "I", 'G', KEY_ANYPANE, 'T', W.wireFine(), 'I', IRON.ingot() );
+		/*addRecipeAuto(new ItemStack(ModBlocks.spotlight_incandescent, 8), "G", "T", "I", 'G', KEY_ANYPANE, 'T', W.wireFine(), 'I', IRON.ingot() );
 		addRecipeAuto(new ItemStack(ModBlocks.spotlight_fluoro, 8), "G", "M", "A", 'G', KEY_ANYPANE, 'M', ModItems.ingot_mercury, 'A', ModItems.plate_aluminium );
 		addRecipeAuto(new ItemStack(ModBlocks.spotlight_halogen, 8), "G", "B", "S", 'G', KEY_ANYPANE, 'B', ModItems.powder_bromine, 'S', STEEL.plate() );
 		addRecipeAuto(new ItemStack(ModBlocks.floodlight, 2), "CSC", "TST", "G G", 'C', DictFrame.fromOne(ModItems.circuit, EnumCircuitType.CAPACITOR), 'S', STEEL.plate(), 'T', ModItems.coil_tungsten, 'G', KEY_ANYPANE );*/
@@ -616,16 +612,16 @@ public class CraftingManager {
         // These two solid pipes below are 1.12.2 exclusive. DO NOT REMOVE.
         addRecipeAuto(new ItemStack(ModBlocks.fluid_duct_solid, 8), "SAS", "ADA", "SAS", 'S', STEEL.ingot(), 'A', AL.plate(), 'D', ModItems.ducttape);
         addShapelessAuto(new ItemStack(ModBlocks.fluid_duct_solid_sealed, 1), ModBlocks.fluid_duct_solid, ModBlocks.brick_compound);
-        // TODO: paintable fluid ducts, gauges, valve/switch/pump, pneumatic tubes
-		/*addRecipeAuto(new ItemStack(ModBlocks.fluid_duct_paintable, 8), "SAS", "A A", "SAS", 'S', STEEL.ingot(), 'A', AL.plate() );
+        // TODO: fluid gauge/valve/switch/pump
+		addRecipeAuto(new ItemStack(ModBlocks.fluid_duct_paintable, 8), "SAS", "A A", "SAS", 'S', STEEL.ingot(), 'A', AL.plate() );
 		addRecipeAuto(new ItemStack(ModBlocks.fluid_duct_paintable_block_exhaust, 8), "SAS", "A A", "SAS", 'S', IRON.ingot(), 'A', ModItems.plate_polymer);
-		addShapelessAuto(new ItemStack(ModBlocks.fluid_duct_gauge), ModBlocks.fluid_duct_paintable, STEEL.ingot(), DictFrame.fromOne(ModItems.circuit, EnumCircuitType.BASIC) );
+		/*addShapelessAuto(new ItemStack(ModBlocks.fluid_duct_gauge), ModBlocks.fluid_duct_paintable, STEEL.ingot(), DictFrame.fromOne(ModItems.circuit, EnumCircuitType.BASIC) );
 		addRecipeAuto(new ItemStack(ModBlocks.fluid_valve, 1), "S", "W", 'S', Blocks.LEVER, 'W', ModBlocks.fluid_duct_paintable );
-		addRecipeAuto(new ItemStack(ModBlocks.fluid_switch, 1), "S", "W", 'S', REDSTONE.dust(), 'W', ModBlocks.fluid_duct_paintable );
-		addRecipeAuto(new ItemStack(ModBlocks.fluid_pump, 1), " S ", "PGP", "IMI", 'S', STEEL.shell(), 'P', STEEL.pipe(), 'G', GRAPHITE.ingot(), 'I', STEEL.ingot(), 'M', ModItems.motor );*/
+		addRecipeAuto(new ItemStack(ModBlocks.fluid_switch, 1), "S", "W", 'S', REDSTONE.dust(), 'W', ModBlocks.fluid_duct_paintable );*/
+		addRecipeAuto(new ItemStack(ModBlocks.fluid_pump, 1), " S ", "PGP", "IMI", 'S', STEEL.shell(), 'P', STEEL.pipe(), 'G', GRAPHITE.ingot(), 'I', STEEL.ingot(), 'M', ModItems.motor );
 		addRecipeAuto(new ItemStack(ModBlocks.pneumatic_tube, 8), "CRC", 'C', CU.plateCast(), 'R', ANY_RUBBER.ingot() );
 		addRecipeAuto(new ItemStack(ModBlocks.pneumatic_tube, 24), "CRC", 'C', CU.plateWelded(), 'R', ANY_RUBBER.ingot() );
-//		addRecipeAuto(new ItemStack(ModBlocks.pneumatic_tube_paintable, 4), "SAS", "A A", "SAS", 'S', STEEL.plate(), 'A', ModBlocks.pneumatic_tube);
+		addRecipeAuto(new ItemStack(ModBlocks.pneumatic_tube_paintable, 4), "SAS", "A A", "SAS", 'S', STEEL.plate(), 'A', ModBlocks.pneumatic_tube);
 
 		addRecipeAuto(new ItemStack(ModItems.template_folder, 1), "LPL", "BPB", "LPL", 'P', Items.PAPER, 'L', "dye", 'B', "dye" );
 		addRecipeAuto(new ItemStack(ModItems.pellet_antimatter, 1), "###", "###", "###", '#', new ItemStack(ModItems.cell, 1, Fluids.AMAT.getID()) );
@@ -701,17 +697,23 @@ public class CraftingManager {
 		addShapelessAuto(new ItemStack(Items.SLIME_BALL, 16), new ItemStack(Items.DYE, 1, 15), new ItemStack(Items.DYE, 1, 15), new ItemStack(Items.DYE, 1, 15), new ItemStack(Items.DYE, 1, 15), Fluids.SULFURIC_ACID.getDict(1000) );
 
 		for(int i = 1; i < Fluids.getAll().length; ++i) {
-			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 1, i), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModItems.fluid_identifier, 1, i) );
+			ItemStack id = new ItemStack(ModItems.fluid_identifier_multi, 1, i);
+			ItemFluidIDMulti.setType(id, Fluids.fromID(i), true);
 
-			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 8, i), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1),
+			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 1, i), new ItemStack(ModBlocks.fluid_duct_neo, 1), id);
+
+			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 8, i),
 					new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1),
-					new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModItems.fluid_identifier, 1, i) );
+					new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1),
+					new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModBlocks.fluid_duct_neo, 1), id);
 
-			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 1, i), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_identifier, 1, i));
+			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 1, i),
+					new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), id);
 
-			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 8, i), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE),
+			addShapelessAuto(new ItemStack(ModItems.fluid_duct, 8, i),
+					new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE),
 					new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE),
-					new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_identifier, 1, i));
+					new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE), id);
 		}
 
 		addShapelessAuto(new ItemStack(ModBlocks.fluid_duct_neo, 1), new ItemStack(ModItems.fluid_duct, 1, OreDictionary.WILDCARD_VALUE) );
@@ -896,8 +898,7 @@ public class CraftingManager {
 		addRecipeAuto(new ItemStack(ModBlocks.ladder_cobalt, 8), "LLL", "L#L", "LLL", 'L', Blocks.LADDER, '#', CO.ingot() );
 		addRecipeAuto(new ItemStack(ModBlocks.ladder_steel, 8), "LLL", "L#L", "LLL", 'L', Blocks.LADDER, '#', STEEL.ingot() );
 		addRecipeAuto(new ItemStack(ModBlocks.ladder_tungsten, 8), "LLL", "L#L", "LLL", 'L', Blocks.LADDER, '#', W.ingot() );
-		// TODO
-		//addShapelessAuto(new ItemStack(ModBlocks.trapdoor_steel, 1), Blocks.TRAPDOOR, STEEL.ingot() );
+		addShapelessAuto(new ItemStack(ModBlocks.trapdoor_steel, 1), Blocks.TRAPDOOR, STEEL.ingot() );
 
 		addRecipeAuto(new ItemStack(ModBlocks.machine_storage_drum), "LLL", "L#L", "LLL", 'L', PB.plate(), '#', ModItems.tank_steel );
 

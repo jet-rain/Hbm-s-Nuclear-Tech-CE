@@ -1,6 +1,7 @@
 package com.hbm.items.armor;
 
 import com.hbm.capability.HbmCapability;
+import com.hbm.handler.ArmorModHandler;
 import com.hbm.items.ModItems;
 import com.hbm.items.gear.ArmorFSB;
 import com.hbm.render.model.ModelArmorTrenchmaster;
@@ -58,49 +59,41 @@ public class ArmorTrenchmaster extends ArmorFSB {
     }
 
     @Override
-    public void handleHurt(LivingHurtEvent event, ArmorFSB chestplate) {
+    public void handleHurt(LivingHurtEvent event) {
         super.handleHurt(event);
-
         if (event.getEntityLiving() instanceof EntityPlayer player) {
-            HbmCapability.IHBMData props = HbmCapability.getData(player);
-
             if (ArmorFSB.hasFSBArmor(player)) {
-
                 if (event.getSource().isExplosion() && event.getSource().getTrueSource() instanceof EntityPlayer) {
                     event.setAmount(0);
-                    return;
                 }
             }
         }
     }
 
     @Override
-    public void handleAttack(LivingAttackEvent event, ArmorFSB chestplate) {
+    public void handleAttack(LivingAttackEvent event) {
         super.handleAttack(event);
         EntityLivingBase e = event.getEntityLiving();
 
-        if (e instanceof EntityPlayer) {
-            EntityPlayer player = (EntityPlayer) e;
+        if (e instanceof EntityPlayer player) {
 
             if (ArmorFSB.hasFSBArmor(player)) {
 
                 if (e.getRNG().nextInt(3) == 0) {
-                    HbmCapability.plink(player, SoundEvents.BLOCK_ANVIL_BREAK, 0.5F, 1.0F + e.getRNG().nextFloat() * 0.5F);
+                    HbmCapability.plink(player, SoundEvents.ENTITY_ITEM_BREAK, 0.5F, 1.0F + e.getRNG().nextFloat() * 0.5F);
                     event.setCanceled(true);
                 }
             }
         }
     }
-    //TODO: Uncomment this when card_aos is added
-/*
+
 	public static boolean hasAoS(EntityPlayer player) {
 		if(player == null) return false;
-		if(player.inventory.armorItemInSlot(3) != null) {
+		if(!player.inventory.armorItemInSlot(3).isEmpty()) {
 			ItemStack[] mods =  ArmorModHandler.pryMods(player.inventory.armorItemInSlot(3));
 			ItemStack helmet = mods[ArmorModHandler.helmet_only];
 			return helmet != null && helmet.getItem() == ModItems.card_aos;
 		}
 		return false;
 	}
- */
 }

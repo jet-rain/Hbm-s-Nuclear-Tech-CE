@@ -1,5 +1,6 @@
 package com.hbm.tileentity.machine;
 
+import com.hbm.blocks.generic.BlockStorageCrate;
 import com.hbm.config.MachineConfig;
 import com.hbm.hazard.HazardSystem;
 import com.hbm.items.ModItems;
@@ -26,7 +27,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 // mlbv: I tried overriding markDirty to calculate the changes but somehow it always delays by one operation.
 // also, implementing ITickable is a bad idea, remove it if you can find a better way.
+// TODO: hook onto IPersistentNBT
 public abstract class TileEntityCrate extends TileEntityCrateBase implements IGUIProvider, ITickable {
+
 
     private final AtomicBoolean isCheckScheduled = new AtomicBoolean(false);
     public float fillPercentage = 0.0F;
@@ -114,7 +117,7 @@ public abstract class TileEntityCrate extends TileEntityCrateBase implements IGU
 
     public long getSize() {
         NBTTagCompound nbt = new NBTTagCompound();
-        float rads = 0;
+        double rads = 0D;
         for (int i = 0; i < inventory.getSlots(); i++) {
 
             ItemStack stack = inventory.getStackInSlot(i);
@@ -126,7 +129,7 @@ public abstract class TileEntityCrate extends TileEntityCrateBase implements IGU
             nbt.setTag("slot" + i, slot);
         }
         if (rads > 0) {
-            nbt.setFloat("cRads", rads);
+            nbt.setDouble(BlockStorageCrate.CRATE_RAD_KEY, rads);
         }
         if (this.isLocked()) {
             nbt.setInteger("lock", this.getPins());

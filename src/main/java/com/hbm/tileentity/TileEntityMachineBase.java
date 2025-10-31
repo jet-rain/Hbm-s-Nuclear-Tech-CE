@@ -129,12 +129,15 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
      *
      * @param side The side of the block being accessed.
      * @param accessorPos The position of the block DOING the accessing (the proxy).
-     * @return An array of slots accessible from this proxy at this side.
+     * @return An array of slots accessible from this proxy at this side. null -> full access. Empty array -> no access.
      */
     public int[] getAccessibleSlotsFromSide(EnumFacing side, BlockPos accessorPos) {
         return getAccessibleSlotsFromSide(side);
     }
 
+    /**
+     * @return An array of slots accessible at this side. null -> full access. Empty array -> no access.
+     */
     public int[] getAccessibleSlotsFromSide(EnumFacing e) {
         return new int[]{};
     }
@@ -169,6 +172,12 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
         super.readFromNBT(compound);
     }
 
+    /**
+     * Checks if an item can be inserted into a slot.
+     * <p>
+     * Only affects the {@link IItemHandlerModifiable} obtained via {@link #getCheckedInventory()}
+     * and the capability exposed externally.
+     */
     public boolean isItemValidForSlot(int i, ItemStack stack) {
         return true;
     }
@@ -176,11 +185,16 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
     /**
      * Checks if an item can be inserted into a slot from a specific side and accessor position.
      * Mimics the 1.7 IConditionalInvAccess behavior.
+     * <p>
+     * Only affects the capability exposed externally.
      */
     public boolean canInsertItem(int slot, ItemStack stack, EnumFacing side, BlockPos accessorPos) {
         return canInsertItem(slot, stack);
     }
 
+    /**
+     * Only affects the capability exposed externally.
+     */
     public boolean canInsertItem(int slot, ItemStack itemStack) {
         return this.isItemValidForSlot(slot, itemStack);
     }
@@ -188,11 +202,16 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
     /**
      * Checks if an item can be extracted from a slot from a specific side and accessor position.
      * Mimics the 1.7 IConditionalInvAccess behavior.
+     * <p>
+     * Only affects the capability exposed externally.
      */
     public boolean canExtractItem(int slot, ItemStack stack, int amount, EnumFacing side, BlockPos accessorPos) {
         return canExtractItem(slot, stack, amount);
     }
 
+    /**
+     * Only affects the capability exposed externally.
+     */
     public boolean canExtractItem(int slot, ItemStack itemStack, int amount) {
         return true;
     }
@@ -215,38 +234,26 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
         return Math.max(volume, 0);
     }
 
+    /**
+     * @return a checked wrapper around the inventory. Intended for Container and GUI class.
+     */
     public IItemHandlerModifiable getCheckedInventory() {
         return new ItemStackHandlerWrapper(inventory) {
             @Override
             public boolean isItemValid(int slot, ItemStack stack) {
                 return isItemValidForSlot(slot, stack);
             }
-
-            @Override
-            public ItemStack extractItem(int slot, int amount, boolean simulate) {
-                if (canExtractItem(slot, inventory.getStackInSlot(slot), amount)) {
-                    return handle.extractItem(slot, amount, simulate);
-                }
-                return ItemStack.EMPTY;
-            }
-
-            @Override
-            public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-                if (canInsertItem(slot, stack)) {
-                    return handle.insertItem(slot, stack, simulate);
-                }
-                return stack;
-            }
         };
     }
 
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+        // Contract: facing == null -> internal
         if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY && enablefluidWrapper) {
-            BlockPos accessorPos = CapabilityContextProvider.getAccessor(this.pos);
+            BlockPos accessorPos = facing == null ? null : CapabilityContextProvider.getAccessor(this.pos);
             return CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY.cast(new NTMFluidHandlerWrapper(this, accessorPos));
         } else if (capability == CapabilityEnergy.ENERGY && enableEnergyWrapper) {
-            BlockPos accessorPos = CapabilityContextProvider.getAccessor(this.pos);
+            BlockPos accessorPos = facing == null ? null : CapabilityContextProvider.getAccessor(this.pos);
             return CapabilityEnergy.ENERGY.cast(new NTMEnergyCapabilityWrapper(this, accessorPos));
         } else if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY && inventory != null) {
             if (facing == null)
@@ -255,6 +262,11 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
             final EnumFacing side = facing;
             int[] accessibleSlots = getAccessibleSlotsFromSide(side, accessorPos);
             return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(new ItemStackHandlerWrapper(inventory, accessibleSlots) {
+                @Override
+                public boolean isItemValid(int slot, ItemStack stack) {
+                    return isItemValidForSlot(slot, stack);
+                }
+
                 @Override
                 public ItemStack extractItem(int slot, int amount, boolean simulate) {
                     if (canExtractItem(slot, inventory.getStackInSlot(slot), amount, side, accessorPos)) {
@@ -282,7 +294,7 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
         if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY && inventory != null) {
             if (facing == null) return true;
             BlockPos accessorPos = CapabilityContextProvider.getAccessor(this.pos);
-            return getAccessibleSlotsFromSide(facing, accessorPos).length > 0;
+            return getAccessibleSlotsFromSide(facing, accessorPos) == null || getAccessibleSlotsFromSide(facing, accessorPos).length > 0;
         }
         return super.hasCapability(capability, facing);
     }

@@ -20,7 +20,6 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.Capability.IStorage;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Callable;
@@ -43,9 +42,6 @@ public class HbmCapability {
 		void setKeyPressed(EnumKeybind key, boolean pressed);
 		boolean getEnableBackpack();
 		boolean getEnableHUD();
-		@Deprecated
-		@ApiStatus.ScheduledForRemoval(inVersion = "0.4")
-		boolean getOnLadder();
 		float getShield();
 		float getMaxShield();
 		int getLastDamage();
@@ -53,11 +49,9 @@ public class HbmCapability {
 		int getStamina();
 		int getDashCount();
 		int getPlinkCooldown();
+        int getReputation();
 		void setEnableBackpack(boolean b);
 		void setEnableHUD(boolean b);
-		@Deprecated
-		@ApiStatus.ScheduledForRemoval(inVersion = "0.4")
-		void setOnLadder(boolean b);
 		void setShield(float f);
 		void setMaxShield(float f);
 		void setLastDamage(int i);
@@ -65,6 +59,7 @@ public class HbmCapability {
 		void setStamina(int stamina);
 		void setDashCount(int count);
 		void setPlinkCooldown(int cooldown);
+        void setReputation(int reputation);
 		default float getEffectiveMaxShield(EntityPlayer player){
 			float max = this.getMaxShield();
 			if(!player.getItemStackFromSlot(EntityEquipmentSlot.CHEST).isEmpty()) {
@@ -85,7 +80,6 @@ public class HbmCapability {
 			buf.writeBoolean(this.getEnableBackpack());
 			buf.writeBoolean(this.getEnableHUD());
 //			buf.writeInt(this.reputation);
-			buf.writeBoolean(this.getOnLadder());
 //			buf.writeBoolean(this.enableMagnet);
 		}
 		default void deserialize(ByteBuf buf) {
@@ -96,7 +90,6 @@ public class HbmCapability {
 				this.setEnableBackpack(buf.readBoolean());
 				this.setEnableHUD(buf.readBoolean());
 //				this.reputation = buf.readInt();
-				this.setOnLadder(buf.readBoolean());
 //				this.enableMagnet = buf.readBoolean();
 			}
 		}
@@ -126,6 +119,8 @@ public class HbmCapability {
 		 * so what is its purpose?
 		 */
 		public int lastDamage = 0;
+
+        public int reputation;
 		
 		@Override
 		public boolean getKeyPressed(EnumKeybind key) {
@@ -177,9 +172,6 @@ public class HbmCapability {
 		}
 
 		@Override
-		public boolean getOnLadder() {return isOnLadder;}
-
-		@Override
 		public float getShield() {
 			return shield;
 		}
@@ -193,9 +185,6 @@ public class HbmCapability {
 		public int getLastDamage() {
 			return lastDamage;
 		}
-
-		@Override
-		public void setOnLadder(boolean b){isOnLadder = b;}
 
 		@Override
 		public void setDashCooldown(int cooldown) {
@@ -232,12 +221,22 @@ public class HbmCapability {
 			this.plinkCooldown = cooldown;
         }
 
-		@Override
+        @Override
+        public void setReputation(int reputation) {
+            this.reputation = reputation;
+        }
+
+        @Override
 		public int getPlinkCooldown() {
 			return this.plinkCooldown;
 		}
 
-		@Override
+        @Override
+        public int getReputation() {
+            return reputation;
+        }
+
+        @Override
 		public void setShield(float f) {
 			shield = f;
 		}
@@ -263,9 +262,9 @@ public class HbmCapability {
 			}
 			tag.setBoolean("enableBackpack", instance.getEnableBackpack());
 			tag.setBoolean("enableHUD", instance.getEnableHUD());
-			tag.setBoolean("isOnLadder", instance.getOnLadder());
 			tag.setFloat("shield", instance.getShield());
 			tag.setFloat("maxShield", instance.getMaxShield());
+            tag.setInteger("reputation", instance.getReputation());
 			return tag;
 		}
 
@@ -277,9 +276,9 @@ public class HbmCapability {
 				}
 				instance.setEnableBackpack(tag.getBoolean("enableBackpack"));
 				instance.setEnableHUD(tag.getBoolean("enableHUD"));
-				instance.setOnLadder(tag.getBoolean("isOnLadder"));
 				instance.setShield(tag.getFloat("shield"));
 				instance.setMaxShield(tag.getFloat("maxShield"));
+                instance.setReputation(tag.getInteger("reputation"));
 			}
 		}
 		
@@ -317,11 +316,6 @@ public class HbmCapability {
 			}
 
 			@Override
-			public boolean getOnLadder() {
-				return false;
-			}
-
-			@Override
 			public float getShield() {
 				return 0;
 			}
@@ -356,11 +350,12 @@ public class HbmCapability {
 				return 0;
 			}
 
-			@Override
-			public void setOnLadder(boolean b){
-			}
+            @Override
+            public int getReputation() {
+                return 0;
+            }
 
-			@Override
+            @Override
 			public void setShield(float f) {
 			}
 
@@ -387,7 +382,12 @@ public class HbmCapability {
 			@Override
 			public void setPlinkCooldown(int cooldown) {
 			}
-		};
+
+            @Override
+            public void setReputation(int reputation) {
+
+            }
+        };
 		
 		@CapabilityInject(IHBMData.class)
 		public static final Capability<IHBMData> HBM_CAP = null;

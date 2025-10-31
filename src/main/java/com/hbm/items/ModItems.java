@@ -53,16 +53,14 @@ import net.minecraft.item.Item.ToolMaterial;
 import net.minecraft.item.ItemArmor.ArmorMaterial;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.util.EnumHelper;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static com.hbm.items.ItemEnums.*;
 
@@ -86,6 +84,7 @@ public class ModItems {
     public static final Item screwdriver_desh = new ItemTooling(ToolType.SCREWDRIVER, -1, "screwdriver_desh");
     public static final Item hand_drill = new ItemTooling(ToolType.HAND_DRILL, 100, "hand_drill");
     public static final Item hand_drill_desh = new ItemTooling(ToolType.HAND_DRILL, -1, "hand_drill_desh");
+    public static final Item wrench_archineer = new ItemToolingWeapon("wrench_archineer", ToolType.WRENCH, 1000, 12F);
     public static final Item boltgun = new ItemBoltgun("boltgun");
     public static final Item blowtorch = new ItemBlowtorch("blowtorch");
     public static final Item acetylene_torch = new ItemBlowtorch("acetylene_torch");
@@ -99,10 +98,13 @@ public class ModItems {
     public static final Item mirror_tool = new ItemMirrorTool("mirror_tool").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item rbmk_tool = new ItemRBMKTool("rbmk_tool").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item coltan_tool = new ItemColtanCompass("coltan_tool").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item power_net_tool = new ItemPowerNetTool("power_net_tool").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item analysis_tool = new ItemAnalysisTool("analysis_tool").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item linker = new ItemTeleLink("linker").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item reactor_sensor = new ItemReactorSensor("reactor_sensor").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item drone_linker = new ItemDroneLinker("drone_linker").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item radar_linker = new ItemRadarLinker("radar_linker").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item settings_tool = new ItemSettingsTool("settings_tool").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item pollution_detector = new ItemPollutionDetector("pollution_detector").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item ore_density_scanner = new ItemOreDensityScanner("ore_density_scanner").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
 
@@ -184,11 +186,7 @@ public class ModItems {
     public static final Item cladding_rubber = new ItemModCladding(0.05, "cladding_rubber").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item cladding_lead = new ItemModCladding(0.1, "cladding_lead").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item cladding_desh = new ItemModCladding(0.2, "cladding_desh").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item cladding_paa = new ItemModCladding(0.3, "cladding_paa").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item cladding_ghiorsium = new ItemModCladding(0.5, "cladding_ghiorsium").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item cladding_euphemium = new ItemModCladding(0.8, "cladding_euphemium").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item cladding_di = new ItemModCladding(1.2, "cladding_di").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item cladding_electronium = new ItemModCladding(2.0, "cladding_electronium").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item cladding_iron = new ItemModIron("cladding_iron").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item cladding_obsidian = new ItemModObsidian("cladding_obsidian").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item insert_kevlar = new ItemModInsert(1500, 1F, 0.9F, 1F, 1F, "insert_kevlar").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
@@ -197,11 +195,9 @@ public class ModItems {
     public static final Item insert_xsapi = new ItemModInsert(2500, 0.9F, 0.75F, 1F, 1F, "insert_xsapi").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item insert_steel = new ItemModInsert(1000, 1F, 0.95F, 0.75F, 0.95F, "insert_steel").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item insert_du = new ItemModInsert(1500, 0.9F, 0.85F, 0.5F, 0.9F, "insert_du").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item insert_ferrouranium = new ItemModInsert(2000, 1F, 0.9F, 0.9F, 1F, "insert_ferrouranium").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item insert_polonium = new ItemModInsert(500, 0.9F, 1F, 0.25F, 0.9F, "insert_polonium").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item insert_ghiorsium = new ItemModInsert(2000, 0.8F, 0.75F, 0.35F, 0.9F, "insert_ghiorsium").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item insert_era = new ItemModInsert(25, 0.5F, 1F, 0.25F, 1F, "insert_era").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item insert_di = new ItemModInsert(4000, 1F, 0.01F, 0.01F, 0.01F, "insert_di").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item insert_yharonite = new ItemModInsert(9999, 0.01F, 1F, 1F, 1F, "insert_yharonite").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item insert_doxium = new ItemModInsert(9999, 5.0F, 1F, 1F, 1F, "insert_doxium").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item armor_polish = new ItemModPolish("armor_polish").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
@@ -214,7 +210,6 @@ public class ModItems {
     public static final Item industrial_magnet = new ItemModLodestone(12, "industrial_magnet").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item bathwater = new ItemModBathwater("bathwater").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item bathwater_mk2 = new ItemModBathwater("bathwater_mk2").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item bathwater_mk3 = new ItemModBathwater("bathwater_mk3").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item spider_milk = new ItemModMilk("spider_milk").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item ink = new ItemModInk("ink").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item heart_piece = new ItemModHealth(5F, "heart_piece").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
@@ -229,18 +224,18 @@ public class ModItems {
     public static final Item shackles = new ItemModShackles("shackles").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item injector_5htp = new ItemModAuto("injector_5htp").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item injector_knife = new ItemModKnife("injector_knife").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item decontamination_module = new ItemModMedal("decontamination_module", 0.05F).setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item medal_liquidator = new ItemModMedal("medal_liquidator", 0.5F).setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item medal_ghoul = new ItemModMedal("medal_ghoul", 2.5F).setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item bottled_cloud = new ItemModCloud("bottled_cloud").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item servo_set = new ItemModServos("servo_set").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item servo_set_desh = new ItemModServos("servo_set_desh").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
-    public static final Item pocket_ptsd = new ItemModRadar("pocket_ptsd", 1000).setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item v1 = new ItemModV1("v1").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item neutrino_lens = new ItemModLens("neutrino_lens").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item gas_tester = new ItemModSensor("gas_tester");
     public static final Item defuser_gold = new ItemModDefuser("defuser_gold");
     public static final Item ballistic_gauntlet = new ItemModTwoKick("ballistic_gauntlet");
     public static final Item night_vision = new ItemModNightVision("night_vision").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item card_aos = new ItemModCard("card_aos").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item card_qos = new ItemModCard("card_qos").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item protection_charm = new ItemModCharm("protection_charm").setCreativeTab(MainRegistry.consumableTab);
     public static final Item meteor_charm = new ItemModCharm("meteor_charm").setCreativeTab(MainRegistry.consumableTab);
     //Stamps
@@ -399,17 +394,21 @@ public class ModItems {
     // Th3_Sl1ze: welp, technically balefire is not a fluid, so I guess I have to make it a separate item?..
     public static final Item cell_balefire = new ItemBakedBase("cell_balefire").setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.cell);
 
-    public static final Item fluid_tank_empty = new ItemBase("fluid_tank_empty").setCreativeTab(MainRegistry.controlTab);
+    public static final Item fluid_tank_empty = new ItemBakedBase("fluid_tank_empty").setCreativeTab(MainRegistry.controlTab);
     public static final Item fluid_tank_full = new ItemFluidTank("fluid_tank_full", 1000).setCreativeTab(MainRegistry.controlTab);
-    public static final Item fluid_tank_lead_empty = new ItemBase("fluid_tank_lead_empty").setCreativeTab(MainRegistry.controlTab);
+    public static final Item fluid_tank_lead_empty = new ItemBakedBase("fluid_tank_lead_empty").setCreativeTab(MainRegistry.controlTab);
     public static final Item fluid_tank_lead_full = new ItemFluidTank("fluid_tank_lead_full", 1000).setCreativeTab(MainRegistry.controlTab);
-    public static final Item fluid_barrel_empty = new ItemBase("fluid_barrel_empty").setCreativeTab(MainRegistry.controlTab);
+    public static final Item fluid_barrel_empty = new ItemBakedBase("fluid_barrel_empty").setCreativeTab(MainRegistry.controlTab);
     public static final Item fluid_barrel_full = new ItemFluidTank("fluid_barrel_full", 16000).setCreativeTab(MainRegistry.controlTab);
     public static final Item fluid_barrel_infinite = new ItemFluidContainerInfinite(null, 1_000_000_000, "fluid_barrel_infinite").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
+    public static final Item fluid_pack_empty = new ItemBakedBase("fluid_pack_empty").setCreativeTab(MainRegistry.controlTab);
+    public static final Item fluid_pack_full = new ItemFluidTank("fluid_pack_full", 32000).setContainerItem(ModItems.fluid_pack_empty).setCreativeTab(MainRegistry.controlTab);
+    public static final Item pipette = new ItemPipette("pipette").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
+    public static final Item pipette_boron = new ItemPipette("pipette_boron").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
+    public static final Item pipette_laboratory = new ItemPipette("pipette_laboratory").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
+    public static final Item siphon = new ItemFluidSiphon("siphon").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     public static final Item inf_water = new ItemFluidContainerInfinite(Fluids.WATER, 50, "inf_water").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
     public static final Item inf_water_mk2 = new ItemFluidContainerInfinite(Fluids.WATER, 500, "inf_water_mk2").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item inf_water_mk3 = new ItemFluidContainerInfinite(Fluids.WATER, 5000, "inf_water_mk3").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
-    public static final Item inf_water_mk4 = new ItemFluidContainerInfinite(Fluids.WATER, 50000, "inf_water_mk4").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab);
 
     public static final Item disperser_canister_empty = new ItemBase("disperser_canister_empty").setCreativeTab(MainRegistry.weaponTab);
     public static final Item disperser_canister = new ItemDisperser("disperser_canister", 2000).setContainerItem(ModItems.disperser_canister_empty).setCreativeTab(MainRegistry.weaponTab);
@@ -528,15 +527,17 @@ public class ModItems {
     public static final Item schrabidium_plate = new ArmorFSB(MainRegistry.enumArmorMaterialSchrabidium, -1, EntityEquipmentSlot.CHEST, RefStrings.MODID + ":textures/armor/schrabidium_1.png", "schrabidium_plate").cloneStats((ArmorFSB) schrabidium_helmet).setMaxStackSize(1);
     public static final Item schrabidium_legs = new ArmorFSB(MainRegistry.enumArmorMaterialSchrabidium, -1, EntityEquipmentSlot.LEGS, RefStrings.MODID + ":textures/armor/schrabidium_2.png", "schrabidium_legs").cloneStats((ArmorFSB) schrabidium_helmet).setMaxStackSize(1);
     public static final Item schrabidium_boots = new ArmorFSB(MainRegistry.enumArmorMaterialSchrabidium, -1, EntityEquipmentSlot.FEET, RefStrings.MODID + ":textures/armor/schrabidium_1.png", "schrabidium_boots").cloneStats((ArmorFSB) schrabidium_helmet).setMaxStackSize(1);
-    public static final Item t45_helmet = new ArmorT45(MainRegistry.enumArmorMaterialT45, -1, EntityEquipmentSlot.HEAD, 1000000, 10000, 1000, 5, "t45_helmet")
+    public static final Item t51_helmet = new ArmorT51(MainRegistry.enumArmorMaterialT51, -1, EntityEquipmentSlot.HEAD, RefStrings.MODID + ":textures/armor/starmetal_1.png", 1000000, 10000, 1000, 5, "t51_helmet")
             .enableVATS(true)
             .setHasGeigerSound(true)
             .setHasHardLanding(true)
-            .addEffect(new PotionEffect(MobEffects.STRENGTH, 30, 0))
-            .addEffect(new PotionEffect(MobEffects.SPEED, 30, 0));
-    public static final Item t45_plate = new ArmorT45(MainRegistry.enumArmorMaterialT45, -1, EntityEquipmentSlot.CHEST, 1000000, 10000, 1000, 5, "t45_plate").cloneStats((ArmorFSB) t45_helmet).setCreativeTab(CreativeTabs.COMBAT);
-    public static final Item t45_legs = new ArmorT45(MainRegistry.enumArmorMaterialT45, -1, EntityEquipmentSlot.LEGS, 1000000, 10000, 1000, 5, "t45_legs").cloneStats((ArmorFSB) t45_helmet).setCreativeTab(CreativeTabs.COMBAT);
-    public static final Item t45_boots = new ArmorT45(MainRegistry.enumArmorMaterialT45, -1, EntityEquipmentSlot.FEET, 1000000, 10000, 1000, 5, "t45_boots").cloneStats((ArmorFSB) t45_helmet).setCreativeTab(CreativeTabs.COMBAT);
+            .addEffect(new PotionEffect(MobEffects.STRENGTH, 20, 0))
+            .setStep(HBMSoundHandler.iron)
+            .setJump(HBMSoundHandler.ironJump)
+            .setFall(HBMSoundHandler.ironLand);
+    public static final Item t51_plate = new ArmorT51(MainRegistry.enumArmorMaterialT51, -1, EntityEquipmentSlot.CHEST, RefStrings.MODID + ":textures/armor/starmetal_1.png", 1000000, 10000, 1000, 5, "t51_plate").cloneStats((ArmorFSB) t51_helmet).setCreativeTab(CreativeTabs.COMBAT);
+    public static final Item t51_legs = new ArmorT51(MainRegistry.enumArmorMaterialT51, -1, EntityEquipmentSlot.LEGS, ":textures/armor/starmetal_2.png",1000000, 10000, 1000, 5, "t51_legs").cloneStats((ArmorFSB) t51_helmet).setCreativeTab(CreativeTabs.COMBAT);
+    public static final Item t51_boots = new ArmorT51(MainRegistry.enumArmorMaterialT51, -1, EntityEquipmentSlot.FEET, ":textures/armor/starmetal_1.png",1000000, 10000, 1000, 5, "t51_boots").cloneStats((ArmorFSB) t51_helmet).setCreativeTab(CreativeTabs.COMBAT);
     public static final Item steamsuit_helmet = new ArmorDesh(MainRegistry.aMatSteamsuit, 7, EntityEquipmentSlot.HEAD, RefStrings.MODID + ":textures/armor/starmetal_1.png", Fluids.STEAM, 64000, 500, 50, 1, "steamsuit_helmet")
             .addEffect(new PotionEffect(MobEffects.HASTE, 30, 0))
             .setHasHardLanding(true)
@@ -675,6 +676,7 @@ public class ModItems {
     public static final Item gas_mask_mono = new ArmorGasMask(ArmorMaterial.IRON, -1, EntityEquipmentSlot.HEAD, "gas_mask_mono").setMaxStackSize(1);
     public static final Item gas_mask_olde = new ArmorGasMask(ArmorMaterial.IRON, -1, EntityEquipmentSlot.HEAD, "gas_mask_olde").setMaxStackSize(1);
     public static final Item hat = new ArmorHat(ArmorMaterial.IRON, 7, EntityEquipmentSlot.HEAD, "nossy_hat").setMaxStackSize(1);
+    public static final Item no9 = new ArmorNo9(MainRegistry.enumArmorMaterialSteel, 7, EntityEquipmentSlot.HEAD, "no9").setMaxStackSize(1);
     public static final Item beta = new ItemDrop("beta").setMaxStackSize(1);
     public static final Item jetpack_fly = new JetpackRegular(Fluids.KEROSENE, 12000, "jetpack_fly").setCreativeTab(CreativeTabs.COMBAT).setMaxStackSize(1);
     public static final Item jetpack_break = new JetpackBreak(Fluids.KEROSENE, 12000, "jetpack_break").setCreativeTab(CreativeTabs.COMBAT).setMaxStackSize(1);
@@ -725,7 +727,7 @@ public class ModItems {
     public static final Item hf_sword = new ItemSwordCutter(15F, 1F, MainRegistry.matCrucible, "hf_sword").setCreativeTab(MainRegistry.weaponTab);
 
     public static final Item stick_dynamite = new ItemGrenade(3, "stick_dynamite").setCreativeTab(MainRegistry.weaponTab);
-    //public static final Item stick_dynamite_fishing = new ItemGrenadeFishing(3, "stick_dynamite_fishing").setCreativeTab(MainRegistry.weaponTab); TODO
+    public static final Item stick_dynamite_fishing = new ItemGrenadeFishing(3, "stick_dynamite_fishing").setCreativeTab(MainRegistry.weaponTab);
     public static final Item stick_tnt = new ItemBakedBase("stick_tnt").setCreativeTab(MainRegistry.weaponTab);
     public static final Item stick_semtex = new ItemBakedBase("stick_semtex").setCreativeTab(MainRegistry.weaponTab);
     public static final Item stick_c4 = new ItemBakedBase("stick_c4").setCreativeTab(MainRegistry.weaponTab);
@@ -1354,7 +1356,7 @@ public class ModItems {
     public static final Item balefire_scrambled = new ItemFoodSoup(30, "balefire_scrambled").setCreativeTab(MainRegistry.consumableTab);
     public static final Item balefire_and_ham = new ItemFoodSoup(60, "balefire_and_ham").setCreativeTab(MainRegistry.consumableTab);
     public static final Item lemon = new ItemLemon(3, 5, false, "lemon").setCreativeTab(MainRegistry.consumableTab);
-    public static final Item definitelyfood = new ItemLemon(2, 5, false, "definitelyfood").setCreativeTab(MainRegistry.consumableTab);
+    public static final Item definitelyfood = new ItemLemon(3, 0.5F, false, "definitelyfood").setCreativeTab(MainRegistry.consumableTab);
     public static final Item med_ipecac = new ItemLemon(0, 0, false, "med_ipecac").setCreativeTab(MainRegistry.consumableTab);
     public static final Item med_ptsd = new ItemLemon(0, 0, false, "med_ptsd").setCreativeTab(MainRegistry.consumableTab);
     public static final Item med_schizophrenia = new ItemLemon(0, 0, false, "med_schizophrenia").setCreativeTab(null);
@@ -1374,6 +1376,9 @@ public class ModItems {
     public static final Item quesadilla = new ItemLemon(8, 1F, false, "cheese_quesadilla").setCreativeTab(MainRegistry.consumableTab);
     public static final Item mucho_mango = new ItemMuchoMango(10, "mucho_mango").setCreativeTab(MainRegistry.consumableTab);
     public static final Item marshmallow_roasted = new ItemLemon(6, 6, false, "marshmallow_roasted").setMaxStackSize(1).setFull3D().setCreativeTab(MainRegistry.consumableTab);
+    public static final Item glyphid_meat = new ItemLemon(3, 0.5F, true, "glyphid_meat").setCreativeTab(MainRegistry.consumableTab);
+    public static final Item glyphid_meat_grilled = new ItemLemon(8, 0.75F, true, "glyphid_meat_grilled").setPotionEffect(new PotionEffect(Objects.requireNonNull(Potion.getPotionFromResourceLocation("strength")), 180, 1), 1F).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item egg_glyphid = new ItemBase("egg_glyphid").setCreativeTab(MainRegistry.consumableTab);
     //Bongespob arcarmoni
     public static final Item spongebob_macaroni = new ItemLemon(5, 5, false, "spongebob_macaroni").setCreativeTab(MainRegistry.consumableTab);
     public static final ItemEnumMultiFood canned_conserve = (ItemEnumMultiFood) new ItemConserve().setCreativeTab(MainRegistry.consumableTab);
@@ -1693,7 +1698,6 @@ public class ModItems {
     public static final Item chemistry_template = new ItemChemistryTemplate("chemistry_template").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
     public static final Item chemistry_icon = new ItemChemistryIcon("chemistry_icon").setMaxStackSize(1).setCreativeTab(null);
     public static final Item crucible_template = new ItemCrucibleTemplate("crucible_template").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
-    public static final Item fluid_identifier = new ItemForgeFluidIdentifier("forge_fluid_identifier").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
     public static final Item fluid_identifier_multi = new ItemFluidIDMulti("fluid_identifier_multi").setMaxStackSize(1).setCreativeTab(MainRegistry.templateTab);
     public static final Item fluid_duct = new ItemFFFluidDuct("ff_fluid_duct").setCreativeTab(MainRegistry.templateTab);
     //Plates
@@ -1800,12 +1804,10 @@ public class ModItems {
     public static final Item gem_rad = new ItemBakedBase("gem_rad").setCreativeTab(MainRegistry.partsTab);
     //TODO: Port ItemAlexandrite for color logic
     public static final Item gem_alexandrite = new ItemBase("gem_alexandrite").setCreativeTab(MainRegistry.partsTab);
-    //Circuits
     public static final Item upgrade_muffler = new ItemMuffler("upgrade_muffler").setCreativeTab(MainRegistry.partsTab);
     public static final Item upgrade_template = new ItemCustomLore("upgrade_template").setMaxStackSize(1).setCreativeTab(MainRegistry.partsTab);
     public static final Item deuterium_filter = new ItemBase("deuterium_filter").setCreativeTab(MainRegistry.partsTab);
     public static final Item parts_legendary = new ItemEnumMulti("parts_legendary", EnumLegendaryType.class, false, true).setCreativeTab(MainRegistry.partsTab);
-    // FIXME sawblade't have a proper render
     public static final Item sawblade = new ItemBase("sawblade").setCreativeTab(MainRegistry.partsTab);
     public static final Item gear_large = new ItemGear("gear_large").setCreativeTab(MainRegistry.partsTab);
     public static final Item crt_display = new ItemBakedBase("crt_display").setCreativeTab(MainRegistry.partsTab);
@@ -1830,9 +1832,6 @@ public class ModItems {
     public static final Item casing_50 = new ItemBase("casing_50").setCreativeTab(MainRegistry.partsTab);
     public static final Item casing_buckshot = new ItemBase("casing_buckshot").setCreativeTab(MainRegistry.partsTab);
     // Wires and things
-    // Th3_Sl1ze: the only reason why I'm even keeping old wires, plates and etc - I want to convert them to the new meta ones
-    // because why the fuck people should lose half of their resources?
-    // mlbv: no im having them deleted
     public static final Item coil_advanced_alloy = new ItemBase("coil_advanced_alloy").setCreativeTab(MainRegistry.partsTab);
     public static final Item coil_advanced_torus = new ItemBase("coil_advanced_torus").setCreativeTab(MainRegistry.partsTab);
     public static final Item coil_gold = new ItemBase("coil_gold").setCreativeTab(MainRegistry.partsTab);
@@ -1843,6 +1842,7 @@ public class ModItems {
     public static final Item coil_magnetized_tungsten = new ItemCustomLore("coil_magnetized_tungsten").setCreativeTab(MainRegistry.partsTab);
     //Gun ammo
     public static final Item assembly_nuke = new ItemBase("assembly_nuke").setCreativeTab(MainRegistry.partsTab);
+
     public static Item gun_debug;
 
     public static Item gun_pepperbox;
@@ -1921,7 +1921,6 @@ public class ModItems {
     public static final ItemEnumMulti ammo_shell = (ItemEnumMulti) new ItemAmmo("ammo_shell", ItemAmmoEnums.Ammo240Shell.class).setCreativeTab(MainRegistry.weaponTab);
     public static final Item ammo_dgk = new ItemCustomLore("ammo_dgk").setCreativeTab(MainRegistry.weaponTab);
     public static final ItemEnumMulti ammo_fireext = (ItemEnumMulti) new ItemAmmo("ammo_fireext", ItemAmmoEnums.AmmoFireExt.class).setCreativeTab(MainRegistry.weaponTab);
-    // FIXME why do the fuck we have this Bob, if we don't even USE it dammit
     public static final ItemEnumMulti ammo_misc = new ItemAmmo("ammo_misc", ItemAmmoEnums.AmmoMisc.class);
     public static final Item ammo_arty = new ItemAmmoArty("ammo_arty");
     public static final Item ammo_himars = new ItemAmmoHIMARS("ammo_himars");
@@ -1934,7 +1933,6 @@ public class ModItems {
     public static final Item grenade_strong = new ItemGrenade(5, "grenade_strong").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_frag = new ItemGrenade(4, "grenade_frag").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_fire = new ItemGrenade(4, "grenade_fire").setCreativeTab(MainRegistry.weaponTab);
-    //public static final Item ammo_secret = new ItemEnumMulti("ammo_secret", EnumAmmoSecret.class, true, true);
     public static final Item grenade_shrapnel = new ItemGrenade(4, "grenade_shrapnel").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_cluster = new ItemGrenade(5, "grenade_cluster").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_flare = new ItemGrenade(0, "grenade_flare").setCreativeTab(MainRegistry.weaponTab);
@@ -1954,6 +1952,7 @@ public class ModItems {
     public static final Item grenade_nuke = new ItemGrenade(-1, "grenade_nuke").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_lemon = new ItemGrenade(4, "grenade_lemon").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_gascan = new ItemGrenade(-1, "grenade_gascan").setCreativeTab(MainRegistry.weaponTab);
+    public static final Item grenade_kyiv = new ItemGrenadeKyiv(-1, "grenade_kyiv").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_mk2 = new ItemGrenade(5, "grenade_mk2").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_aschrab = new ItemGrenade(-1, "grenade_aschrab").setCreativeTab(MainRegistry.weaponTab);
     public static final Item grenade_nuclear = new ItemGrenade(7, "grenade_nuclear").setCreativeTab(MainRegistry.weaponTab);
@@ -2362,7 +2361,7 @@ public class ModItems {
     public static final Item fluid_icon = new ItemFluidIcon("fluid_icon").setCreativeTab(null);
     //Nuke parts
     public static final Item gadget_explosive = new ItemBase("gadget_explosive").setCreativeTab(MainRegistry.nukeTab);
-    public static final Item gadget_explosive8 = new ItemGadget("gadget_explosive8").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
+    public static final Item early_explosive_lenses = new ItemGadget("gadget_explosive8").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
     public static final Item gadget_wireing = new ItemGadget("gadget_wireing").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
     public static final Item gadget_core = new ItemGadget("gadget_core").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
     public static final Item boy_shielding = new ItemBoy("boy_shielding").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
@@ -2372,7 +2371,7 @@ public class ModItems {
     public static final Item boy_igniter = new ItemBoy("boy_igniter").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
     public static final Item man_core = new ItemManMike("man_core").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
     public static final Item man_explosive = new ItemBase("man_explosive").setCreativeTab(MainRegistry.nukeTab);
-    public static final Item man_explosive8 = new ItemManMike("man_explosive8").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
+    public static final Item explosive_lenses = new ItemManMike("man_explosive8").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
     public static final Item man_igniter = new ItemMan("man_igniter").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
     public static final Item mike_core = new ItemMike("mike_core").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
     public static final Item mike_cooling_unit = new ItemMike("mike_cooling_unit").setMaxStackSize(1).setCreativeTab(MainRegistry.nukeTab);
@@ -2415,6 +2414,9 @@ public class ModItems {
     public static final Item nuke_starter_kit = new ItemStarterKit("nuke_starter_kit").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item nuke_advanced_kit = new ItemStarterKit("nuke_advanced_kit").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
     public static final Item nuke_commercially_kit = new ItemStarterKit("nuke_commercially_kit").setMaxStackSize(1).setCreativeTab(MainRegistry.consumableTab);
+    public static final Item kit_custom = new ItemKitCustom("kit_custom").setCreativeTab(MainRegistry.consumableTab);
+    public static final Item toolbox = new ItemToolBox("toolbox").setCreativeTab(MainRegistry.consumableTab);
+    public static final Item legacy_toolbox = new ItemKitNBT("toolbox_legacy").setContainerItem(toolbox).setCreativeTab(MainRegistry.consumableTab);
     public static final Item loot_10 = new ItemLootCrate("loot_10").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab);
     public static final Item loot_15 = new ItemLootCrate("loot_15").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab);
     public static final Item loot_misc = new ItemLootCrate("loot_misc").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab);
@@ -2461,6 +2463,7 @@ public class ModItems {
     public static final Item missile_endo = new ItemMissileStandard("missile_endo", ItemMissileStandard.MissileFormFactor.HUGE, ItemMissileStandard.MissileTier.TIER3).setCreativeTab(MainRegistry.missileTab);
     public static final Item missile_exo = new ItemMissileStandard("missile_exo", ItemMissileStandard.MissileFormFactor.HUGE, ItemMissileStandard.MissileTier.TIER3).setCreativeTab(MainRegistry.missileTab);
     public static final Item missile_doomsday = new ItemMissileStandard("missile_doomsday", ItemMissileStandard.MissileFormFactor.ATLAS, ItemMissileStandard.MissileTier.TIER4).setCreativeTab(MainRegistry.missileTab);
+    public static final Item missile_doomsday_rusted = new ItemMissileStandard("missile_doomsday_rusted", ItemMissileStandard.MissileFormFactor.ATLAS, ItemMissileStandard.MissileTier.TIER4).notLaunchable().setCreativeTab(MainRegistry.missileTab);
     public static final Item missile_taint = new ItemMissileStandard("missile_taint", ItemMissileStandard.MissileFormFactor.MICRO, ItemMissileStandard.MissileTier.TIER0).setCreativeTab(MainRegistry.missileTab);
     public static final Item missile_micro = new ItemMissileStandard("missile_micro", ItemMissileStandard.MissileFormFactor.MICRO, ItemMissileStandard.MissileTier.TIER0).setCreativeTab(MainRegistry.missileTab);
     public static final Item missile_bhole = new ItemMissileStandard("missile_bhole", ItemMissileStandard.MissileFormFactor.MICRO, ItemMissileStandard.MissileTier.TIER0).setCreativeTab(MainRegistry.missileTab);
@@ -2715,30 +2718,6 @@ public class ModItems {
     public static final Item entanglement_kit = new ItemCustomLore("entanglement_kit").setCreativeTab(MainRegistry.partsTab);
     //Dummy texture items; Note: Use EffectItem to autohide them from JEI
     public static final Item achievement_icon = new ItemEnumMulti("achievement_icon", ItemEnums.EnumAchievementType.class, true, true).setCreativeTab(null);
-    public static final Item smoke1 = new EffectItem("smoke1").setCreativeTab(null);
-    public static final Item smoke2 = new EffectItem("smoke2").setCreativeTab(null);
-    public static final Item smoke3 = new EffectItem("smoke3").setCreativeTab(null);
-    public static final Item smoke4 = new EffectItem("smoke4").setCreativeTab(null);
-    public static final Item smoke5 = new EffectItem("smoke5").setCreativeTab(null);
-    public static final Item smoke6 = new EffectItem("smoke6").setCreativeTab(null);
-    public static final Item smoke7 = new EffectItem("smoke7").setCreativeTab(null);
-    public static final Item smoke8 = new EffectItem("smoke8").setCreativeTab(null);
-    public static final Item b_smoke1 = new EffectItem("b_smoke1").setCreativeTab(null);
-    public static final Item b_smoke2 = new EffectItem("b_smoke2").setCreativeTab(null);
-    public static final Item b_smoke3 = new EffectItem("b_smoke3").setCreativeTab(null);
-    public static final Item b_smoke4 = new EffectItem("b_smoke4").setCreativeTab(null);
-    public static final Item b_smoke5 = new EffectItem("b_smoke5").setCreativeTab(null);
-    public static final Item b_smoke6 = new EffectItem("b_smoke6").setCreativeTab(null);
-    public static final Item b_smoke7 = new EffectItem("b_smoke7").setCreativeTab(null);
-    public static final Item b_smoke8 = new EffectItem("b_smoke8").setCreativeTab(null);
-    public static final Item d_smoke1 = new EffectItem("d_smoke1").setCreativeTab(null);
-    public static final Item d_smoke2 = new EffectItem("d_smoke2").setCreativeTab(null);
-    public static final Item d_smoke3 = new EffectItem("d_smoke3").setCreativeTab(null);
-    public static final Item d_smoke4 = new EffectItem("d_smoke4").setCreativeTab(null);
-    public static final Item d_smoke5 = new EffectItem("d_smoke5").setCreativeTab(null);
-    public static final Item d_smoke6 = new EffectItem("d_smoke6").setCreativeTab(null);
-    public static final Item d_smoke7 = new EffectItem("d_smoke7").setCreativeTab(null);
-    public static final Item d_smoke8 = new EffectItem("d_smoke8").setCreativeTab(null);
     public static final Item cloud1 = new EffectItem("cloud1").setCreativeTab(null);
     public static final Item cloud2 = new EffectItem("cloud2").setCreativeTab(null);
     public static final Item cloud3 = new EffectItem("cloud3").setCreativeTab(null);
@@ -2747,14 +2726,6 @@ public class ModItems {
     public static final Item cloud6 = new EffectItem("cloud6").setCreativeTab(null);
     public static final Item cloud7 = new EffectItem("cloud7").setCreativeTab(null);
     public static final Item cloud8 = new EffectItem("cloud8").setCreativeTab(null);
-    public static final Item gasflame1 = new EffectItem("gasflame1").setCreativeTab(null);
-    public static final Item gasflame2 = new EffectItem("gasflame2").setCreativeTab(null);
-    public static final Item gasflame3 = new EffectItem("gasflame3").setCreativeTab(null);
-    public static final Item gasflame4 = new EffectItem("gasflame4").setCreativeTab(null);
-    public static final Item gasflame5 = new EffectItem("gasflame5").setCreativeTab(null);
-    public static final Item gasflame6 = new EffectItem("gasflame6").setCreativeTab(null);
-    public static final Item gasflame7 = new EffectItem("gasflame7").setCreativeTab(null);
-    public static final Item gasflame8 = new EffectItem("gasflame8").setCreativeTab(null);
     public static final Item flame_1 = new EffectItem("flame_1").setCreativeTab(null);
     public static final Item flame_2 = new EffectItem("flame_2").setCreativeTab(null);
     public static final Item flame_3 = new EffectItem("flame_3").setCreativeTab(null);
@@ -2799,22 +2770,6 @@ public class ModItems {
     public static final Item ln2_8 = new EffectItem("ln2_8").setCreativeTab(null);
     public static final Item ln2_9 = new EffectItem("ln2_9").setCreativeTab(null);
     public static final Item ln2_10 = new EffectItem("ln2_10").setCreativeTab(null);
-    public static final Item gas1 = new EffectItem("gas1").setCreativeTab(null);
-    public static final Item gas2 = new EffectItem("gas2").setCreativeTab(null);
-    public static final Item gas3 = new EffectItem("gas3").setCreativeTab(null);
-    public static final Item gas4 = new EffectItem("gas4").setCreativeTab(null);
-    public static final Item gas5 = new EffectItem("gas5").setCreativeTab(null);
-    public static final Item gas6 = new EffectItem("gas6").setCreativeTab(null);
-    public static final Item gas7 = new EffectItem("gas7").setCreativeTab(null);
-    public static final Item gas8 = new EffectItem("gas8").setCreativeTab(null);
-    public static final Item spill1 = new EffectItem("spill1").setCreativeTab(null);
-    public static final Item spill2 = new EffectItem("spill2").setCreativeTab(null);
-    public static final Item spill3 = new EffectItem("spill3").setCreativeTab(null);
-    public static final Item spill4 = new EffectItem("spill4").setCreativeTab(null);
-    public static final Item spill5 = new EffectItem("spill5").setCreativeTab(null);
-    public static final Item spill6 = new EffectItem("spill6").setCreativeTab(null);
-    public static final Item spill7 = new EffectItem("spill7").setCreativeTab(null);
-    public static final Item spill8 = new EffectItem("spill8").setCreativeTab(null);
     public static final Item nothing = new EffectItem("nothing").setCreativeTab(null);
     public static final Item ducc = new ItemBase("ducc").setCreativeTab(MainRegistry.controlTab);
     public static final Item discharge = new EffectItem("discharge").setCreativeTab(null);
@@ -2854,12 +2809,6 @@ public class ModItems {
             .addAbility(IToolAreaAbility.HAMMER, 3)
             .addAbility(IToolAreaAbility.HAMMER_FLAT, 3)
             .addAbility(IToolAreaAbility.RECURSION, 5);
-
-    public static final Item bucket_mud = new ItemModBucket("bucket_mud", () -> ModBlocks.mud_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
-    public static final Item bucket_acid = new ItemModBucket("bucket_acid", () -> ModBlocks.acid_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
-    public static final Item bucket_toxic = new ItemModBucket("bucket_toxic", () -> ModBlocks.toxic_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
-    public static final Item bucket_schrabidic_acid = new ItemModBucket("bucket_schrabidic_acid", () -> ModBlocks.schrabidic_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
-    public static final Item bucket_sulfuric_acid = new ItemModBucket("bucket_sulfuric_acid", () -> ModBlocks.sulfuric_acid_block).setContainerItem(Items.BUCKET).setCreativeTab(MainRegistry.blockTab);
 
     public static void preInit() {
         GunFactory.init();
