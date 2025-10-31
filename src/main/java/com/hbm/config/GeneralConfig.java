@@ -20,7 +20,7 @@ public class GeneralConfig {
 	public static boolean enableTickBasedWorldGenerator = false;
 	public static boolean enableDebugMode = false;
 	public static boolean enableDebugWorldGen = false;
-	public static boolean enableSkybox = true;
+	public static boolean enableSkyboxes = true;
 	public static boolean enableWelcomeMessage = true;
 	public static boolean enableKeybindOverlap = true;
 	public static boolean enableFluidContainerCompat = true;
@@ -69,6 +69,7 @@ public class GeneralConfig {
 	public static boolean changelog = true;
 	public static boolean registerTanks = true;
 	public static boolean duckButton = true;
+    public static boolean enableGuideBook = true;
 	public static boolean depthEffects = true;
 	public static boolean flashlight = true;
 	public static boolean flashlightVolumetric = true;
@@ -120,7 +121,7 @@ public class GeneralConfig {
 		enableTickBasedWorldGenerator = config.get(CATEGORY_GENERAL, "0.06_enableTickBasedWorldGenerator", false, "Use tick-based phased world generator. This eliminates cascading worldgen, but is incompatible with most chunk pre-generators.\n Do not set to true unless you know what you are doing.").getBoolean(false);
 		enableDebugMode = config.get(CATEGORY_GENERAL, "1.00_enableDebugMode", false).getBoolean(false);
 		enableDebugWorldGen = config.get(CATEGORY_GENERAL, "1.00_enableDebugWorldGen", false).getBoolean(false);
-		enableSkybox = config.get(CATEGORY_GENERAL, "1.00_enableSkybox", true, "Do not set it to false unless you know what you are doing.").getBoolean(true);
+		enableSkyboxes = config.get(CATEGORY_GENERAL, "1.00_enableSkybox", true, "If enabled, will try to use NTM's custom skyboxes.").getBoolean(true);
 		enableMycelium = config.get(CATEGORY_GENERAL, "1.01_enableMyceliumSpread", false).getBoolean(false);
 		enablePlutoniumOre = config.get(CATEGORY_GENERAL, "1.02_enablePlutoniumNetherOre", false).getBoolean(false);
 		enableDungeons = config.get(CATEGORY_GENERAL, "1.03_enableDungeonSpawn", true).getBoolean(true);
@@ -230,7 +231,8 @@ public class GeneralConfig {
 
 		hintPos = CommonConfig.createConfigInt(config, CATEGORY_GENERAL, "1.36_infoOverlayPosition", "Positions where the info overlay will appear (from 0 to 3). 0: Top left\n1: Top right\n2: Center right\n3: Center Left", 0);
 		enableFluidContainerCompat = config.get(CATEGORY_GENERAL, "1.37_enableFluidContainerCompat", true, "If enabled, fluid containers will be oredicted and interchangable in recipes with other mods' containers. Should probably work with things like IE's/GC oil properly.").getBoolean(true);
-		decoToIngotRate = CommonConfig.createConfigInt(config, CATEGORY_GENERAL, "1.38_decoToIngotConversionRate", "Chance of successful turning a deco block into an ingot. Default is 25%", 25);
+        enableGuideBook = config.get(CATEGORY_GENERAL, "1.37_enableGuideBook", true, "If enabled, gives players the guide book when joining the world for the first time").getBoolean(true);
+        decoToIngotRate = CommonConfig.createConfigInt(config, CATEGORY_GENERAL, "1.38_decoToIngotConversionRate", "Chance of successful turning a deco block into an ingot. Default is 25%", 25);
 		enableThreadedAtmospheres = CommonConfig.createConfigBool(config, CATEGORY_GENERAL, "1.39_threadedAtmospheres", "If enabled, will run atmosphere blobbing in a separate thread for performance", true);
 		enableHardcoreDarkness = CommonConfig.createConfigBool(config, CATEGORY_GENERAL, "1.40_hardcoreDarkness", "If enabled, sets night-time minimum fog to zero, to complement hardcore darkness mods", false);
 		enableKeybindOverlap = config.get(CATEGORY_GENERAL, "1.41_enableKeybindOverlap", true, "If enabled, will handle keybinds that would otherwise be ignored due to overlapping.").getBoolean(true);
