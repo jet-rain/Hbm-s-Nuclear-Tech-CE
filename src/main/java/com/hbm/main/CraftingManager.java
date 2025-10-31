@@ -151,11 +151,11 @@ public class CraftingManager {
 		addRecipeAuto(new ItemStack(ModItems.crt_display, 4), " A ", "SGS", " T ", 'A', AL.dust(), 'S', STEEL.plate(), 'G', KEY_ANYPANE, 'T', DictFrame.fromOne(ModItems.circuit, EnumCircuitType.VACUUM_TUBE) );
 
 		addRecipeAuto(new ItemStack(ModItems.cell, 6), " S ", "G G", " S ", 'S', STEEL.plate(), 'G', KEY_ANYPANE );
-		addRecipeAuto(new ItemStack(ModItems.cell, 8, Fluids.DEUTERIUM.getID()), "DDD", "DTD", "DDD", 'D', ModItems.cell, 'T', ModItems.mike_deut );
+		addRecipeAuto(new ItemStack(ModItems.cell, 8, Fluids.DEUTERIUM.getID()), "DDD", "DTD", "DDD", 'D', new ItemStack(ModItems.cell), 'T', ModItems.mike_deut );
 		addRecipeAuto(new ItemStack(ModItems.particle_empty, 2), "STS", "G G", "STS", 'S', PB.plateCast(), 'T', ModItems.coil_gold, 'G', KEY_ANYPANE );
 		addShapelessAuto(new ItemStack(ModItems.particle_copper, 1), ModItems.particle_empty, CU.dust(), ModItems.pellet_charged );
 		addShapelessAuto(new ItemStack(ModItems.particle_lead, 1), ModItems.particle_empty, PB.dust(), ModItems.pellet_charged );
-		addShapelessAuto(new ItemStack(ModItems.cell, 1, Fluids.AMAT.getID()), ModItems.particle_aproton, ModItems.particle_aelectron, ModItems.cell );
+		addShapelessAuto(new ItemStack(ModItems.cell, 1, Fluids.AMAT.getID()), ModItems.particle_aproton, ModItems.particle_aelectron, new ItemStack(ModItems.cell) );
 		addShapelessAuto(new ItemStack(ModItems.particle_amat, 1), ModItems.particle_aproton, ModItems.particle_aelectron, ModItems.particle_empty );
 
 		addRecipeAuto(new ItemStack(ModItems.canister_empty, 2), "S ", "AA", "AA", 'S', STEEL.plate(), 'A', AL.plate() );
@@ -870,18 +870,6 @@ public class CraftingManager {
 		addRecipeAuto(new ItemStack(ModBlocks.rbmk_steam_inlet, 1), "SCS", "CBC", "SCS", 'S', STEEL.ingot(), 'C', IRON.plate(), 'B', ModItems.tank_steel );
 		addRecipeAuto(new ItemStack(ModBlocks.rbmk_steam_outlet, 1), "SCS", "CBC", "SCS", 'S', STEEL.ingot(), 'C', CU.plate(), 'B', ModItems.tank_steel );
 		//addRecipeAuto(new ItemStack(ModBlocks.rbmk_heatex, 1), "SCS", "CBC", "SCS", 'S', STEEL.ingot(), 'C', CU.plate(), 'B', ModItems.pipes_steel );
-
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_fuelrod, 4), "LZL", "L L", "LZL", 'L', PB.plate528(), 'Z', ZR.plateWelded() );
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_control, 4), "SBS", "MBM", "SBS", 'S', STEEL.plate528(), 'B', B.ingot(), 'M', ModItems.motor );
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_channel, 4), "CPC", "BPB", "CPC", 'C', CU.ingot(), 'P', STEEL.pipe(), 'B', ANY_PLASTIC.ingot() );
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_heatex, 4), "CSC", "SMS", "CSC", 'C', CU.plateCast(), 'S', STEEL.plate528(), 'M', ModItems.motor );
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_heatsink, 4), "SCS", "CRC", "SCS", 'S', BIGMT.plateCast(), 'C', CU.plate(), 'R', RUBBER.ingot() );
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_reflector, 4), "RLR", "LSL", "RLR", 'R', OreDictManager.getReflector(), 'L', PB.plate528(), 'S', STEEL.plateCast() );
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_casing, 4), "LCL", "CSC", "LCL", 'L', PB.plate528(), 'C', ANY_CONCRETE.any(), 'S', STEEL.plateCast() );
-		// TODO: expensive mod (eehhhh..)
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_controller, 1), "CPC", "PSP", "CPC", 'C', ModBlocks.pwr_casing, 'P', ANY_PLASTIC.ingot(), 'S', DictFrame.fromOne(ModItems.circuit, EnumCircuitType.BASIC));
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_port, 1), "S", "C", "S", 'S', STEEL.plate(), 'C', ModBlocks.pwr_casing );
-		addRecipeAuto(new ItemStack(ModBlocks.pwr_neutron_source, 1), "LRL", "ZRZ", "LRL", 'L', PB.plate528(), 'R', ModItems.billet_ra226be, 'Z', ZR.plateCast() );
 
 		addRecipeAuto(new ItemStack(ModBlocks.deco_rbmk, 8), "R", 'R', ModBlocks.rbmk_blank );
 		addRecipeAuto(new ItemStack(ModBlocks.deco_rbmk_smooth, 1), "R", 'R', ModBlocks.deco_rbmk );

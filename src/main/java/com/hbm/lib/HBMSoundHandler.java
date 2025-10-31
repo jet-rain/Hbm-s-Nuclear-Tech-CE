@@ -28,6 +28,8 @@ public final class HBMSoundHandler {
     public static SoundEvent techBoop;
     public static SoundEvent hornNearSingle;
     public static SoundEvent hornNearDual;
+    public static SoundEvent largeTurbineRunning;
+    public static SoundEvent engine;
     public static SoundEvent hornFarSingle;
     public static SoundEvent hornFarDual;
     public static SoundEvent reactorLoop;
@@ -352,6 +354,7 @@ public final class HBMSoundHandler {
     public static SoundEvent assemblerStrike;
     public static SoundEvent assemblerStart;
     public static SoundEvent assemblerStop;
+    public static SoundEvent meteoriteFallingLoop;
     public static SoundEvent assemblerCut;
 
     public static SoundEvent alarmHatch = registerBypass("alarm.hatch");
@@ -410,6 +413,7 @@ public final class HBMSoundHandler {
         assemblerOperate = register("block.assembleroperate");
         fel = register("block.fel");
         hephaestusRunning = register("block.hephaestusRunning");
+        meteoriteFallingLoop = register("entity.meteoriteFallingLoop");
         pressOperate = register("block.pressoperate");
         laserBang = register("weapon.laserBang");
         blockDebris = register("block.debris");
@@ -420,6 +424,8 @@ public final class HBMSoundHandler {
         techBleep = register("item.techBleep");
         techBoop = register("item.techBoop");
         hornNearSingle = register("block.hornNearSingle");
+        largeTurbineRunning = register("block.largeTurbine");
+        engine = register("block.engine");
         hornNearDual = register("block.hornNearDual");
         hornFarSingle = register("block.hornFarSingle");
         hornFarDual = register("block.hornFarDual");

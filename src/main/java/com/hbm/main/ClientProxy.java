@@ -63,10 +63,7 @@ import com.hbm.sound.AudioWrapper;
 import com.hbm.sound.AudioWrapperClient;
 import com.hbm.sound.AudioWrapperClientStartStop;
 import com.hbm.sound.SoundLoopCrucible;
-import com.hbm.util.BobMathUtil;
-import com.hbm.util.ColorUtil;
-import com.hbm.util.I18nUtil;
-import com.hbm.util.Vec3dUtil;
+import com.hbm.util.*;
 import com.hbm.wiaj.cannery.Jars;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import net.minecraft.block.Block;
@@ -116,7 +113,9 @@ import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.Level;
@@ -259,6 +258,7 @@ public class ClientProxy extends ServerProxy {
         ModelLoader.setCustomStateMapper(ModBlocks.door_bunker, new StateMap.Builder().ignore(BlockModDoor.POWERED).build());
         ModelLoader.setCustomStateMapper(ModBlocks.door_metal, new StateMap.Builder().ignore(BlockModDoor.POWERED).build());
         ModelLoader.setCustomStateMapper(ModBlocks.door_office, new StateMap.Builder().ignore(BlockModDoor.POWERED).build());
+        ModelLoader.setCustomStateMapper(ModBlocks.door_red, new StateMap.Builder().ignore(BlockModDoor.POWERED).build());
 
         ModelLoader.setCustomStateMapper(ModBlocks.toxic_block, new StateMap.Builder().ignore(BlockFluidClassic.LEVEL).build());
         ModelLoader.setCustomStateMapper(ModBlocks.mud_block, new StateMap.Builder().ignore(BlockFluidClassic.LEVEL).build());
@@ -296,7 +296,6 @@ public class ClientProxy extends ServerProxy {
     public void registerMissileItems(IRegistry<ModelResourceLocation, IBakedModel> reg) {
         MissilePart.registerAllParts();
 
-        //Iterator<Map.Entry<Integer, MissilePart>> it = MissilePart.parts.entrySet().iterator();
         MissilePart.parts.values().forEach(part -> {
             registerItemRenderer(part.part, new ItemRenderMissilePart(part), reg);
         });
@@ -804,32 +803,13 @@ public class ClientProxy extends ServerProxy {
                     default -> throw new IllegalStateException("Unexpected value: " + mode);
                 }
             }
-            case "muke" -> {
+            case "muke" -> { // muted nuke
                 ParticleMukeWave wave = new ParticleMukeWave(world, x, y, z);
+                ParticleMukeFlash flash = new ParticleMukeFlash(world, x, y, z, data.getBoolean("balefire"));
+
                 Minecraft.getMinecraft().effectRenderer.addEffect(wave);
+                Minecraft.getMinecraft().effectRenderer.addEffect(flash);
 
-                for(double d = 0.0D; d <= 1.6D; d += 0.1) {
-                    ParticleMukeCloud cloud = new ParticleMukeCloud(world, x, y, z, rand.nextGaussian() * 0.05, d + rand.nextGaussian() * 0.02, rand.nextGaussian() * 0.05);
-                    Minecraft.getMinecraft().effectRenderer.addEffect(cloud);
-                }
-                for(int i = 0; i < 50; i++) {
-                    ParticleMukeCloud cloud = new ParticleMukeCloud(world, x, y + 0.5, z, rand.nextGaussian() * 0.5, rand.nextInt(5) == 0 ? 0.02 : 0, rand.nextGaussian() * 0.5);
-                    Minecraft.getMinecraft().effectRenderer.addEffect(cloud);
-                }
-                for(int i = 0; i < 15; i++) {
-                    double ix = rand.nextGaussian() * 0.2;
-                    double iz = rand.nextGaussian() * 0.2;
-
-                    if(ix * ix + iz * iz > 0.75) {
-                        ix *= 0.5;
-                        iz *= 0.5;
-                    }
-
-                    double iy = 1.6 + (rand.nextDouble() * 2 - 1) * (0.75 - (ix * ix + iz * iz)) * 0.5;
-
-                    ParticleMukeCloud cloud = new ParticleMukeCloud(world, x, y, z, ix, iy + rand.nextGaussian() * 0.02, iz);
-                    Minecraft.getMinecraft().effectRenderer.addEffect(cloud);
-                }
                 player.hurtTime = 15;
                 player.maxHurtTime = 15;
                 player.attackedAtYaw = 0F;
@@ -1079,6 +1059,10 @@ public class ClientProxy extends ServerProxy {
                             (float) mY, (float) mZ);
                     case "bluedust" -> new ParticleRedstone.Factory().createParticle(-1, world, x, y, z, 0.01F, 0.01F, 1F);
                     case "greendust" -> new ParticleRedstone.Factory().createParticle(-1, world, x, y, z, 0.01F, 0.5F, 0.1F);
+                    case "fireworks" -> {
+                        world.spawnParticle(EnumParticleTypes.FIREWORKS_SPARK, x, y, z, 0, 0, 0);
+                        yield null;
+                    }
                     case "largeexplode" -> {
                         Particle particle = new ParticleExplosionLarge.Factory().createParticle(-1, world, x, y, z, data.getFloat(
                                 "size"), 0.0F, 0.0F);
@@ -1121,14 +1105,15 @@ public class ClientProxy extends ServerProxy {
                     }
                     default -> throw new IllegalStateException("Unexpected value: " + mode);
                 };
+                if (fx != null) {
+                    fx.canCollide = !data.getBoolean("noclip");
 
-                fx.canCollide = !data.getBoolean("noclip");
+                    if (data.getInteger("overrideAge") > 0) {
+                        fx.setMaxAge(data.getInteger("overrideAge"));
+                    }
 
-                if(data.getInteger("overrideAge") > 0) {
-                    fx.setMaxAge(data.getInteger("overrideAge"));
+                    Minecraft.getMinecraft().effectRenderer.addEffect(fx);
                 }
-
-                Minecraft.getMinecraft().effectRenderer.addEffect(fx);
             }
             case "spark" -> {
                 String mode = data.getString("mode");
@@ -1870,6 +1855,21 @@ public class ClientProxy extends ServerProxy {
     }
 
     @Override
+    public float getImpactDust(World world) {
+        return ImpactWorldHandler.getDustForClient(world);
+    }
+
+    @Override
+    public float getImpactFire(World world) {
+        return ImpactWorldHandler.getFireForClient(world);
+    }
+
+    @Override
+    public boolean getImpact(World world) {
+        return ImpactWorldHandler.getImpactForClient(world);
+    }
+
+    @Override
     public int getStackColor(@NotNull ItemStack stack, boolean amplify) {
         if(stack.isEmpty()) return 0x000000;
         int color;
@@ -1884,5 +1884,10 @@ public class ClientProxy extends ServerProxy {
         } else color = ColorUtil.getAverageColorFromStack(stack);
         if(amplify) color = ColorUtil.amplifyColor(color);
         return color;
+    }
+
+
+    public void onLoadComplete(FMLLoadCompleteEvent event){
+        if (!Loader.isModLoaded(Compat.ModIds.CTM)) ModEventHandlerClient.ctmWarning = true;
     }
 }

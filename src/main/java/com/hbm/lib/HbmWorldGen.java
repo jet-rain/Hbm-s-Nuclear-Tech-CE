@@ -224,7 +224,7 @@ public class HbmWorldGen implements IWorldGenerator {
         //End ores
         DungeonToolbox.generateOre(world, rand, i, j, parseInt(CompatibilityConfig.endTixiteSpawn.get(dimID)), 6, 0, 127, ModBlocks.ore_tikite, Blocks.END_STONE);
 
-        if (dimID == 0 && GeneralConfig.enable528) {
+        if (dimID == 0) {
             Random colRand = new Random(world.getSeed() + 5);
             int colX = (int) (colRand.nextGaussian() * 1500);
             int colZ = (int) (colRand.nextGaussian() * 1500);
@@ -768,6 +768,17 @@ public class HbmWorldGen implements IWorldGenerator {
                                 world.getTileEntity(new BlockPos(-10000, 250, -10000)), 29);
                     }
                 }
+            }
+        }
+
+        if(rand.nextInt(4) == 0) {
+            int x = i + rand.nextInt(16) + 8;
+            int y = 6 + rand.nextInt(13);
+            int z = j + rand.nextInt(16) + 8;
+            IBlockState state = world.getBlockState(new BlockPos(x, y, z));
+
+            if(state.getBlock().isReplaceableOreGen(state, world, new BlockPos(x, y, z), BlockMatcher.forBlock(Blocks.STONE))) {
+                world.setBlockState(new BlockPos(x, y, z), ModBlocks.stone_keyhole.getDefaultState());
             }
         }
     }

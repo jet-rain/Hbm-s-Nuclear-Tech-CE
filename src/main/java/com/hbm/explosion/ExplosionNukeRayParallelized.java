@@ -1,17 +1,19 @@
 package com.hbm.explosion;
 
+import com.github.bsideup.jabel.Desugar;
 import com.hbm.config.BombConfig;
 import com.hbm.config.CompatibilityConfig;
+import com.hbm.interfaces.BitMask;
 import com.hbm.interfaces.IExplosionRay;
 import com.hbm.interfaces.ServerThread;
 import com.hbm.lib.Library;
 import com.hbm.lib.TLPool;
-import com.hbm.lib.maps.LongObjectConsumer;
 import com.hbm.lib.maps.NonBlockingHashMapLong;
 import com.hbm.main.MainRegistry;
 import com.hbm.util.ChunkUtil;
 import com.hbm.util.ConcurrentBitSet;
 import com.hbm.util.MpscIntArrayListCollector;
+import com.hbm.util.OffHeapBitSet;
 import it.unimi.dsi.fastutil.ints.*;
 import it.unimi.dsi.fastutil.longs.*;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
@@ -34,9 +36,7 @@ import org.jctools.queues.atomic.MpscLinkedAtomicQueue;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.TimeUnit;
@@ -44,15 +44,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.hbm.config.BombConfig.safeCommit;
+
 /**
  * Threaded DDA raytracer for mk5 explosion.
  *
  * @author mlbv
  */
 public class ExplosionNukeRayParallelized implements IExplosionRay {
-
     private static final int WORLD_HEIGHT = 256;
     private static final int BITSET_SIZE = 16 * WORLD_HEIGHT * 16;
+    private static final int SUB_MASK_SIZE = 16 * 16 * 16;
     private static final int SUBCHUNK_PER_CHUNK = WORLD_HEIGHT >> 4;
     private static final float NUKE_RESISTANCE_CUTOFF = 2_000_000F;
     private static final float INITIAL_ENERGY_FACTOR = 0.3F; // Scales crater, no impact on performance
@@ -77,6 +79,9 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
     private static final TLPool<IntDoubleAccumulator> ACC_POOL = new TLPool<>(IntDoubleAccumulator::new, IntDoubleAccumulator::clear, 16, 4096);
     private static final ThreadLocal<LongArrayList> TL_TE = ThreadLocal.withInitial(() -> new LongArrayList(16));
     private static final ThreadLocal<LongOpenHashSet> TL_EDGES = ThreadLocal.withInitial(() -> new LongOpenHashSet(64));
+    private static final TLPool<LongArrayList> LONG_LIST_POOL = new TLPool<>(() -> new LongArrayList(64), LongArrayList::clear, 8, 512);
+    private static final TLPool<Long2IntOpenHashMap> LONG2INT_POOL = new TLPool<>(Long2IntOpenHashMap::new, Long2IntOpenHashMap::clear, 4, 256);
+    private static final TLPool<IntArrayList> INT_LIST_POOL = new TLPool<>(() -> new IntArrayList(64), IntArrayList::clear, 16, 512);
 
     static {
         for (int r = 0; r < LUT_RESISTANCE_BINS; r++) {
@@ -97,12 +102,15 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
     private final NonBlockingHashMapLong<ConcurrentBitSet> destructionMap;
     private final NonBlockingHashMapLong<ChunkAgg> aggMap;
     private final NonBlockingHashMapLong<MpscIntArrayListCollector> waitingRoom;
-    private final NonBlockingHashMapLong<LongObjectConsumer<ExtendedBlockStorage[]>> postLoadActions;
+    private final NonBlockingHashMapLong<MpscLinkedAtomicQueue<ResumeItem>> postLoadQueues;
     private final MpscLinkedAtomicQueue<Long> chunkLoadQueue;
     private final Long2IntOpenHashMap sectionMaskByChunk;
+    private final MpscLinkedAtomicQueue<PendingCarve> pendingCarves = new MpscLinkedAtomicQueue<>();
     private final AtomicBoolean mapAcquired = new AtomicBoolean(false);
+    private final AtomicBoolean consolidationStarted = new AtomicBoolean(false);
     private final AtomicInteger pendingRays;
     private final AtomicInteger pendingCarveNotifies = new AtomicInteger(0);
+    private final CarveApplier applier;
     private int algorithm;
     private int rayCount;
     private ForkJoinPool pool;
@@ -129,6 +137,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         this.strength = strength;
         this.radius = radius;
         this.invRadius = radius > 0 ? 1.0 / radius : 0.0;
+        this.applier = safeCommit ? new SafeApplier() : new FastApplier();
 
         if (!CompatibilityConfig.isWarDim(world)) {
             this.collectFinished = true;
@@ -140,7 +149,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
             this.destructionMap = new NonBlockingHashMapLong<>(16);
             this.aggMap = new NonBlockingHashMapLong<>(16);
             this.waitingRoom = new NonBlockingHashMapLong<>(16);
-            this.postLoadActions = new NonBlockingHashMapLong<>(16);
+            this.postLoadQueues = new NonBlockingHashMapLong<>(16);
             this.sectionMaskByChunk = new Long2IntOpenHashMap(0);
             this.sectionMaskByChunk.defaultReturnValue(0);
             this.pendingRays = new AtomicInteger(0);
@@ -160,7 +169,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         this.destructionMap = new NonBlockingHashMapLong<>(chunkCap);
         this.aggMap = new NonBlockingHashMapLong<>(chunkCap);
         this.waitingRoom = new NonBlockingHashMapLong<>(subChunkCap);
-        this.postLoadActions = new NonBlockingHashMapLong<>(subChunkCap);
+        this.postLoadQueues = new NonBlockingHashMapLong<>(subChunkCap);
         this.sectionMaskByChunk = new Long2IntOpenHashMap(estimatedChunkCount);
         this.sectionMaskByChunk.defaultReturnValue(0);
     }
@@ -246,13 +255,11 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         mapAcquired.set(true);
         int processors = Runtime.getRuntime().availableProcessors();
         int workers = BombConfig.maxThreads <= 0 ? Math.max(1, processors + BombConfig.maxThreads) : Math.min(BombConfig.maxThreads, processors);
-        this.pool = new ForkJoinPool(workers);
-
-        CompletableFuture.runAsync(() -> pool.invoke(new RayTracerTask(0, rayCount, computeTaskGrain(rayCount, 16))), pool).exceptionally(ex -> {
-            MainRegistry.logger.error("Nuke ray-tracing failed catastrophically.", ex);
+        this.pool = new ForkJoinPool(workers, ForkJoinPool.defaultForkJoinWorkerThreadFactory, (t, ex) -> {
+            MainRegistry.logger.error("Nuke ray-tracing crashed in {}", t.getName(), ex);
             onAllRaysFinished();
-            return null;
-        });
+        }, false);
+        pool.submit(new RayTracerTask(0, rayCount, computeTaskGrain(rayCount, 16)));
     }
 
     private int computeTaskGrain(int totalRays, int perWorker) {
@@ -263,9 +270,10 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
     }
 
     private void onAllRaysFinished() {
-        if (collectFinished) return;
         collectFinished = true;
-        pool.submit(this::runConsolidation);
+        if (consolidationStarted.compareAndSet(false, true)) {
+            pool.submit(this::runConsolidation);
+        }
     }
 
     @ServerThread
@@ -288,9 +296,39 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
                 pool.submit(new ResumeBatchTask(batch, 0, batch.size(), computeTaskGrain(batch.size(), 16)));
             }
         }
-        if (pool != null && !pool.isShutdown()) {
-            LongObjectConsumer<ExtendedBlockStorage[]> r = postLoadActions.remove(chunkPos);
-            if (r != null) pool.submit(() -> r.accept(chunkPos, chunk.getBlockStorageArray()));
+
+        MpscLinkedAtomicQueue<ResumeItem> q = postLoadQueues.remove(chunkPos);
+        if (q != null && pool != null && !pool.isShutdown()) {
+            List<CarveSubTask> rebuilt = new ArrayList<>();
+            ExtendedBlockStorage[] ebs = chunk.getBlockStorageArray();
+            int cx = ChunkUtil.getChunkPosX(chunkPos);
+            int cz = ChunkUtil.getChunkPosZ(chunkPos);
+            ResumeItem item;
+            while ((item = q.poll()) != null) {
+                switch (item.kind) {
+                    case ResumeItem.CARVE:
+                        CarveSubTask t = prepareOneSub(cx, cz, item.subY, item.mask, ebs);
+                        if (t != null) rebuilt.add(t);
+                        else item.mask.free();
+                        break;
+                    case ResumeItem.APPLY_MASKS:
+                        Int2ObjectOpenHashMap<BitMask> masks = item.masks;
+                        pool.submit(() -> {
+                            applier.apply(chunkPos, ebs, masks);
+                            maybeFinish();
+                        });
+                        break;
+                    case ResumeItem.APPLY_AGG:
+                        ChunkAgg agg = item.agg;
+                        pool.submit(() -> {
+                            applier.apply(chunkPos, ebs, buildMasksFromAgg(agg, ebs));
+                            agg.clear();
+                            maybeFinish();
+                        });
+                        break;
+                }
+            }
+            if (!rebuilt.isEmpty()) pendingCarves.add(new PendingCarve(chunkPos, rebuilt));
         }
     }
 
@@ -341,6 +379,79 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         return isContained;
     }
 
+    private static Int2ObjectOpenHashMap<BitMask> splitBySubchunk(@NotNull ConcurrentBitSet chunkMask) {
+        Int2ObjectOpenHashMap<BitMask> m = new Int2ObjectOpenHashMap<>();
+        int bit = chunkMask.nextSetBit(0);
+        while (bit >= 0) {
+            int yGlobal = WORLD_HEIGHT - 1 - (bit >>> 8);
+            int subY = yGlobal >>> 4;
+            int xLocal = (bit >>> 4) & 0xF;
+            int zLocal = bit & 0xF;
+            int yLocal = yGlobal & 0xF;
+            int localIndex = xLocal | (zLocal << 4) | (yLocal << 8);
+            m.computeIfAbsent(subY, k -> new OffHeapBitSet(SUB_MASK_SIZE)).set(localIndex);
+            bit = chunkMask.nextSetBit(bit + 1);
+        }
+        return m;
+    }
+
+    private static Int2ObjectOpenHashMap<BitMask> buildMasksFromAgg(@NotNull ChunkAgg agg, @NotNull ExtendedBlockStorage[] storages) {
+        Int2ObjectOpenHashMap<BitMask> subChunkBitSets = new Int2ObjectOpenHashMap<>();
+        Int2DoubleOpenHashMap dmg = agg.damage;
+        Int2DoubleOpenHashMap len = agg.passLen;
+
+        if (!dmg.isEmpty()) {
+            ObjectIterator<Int2DoubleMap.Entry> iterator = dmg.int2DoubleEntrySet().fastIterator();
+            while (iterator.hasNext()) {
+                Int2DoubleOpenHashMap.Entry e = iterator.next();
+                int bitIndex = e.getIntKey(); // global index
+                int yGlobal = WORLD_HEIGHT - 1 - (bitIndex >>> 8);
+                int subY = yGlobal >>> 4;
+                int xLocal = (bitIndex >>> 4) & 0xF;
+                int zLocal = bitIndex & 0xF;
+                int yLocal = yGlobal & 0xF;
+                int localIndex = xLocal | (zLocal << 4) | (yLocal << 8);
+                if (shouldDestroy(bitIndex, storages, e.getDoubleValue(), len.get(bitIndex))) {
+                    subChunkBitSets.computeIfAbsent(subY, k -> new OffHeapBitSet(SUB_MASK_SIZE)).set(localIndex);
+                }
+            }
+        }
+
+        if (!len.isEmpty()) {
+            ObjectIterator<Int2DoubleMap.Entry> iterator = len.int2DoubleEntrySet().fastIterator();
+            while (iterator.hasNext()) {
+                Int2DoubleOpenHashMap.Entry e = iterator.next();
+                int bitIndex = e.getIntKey(); // global index
+                if (dmg.containsKey(bitIndex)) continue;
+                int yGlobal = WORLD_HEIGHT - 1 - (bitIndex >>> 8);
+                int subY = yGlobal >>> 4;
+                int xLocal = (bitIndex >>> 4) & 0xF;
+                int zLocal = bitIndex & 0xF;
+                int yLocal = yGlobal & 0xF;
+                int localIndex = xLocal | (zLocal << 4) | (yLocal << 8);
+                if (shouldDestroy(bitIndex, storages, 0.0, e.getDoubleValue())) {
+                    subChunkBitSets.computeIfAbsent(subY, k -> new OffHeapBitSet(SUB_MASK_SIZE)).set(localIndex);
+                }
+            }
+        }
+        return subChunkBitSets;
+    }
+
+    private static boolean shouldDestroy(int bitIndex, ExtendedBlockStorage[] storages, double accumulatedDamage, double passLen) {
+        final int yGlobal = WORLD_HEIGHT - 1 - (bitIndex >>> 8);
+        final int subY = yGlobal >>> 4;
+        final ExtendedBlockStorage s = storages[subY];
+        if (s == Chunk.NULL_BLOCK_STORAGE || s.isEmpty()) return false;
+        final int xLocal = (bitIndex >>> 4) & 0xF;
+        final int zLocal = bitIndex & 0xF;
+        final int yLocal = yGlobal & 0xF;
+        final IBlockState st = s.get(xLocal, yLocal, zLocal);
+        if (st.getBlock() == Blocks.AIR) return false;
+        final float resistance = getNukeResistance(st);
+        if (accumulatedDamage >= (resistance * DAMAGE_THRESHOLD_MULT)) return true;
+        return resistance <= LOW_R_BOUND && passLen >= LOW_R_PASS_LENGTH_BREAK;
+    }
+
     @Override
     public void setDetonator(UUID detonator) {
         this.detonator = detonator;
@@ -348,7 +459,18 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
 
     @Override
     public void update(int processTimeMs) {
-        loadMissingChunks(processTimeMs);
+        if (safeCommit) {
+            final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(processTimeMs);
+            loadMissingChunks(processTimeMs / 2);
+            while (System.nanoTime() < deadline) {
+                PendingCarve job = pendingCarves.poll();
+                if (job == null) break;
+                applyCarveJobOnMain(job);
+            }
+            maybeFinish();
+        } else {
+            loadMissingChunks(processTimeMs);
+        }
     }
 
     @Override
@@ -358,8 +480,40 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         this.destroyFinished = true;
 
         if (this.waitingRoom != null) this.waitingRoom.clear();
-        if (this.postLoadActions != null) this.postLoadActions.clear();
         if (this.sectionMaskByChunk != null) this.sectionMaskByChunk.clear();
+        PendingCarve job;
+        while ((job = this.pendingCarves.poll()) != null) {
+            for (CarveSubTask t : job.tasks()) {
+                if (t != null && t.mask != null) t.mask.free();
+            }
+        }
+        if (this.postLoadQueues != null) {
+            long[] keys = this.postLoadQueues.keySetLong();
+            for (long cp : keys) {
+                MpscLinkedAtomicQueue<ResumeItem> q = this.postLoadQueues.remove(cp);
+                if (q != null) {
+                    ResumeItem item;
+                    while ((item = q.poll()) != null) {
+                        switch (item.kind) {
+                            case ResumeItem.CARVE:
+                                if (item.mask != null) item.mask.free();
+                                break;
+                            case ResumeItem.APPLY_MASKS:
+                                if (item.masks != null) {
+                                    ObjectIterator<Int2ObjectMap.Entry<BitMask>> it = item.masks.int2ObjectEntrySet().fastIterator();
+                                    while (it.hasNext()) it.next().getValue().free();
+                                    item.masks.clear();
+                                }
+                                break;
+                            case ResumeItem.APPLY_AGG:
+                                if (item.agg != null) item.agg.clear();
+                                break;
+                        }
+                    }
+                }
+            }
+            this.postLoadQueues.clear();
+        }
 
         if (this.pool != null && !this.pool.isShutdown()) {
             this.pool.shutdownNow();
@@ -378,10 +532,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
     }
 
     /**
-     * Ideal LifeCycle: <p>
-     * ParallelStream(worker ->
-     *          calculateForChunk(chunk, toApply -> this::tryCAS).whenComplete(chunk -> notifyMainThread(chunk))
-     *      ).whenComplete(this::secondPass)
+     * Run once all rays finish. Converts sources → masks → applies via applier.
      */
     private void runConsolidation() {
         if (algorithm == 2) {
@@ -390,16 +541,14 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
                 if (agg == null) return;
                 agg.drainUnlocked();
 
-                aggMap.remove(cpLong);
                 ExtendedBlockStorage[] storages = ChunkUtil.getLoadedEBS(world, cpLong);
                 if (storages == null) {
-                    enqueueResumableForMissingChunk(cpLong, (cp, ebs) -> {
-                        aggChunk(cp, agg, ebs);
-                        maybeFinish();
-                    });
-                    return;
+                    enqueueForMissingChunk(cpLong, new ResumeItem(agg));
+                } else {
+                    applier.apply(cpLong, storages, buildMasksFromAgg(agg, storages));
+                    agg.clear();
+                    aggMap.remove(cpLong);
                 }
-                aggChunk(cpLong, agg, storages);
             });
             aggMap.clear();
         } else {
@@ -410,15 +559,12 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
                     return;
                 }
                 ExtendedBlockStorage[] storages = ChunkUtil.getLoadedEBS(world, cpLong);
+                Int2ObjectOpenHashMap<BitMask> masks = splitBySubchunk(chunkBitSet);
                 if (storages == null) {
-                    enqueueResumableForMissingChunk(cpLong, (cp, ebs) -> {
-                        final ConcurrentBitSet latest = destructionMap.remove(cp);
-                        if (latest != null && !latest.isEmpty()) carveChunk(cp, latest, ebs);
-                        maybeFinish();
-                    });
-                    return;
+                    enqueueForMissingChunk(cpLong, new ResumeItem(masks));
+                } else {
+                    applier.apply(cpLong, storages, masks);
                 }
-                carveChunk(cpLong, chunkBitSet, storages);
                 destructionMap.remove(cpLong);
             });
         }
@@ -427,8 +573,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
     }
 
     private void maybeFinish() {
-        if (collectFinished && consolidationFinished && !destroyFinished && pendingCarveNotifies.get() == 0 && waitingRoom.isEmpty() &&
-            postLoadActions.isEmpty()) {
+        if (collectFinished && consolidationFinished && !destroyFinished && pendingCarveNotifies.get() == 0 && (!safeCommit || pendingCarves.isEmpty()) && waitingRoom.isEmpty() && postLoadQueues.isEmpty()) {
             world.addScheduledTask(() -> {
                 secondPass();
                 destroyFinished = true;
@@ -438,32 +583,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         }
     }
 
-    /**
-     * Algorithm 1
-     */
-    private void carveChunk(long cpLong, ConcurrentBitSet chunkBitSet, ExtendedBlockStorage[] storages) {
-        final LongArrayList teRemovals = new LongArrayList(64);
-        final LongArrayList neighborNotifies = new LongArrayList(128);
-        int selfMask = 0;
-        final Long2IntOpenHashMap neighborMask = new Long2IntOpenHashMap();
-
-        for (int subY = 0; subY < SUBCHUNK_PER_CHUNK; subY++) {
-            final int startBit = (WORLD_HEIGHT - 1 - ((subY << 4) + 15)) << 8;
-            final int endBit = ((WORLD_HEIGHT - 1 - (subY << 4)) << 8) | 0xFF;
-            final int firstBit = chunkBitSet.nextSetBit(startBit);
-            if (firstBit < 0 || firstBit > endBit) continue;
-
-            ExtendedBlockStorage current = storages[subY];
-            if (current == Chunk.NULL_BLOCK_STORAGE || current.isEmpty()) {
-                selfMask |= (1 << subY);
-                continue;
-            }
-            selfMask = carveSubchunkAndSwap(chunkBitSet, cpLong, storages, teRemovals, neighborNotifies, selfMask, neighborMask, subY);
-        }
-        notifyMainThread(cpLong, teRemovals, neighborNotifies, selfMask, neighborMask);
-    }
-
-    private int carveSubchunkAndSwap(ConcurrentBitSet chunkBitSet, long cpLong, ExtendedBlockStorage[] storages, LongArrayList teRemovals, LongArrayList neighborNotifies, int selfMask, Long2IntOpenHashMap neighborMask, int subY) {
+    private int carveSubchunkAndSwap(BitMask subMask, long cpLong, ExtendedBlockStorage[] storages, LongArrayList teRemovals, LongArrayList neighborNotifies, int selfMask, Long2IntOpenHashMap neighborMask, int subY) {
         final int cx = ChunkUtil.getChunkPosX(cpLong);
         final int cz = ChunkUtil.getChunkPosZ(cpLong);
 
@@ -479,7 +599,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         edges.clear();
 
         while (true) {
-            final ExtendedBlockStorage carved = ChunkUtil.copyAndCarve(world, cx, cz, subY, storages, chunkBitSet, te, edges);
+            final ExtendedBlockStorage carved = ChunkUtil.copyAndCarveLocal(world, cx, cz, subY, storages, subMask, te, edges);
             if (ChunkUtil.casEbsAt(expected, carved, storages, subY)) {
                 selfMask |= (1 << subY);
                 for (int i = 0, n = te.size(); i < n; i++) teRemovals.add(te.getLong(i));
@@ -509,82 +629,17 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         return selfMask;
     }
 
-    private void aggChunk(long cpLong, ChunkAgg agg, ExtendedBlockStorage[] storages) {
-        Int2ObjectOpenHashMap<ConcurrentBitSet> subChunkBitSets = new Int2ObjectOpenHashMap<>();
-        Int2DoubleOpenHashMap dmg = agg.damage;
-        Int2DoubleOpenHashMap len = agg.passLen;
-
-        if (!dmg.isEmpty()) {
-            ObjectIterator<Int2DoubleMap.Entry> iterator = dmg.int2DoubleEntrySet().fastIterator();
-            while (iterator.hasNext()) {
-                Int2DoubleOpenHashMap.Entry e = iterator.next();
-                int bitIndex = e.getIntKey();
-                if (shouldDestroy(bitIndex, storages, e.getDoubleValue(), len.get(bitIndex))) {
-                    int subY = (WORLD_HEIGHT - 1 - (bitIndex >>> 8)) >> 4;
-                    subChunkBitSets.computeIfAbsent(subY, k -> new ConcurrentBitSet(BITSET_SIZE)).set(bitIndex);
-                }
-            }
-        }
-
-        if (!len.isEmpty()) {
-            ObjectIterator<Int2DoubleMap.Entry> iterator = len.int2DoubleEntrySet().fastIterator();
-            while (iterator.hasNext()) {
-                Int2DoubleOpenHashMap.Entry e = iterator.next();
-                int bitIndex = e.getIntKey();
-                if (dmg.containsKey(bitIndex)) continue;
-                if (shouldDestroy(bitIndex, storages, 0.0, e.getDoubleValue())) {
-                    int subY = (WORLD_HEIGHT - 1 - (bitIndex >>> 8)) >> 4;
-                    subChunkBitSets.computeIfAbsent(subY, k -> new ConcurrentBitSet(BITSET_SIZE)).set(bitIndex);
-                }
-            }
-        }
-
-        if (!subChunkBitSets.isEmpty()) {
-            final LongArrayList teRemovals = new LongArrayList(64);
-            final LongArrayList neighborNotifies = new LongArrayList(128);
-            int selfMask = 0;
-            final Long2IntOpenHashMap neighborMask = new Long2IntOpenHashMap();
-
-            ObjectIterator<Int2ObjectMap.Entry<ConcurrentBitSet>> iterator = subChunkBitSets.int2ObjectEntrySet().fastIterator();
-            while (iterator.hasNext()) {
-                Int2ObjectMap.Entry<ConcurrentBitSet> entry = iterator.next();
-                final int subY = entry.getIntKey();
-                final ConcurrentBitSet subBitSet = entry.getValue();
-                selfMask = carveSubchunkAndSwap(subBitSet, cpLong, storages, teRemovals, neighborNotifies, selfMask, neighborMask, subY);
-            }
-            notifyMainThread(cpLong, teRemovals, neighborNotifies, selfMask, neighborMask);
-        }
-
-        agg.clear();
-    }
-
-    private void notifyMainThread(long cpLong, LongArrayList teRemovals, LongArrayList neighborNotifies, int selfMask,
-                                  Long2IntOpenHashMap neighborMask) {
+    private void notifyMainThread(long cpLong, LongArrayList teRemovals, LongArrayList neighborNotifies, int selfMask, Long2IntOpenHashMap neighborMask) {
         pendingCarveNotifies.incrementAndGet();
         world.addScheduledTask(() -> {
             try {
-                sectionMaskByChunk.put(cpLong, sectionMaskByChunk.get(cpLong) | selfMask);
-                ObjectIterator<Long2IntMap.Entry> iterator = neighborMask.long2IntEntrySet().fastIterator();
-                while (iterator.hasNext()) {
-                    Long2IntMap.Entry e = iterator.next();
-                    long cpk = e.getLongKey();
-                    int m = e.getIntValue();
-                    sectionMaskByChunk.put(cpk, sectionMaskByChunk.get(cpk) | m);
-                }
-                MutableBlockPos p = TL_POS.get();
-                for (int i = 0, n = teRemovals.size(); i < n; i++) {
-                    long lp = teRemovals.getLong(i);
-                    Library.fromLong(p, lp);
-                    if (world.isBlockLoaded(p)) world.removeTileEntity(p);
-                }
-                for (int i = 0, n = neighborNotifies.size(); i < n; i++) {
-                    long lp = neighborNotifies.getLong(i);
-                    Library.fromLong(p, lp);
-                    if (world.isBlockLoaded(p)) world.notifyNeighborsOfStateChange(p, Blocks.AIR, true);
-                }
+                chunkFixup(cpLong, teRemovals, neighborNotifies, selfMask, neighborMask);
                 Chunk chunk = ChunkUtil.getLoadedChunk(world, cpLong);
                 if (chunk != null) chunk.markDirty();
             } finally {
+                LONG_LIST_POOL.recycle(teRemovals);
+                LONG_LIST_POOL.recycle(neighborNotifies);
+                LONG2INT_POOL.recycle(neighborMask);
                 if (pendingCarveNotifies.decrementAndGet() == 0) {
                     maybeFinish();
                 }
@@ -592,19 +647,207 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         });
     }
 
-    private boolean shouldDestroy(int bitIndex, ExtendedBlockStorage[] storages, double accumulatedDamage, double passLen) {
-        final int yGlobal = WORLD_HEIGHT - 1 - (bitIndex >>> 8);
-        final int subY = yGlobal >>> 4;
-        final ExtendedBlockStorage s = storages[subY];
-        if (s == Chunk.NULL_BLOCK_STORAGE || s.isEmpty()) return false;
-        final int xLocal = (bitIndex >>> 4) & 0xF;
-        final int zLocal = bitIndex & 0xF;
-        final int yLocal = yGlobal & 0xF;
-        final IBlockState st = s.get(xLocal, yLocal, zLocal);
-        if (st.getBlock() == Blocks.AIR) return false;
-        final float resistance = getNukeResistance(st);
-        if (accumulatedDamage >= (resistance * DAMAGE_THRESHOLD_MULT)) return true;
-        return resistance <= LOW_R_BOUND && passLen >= LOW_R_PASS_LENGTH_BREAK;
+    private void prepareAndEnqueue(long cpLong, Int2ObjectOpenHashMap<BitMask> masks, ExtendedBlockStorage[] storages) {
+        if (masks == null || masks.isEmpty()) return;
+
+        final int cx = ChunkUtil.getChunkPosX(cpLong);
+        final int cz = ChunkUtil.getChunkPosZ(cpLong);
+        List<CarveSubTask> tasks = new ArrayList<>(masks.size());
+        ObjectIterator<Int2ObjectMap.Entry<BitMask>> it = masks.int2ObjectEntrySet().fastIterator();
+        while (it.hasNext()) {
+            Int2ObjectMap.Entry<BitMask> e = it.next();
+            int subY = e.getIntKey();
+            BitMask bitset = e.getValue();
+            CarveSubTask t = prepareOneSub(cx, cz, subY, bitset, storages);
+            if (t != null) tasks.add(t);
+            else bitset.free();
+        }
+        if (!tasks.isEmpty()) pendingCarves.add(new PendingCarve(cpLong, tasks));
+    }
+
+    private CarveSubTask prepareOneSub(int cx, int cz, int subY, BitMask subBitset, ExtendedBlockStorage[] storages) {
+        ExtendedBlockStorage expected = storages[subY];
+        if (expected == Chunk.NULL_BLOCK_STORAGE || expected.isEmpty()) return null;
+
+        final LongArrayList te = TL_TE.get();
+        final LongOpenHashSet edges = TL_EDGES.get();
+        te.clear();
+        edges.clear();
+        final ExtendedBlockStorage carved = ChunkUtil.copyAndCarveLocal(world, cx, cz, subY, storages, subBitset, te, edges);
+        CarveSubTask task = new CarveSubTask(subY, subBitset);
+        task.expected = expected;
+        task.carved = carved;
+        for (int i = 0, n = te.size(); i < n; i++) task.teRemovals.add(te.getLong(i));
+        if (!edges.isEmpty()) {
+            MutableBlockPos pos = TL_POS.get();
+            LongIterator it = edges.iterator();
+            while (it.hasNext()) {
+                long lp = it.nextLong();
+                task.neighborNotifies.add(lp);
+                Library.fromLong(pos, lp);
+                long nck = ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4);
+                int m = task.neighborMask.get(nck);
+                m |= 1 << (pos.getY() >>> 4);
+                task.neighborMask.put(nck, m);
+            }
+        }
+        return task;
+    }
+
+    private void applyCarveJobOnMain(@NotNull PendingCarve job) {
+        final int cx = ChunkUtil.getChunkPosX(job.chunkPos());
+        final int cz = ChunkUtil.getChunkPosZ(job.chunkPos());
+        Chunk chunk = ChunkUtil.getLoadedChunk(world, job.chunkPos());
+        if (chunk == null) {
+            for (CarveSubTask t : job.tasks()) {
+                enqueueForMissingChunk(job.chunkPos(), new ResumeItem(t.subY, t.mask));
+            }
+            maybeFinish();
+            return;
+        }
+        ExtendedBlockStorage[] storages = chunk.getBlockStorageArray();
+        final LongArrayList teRemovals = LONG_LIST_POOL.borrow();
+        final LongArrayList neighborNotifies = LONG_LIST_POOL.borrow();
+        final Long2IntOpenHashMap neighborMask = LONG2INT_POOL.borrow();
+        teRemovals.clear();
+        neighborNotifies.clear();
+        neighborMask.clear();
+        int selfMask = 0;
+
+        for (int i = 0, n = job.tasks().size(); i < n; i++) {
+            CarveSubTask t = job.tasks().get(i);
+            final int subY = t.subY;
+            ExtendedBlockStorage cur = storages[subY];
+            if (cur == Chunk.NULL_BLOCK_STORAGE || cur.isEmpty()) continue;
+            if (cur == t.expected) {
+                storages[subY] = t.carved;
+                selfMask |= (1 << subY);
+                for (int j = 0, m = t.teRemovals.size(); j < m; j++) teRemovals.add(t.teRemovals.getLong(j));
+                for (int j = 0, m = t.neighborNotifies.size(); j < m; j++)
+                    neighborNotifies.add(t.neighborNotifies.getLong(j));
+                if (!t.neighborMask.isEmpty()) {
+                    ObjectIterator<Long2IntMap.Entry> it = t.neighborMask.long2IntEntrySet().fastIterator();
+                    while (it.hasNext()) {
+                        Long2IntMap.Entry e = it.next();
+                        neighborMask.put(e.getLongKey(), neighborMask.get(e.getLongKey()) | e.getIntValue());
+                    }
+                }
+                t.mask.free();
+            } else {
+                final BitMask mask = t.mask;
+                pool.submit(() -> {
+                    ExtendedBlockStorage[] ebs = ChunkUtil.getLoadedEBS(world, job.chunkPos());
+                    if (ebs == null) {
+                        enqueueForMissingChunk(job.chunkPos(), new ResumeItem(subY, mask));
+                    } else {
+                        CarveSubTask rebuilt = prepareOneSub(cx, cz, subY, mask, ebs);
+                        if (rebuilt != null)
+                            pendingCarves.add(new PendingCarve(job.chunkPos(), Collections.singletonList(rebuilt)));
+                        else mask.free();
+                        maybeFinish();
+                    }
+                });
+            }
+        }
+
+        if (selfMask != 0) {
+            applyMasks(chunk, job.chunkPos(), teRemovals, neighborNotifies, selfMask, neighborMask);
+        } else {
+            LONG_LIST_POOL.recycle(teRemovals);
+            LONG_LIST_POOL.recycle(neighborNotifies);
+            LONG2INT_POOL.recycle(neighborMask);
+        }
+    }
+
+    private void applyMasks(Chunk chunk, long cpLong, LongArrayList teRemovals, LongArrayList neighborNotifies, int selfMask, Long2IntOpenHashMap neighborMask) {
+        pendingCarveNotifies.incrementAndGet();
+        try {
+            chunkFixup(cpLong, teRemovals, neighborNotifies, selfMask, neighborMask);
+            chunk.markDirty();
+        } finally {
+            LONG_LIST_POOL.recycle(teRemovals);
+            LONG_LIST_POOL.recycle(neighborNotifies);
+            LONG2INT_POOL.recycle(neighborMask);
+            if (pendingCarveNotifies.decrementAndGet() == 0) {
+                maybeFinish();
+            }
+        }
+    }
+
+    private void chunkFixup(long cpLong, LongArrayList teRemovals, LongArrayList neighborNotifies, int selfMask, Long2IntOpenHashMap neighborMask) {
+        sectionMaskByChunk.put(cpLong, sectionMaskByChunk.get(cpLong) | selfMask);
+        ObjectIterator<Long2IntMap.Entry> iterator = neighborMask.long2IntEntrySet().fastIterator();
+        while (iterator.hasNext()) {
+            Long2IntMap.Entry e = iterator.next();
+            long cpk = e.getLongKey();
+            int m = e.getIntValue();
+            sectionMaskByChunk.put(cpk, sectionMaskByChunk.get(cpk) | m);
+        }
+        MutableBlockPos p = TL_POS.get();
+        for (int i = 0, n = teRemovals.size(); i < n; i++) {
+            long lp = teRemovals.getLong(i);
+            Library.fromLong(p, lp);
+            world.removeTileEntity(p);
+        }
+        for (int i = 0, n = neighborNotifies.size(); i < n; i++) {
+            long lp = neighborNotifies.getLong(i);
+            Library.fromLong(p, lp);
+            world.notifyNeighborsOfStateChange(p, Blocks.AIR, true);
+        }
+    }
+
+    private interface CarveApplier {
+        void apply(long cpLong, ExtendedBlockStorage[] storages, Int2ObjectOpenHashMap<BitMask> masks);
+    }
+
+    private static final class CarveSubTask {
+        final int subY;
+        final BitMask mask;
+        final LongArrayList teRemovals = new LongArrayList(64);
+        final LongArrayList neighborNotifies = new LongArrayList(128);
+        final Long2IntOpenHashMap neighborMask = new Long2IntOpenHashMap();
+        ExtendedBlockStorage expected;
+        ExtendedBlockStorage carved;
+
+        CarveSubTask(int subY, BitMask mask) {
+            this.subY = subY;
+            this.mask = mask;
+        }
+    }
+
+    private static final class ResumeItem {
+        static final int CARVE = 0;
+        static final int APPLY_MASKS = 1;
+        static final int APPLY_AGG = 2;
+        private final int kind;
+        private final int subY;
+        private final BitMask mask;
+        private final Int2ObjectOpenHashMap<BitMask> masks;
+        private final ChunkAgg agg;
+
+        private ResumeItem(int kind, int subY, BitMask mask, Int2ObjectOpenHashMap<BitMask> masks, ChunkAgg agg) {
+            this.kind = kind;
+            this.subY = subY;
+            this.mask = mask;
+            this.masks = masks;
+            this.agg = agg;
+        }
+
+        ResumeItem(int subY, BitMask mask) {
+            this(CARVE, subY, mask, null, null);
+        }
+
+        ResumeItem(Int2ObjectOpenHashMap<BitMask> masks) {
+            this(APPLY_MASKS, 0, null, masks, null);
+        }
+
+        ResumeItem(ChunkAgg agg) {
+            this(APPLY_AGG, 0, null, null, agg);
+        }
+    }
+
+    @Desugar
+    private record PendingCarve(long chunkPos, List<CarveSubTask> tasks) {
     }
 
     @Override
@@ -729,6 +972,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
             boolean requeued = ensureCollectorRegistered(chunkPos, collector);
             if (amFirst || requeued) chunkLoadQueue.add(chunkPos);
             list.clear();
+            INT_LIST_POOL.recycle(list);
         }
         map.clear();
     }
@@ -751,9 +995,15 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         }
     }
 
-    private void enqueueResumableForMissingChunk(long chunkPos, LongObjectConsumer<ExtendedBlockStorage[]> task) {
-        LongObjectConsumer<ExtendedBlockStorage[]> prev = postLoadActions.putIfAbsent(chunkPos, task);
-        if ((prev == null)) chunkLoadQueue.add(chunkPos);
+    private void enqueueForMissingChunk(long chunkPos, ResumeItem item) {
+        MpscLinkedAtomicQueue<ResumeItem> q = postLoadQueues.get(chunkPos);
+        if (q == null) {
+            MpscLinkedAtomicQueue<ResumeItem> created = new MpscLinkedAtomicQueue<>();
+            MpscLinkedAtomicQueue<ResumeItem> prev = postLoadQueues.putIfAbsent(chunkPos, created);
+            q = prev == null ? created : prev;
+            if (prev == null) chunkLoadQueue.add(chunkPos);
+        }
+        q.add(item);
     }
 
     private boolean traceSingle(int dirIndex, LocalAgg agg) {
@@ -1041,7 +1291,10 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
             localDamage.clear();
             localLen.clear();
             if (!deferredMissing.isEmpty()) {
-                for (IntArrayList list : deferredMissing.values()) list.clear();
+                for (IntArrayList list : deferredMissing.values()) {
+                    list.clear();
+                    INT_LIST_POOL.recycle(list);
+                }
                 deferredMissing.clear();
             }
         }
@@ -1049,7 +1302,7 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
         void deferMissing(long chunkPos, int dirIndex) {
             IntArrayList list = deferredMissing.get(chunkPos);
             if (list == null) {
-                list = new IntArrayList(64);
+                list = INT_LIST_POOL.borrow();
                 deferredMissing.put(chunkPos, list);
             }
             list.add(dirIndex);
@@ -1129,6 +1382,42 @@ public class ExplosionNukeRayParallelized implements IExplosionRay {
             } finally {
                 lock.unlock();
             }
+        }
+    }
+
+    private final class FastApplier implements CarveApplier {
+        @Override
+        public void apply(long cpLong, ExtendedBlockStorage[] storages, Int2ObjectOpenHashMap<BitMask> masks) {
+            if (masks == null || masks.isEmpty()) return;
+            final LongArrayList teRemovals = LONG_LIST_POOL.borrow();
+            final LongArrayList neighborNotifies = LONG_LIST_POOL.borrow();
+            teRemovals.clear();
+            neighborNotifies.clear();
+            int selfMask = 0;
+            final Long2IntOpenHashMap neighborMask = LONG2INT_POOL.borrow();
+            neighborMask.clear();
+
+            ObjectIterator<Int2ObjectMap.Entry<BitMask>> it = masks.int2ObjectEntrySet().fastIterator();
+            while (it.hasNext()) {
+                Int2ObjectMap.Entry<BitMask> e = it.next();
+                BitMask bs = e.getValue();
+                selfMask = carveSubchunkAndSwap(bs, cpLong, storages, teRemovals, neighborNotifies, selfMask, neighborMask, e.getIntKey());
+                bs.free();
+            }
+            if (selfMask != 0) {
+                notifyMainThread(cpLong, teRemovals, neighborNotifies, selfMask, neighborMask);
+            } else {
+                LONG_LIST_POOL.recycle(teRemovals);
+                LONG_LIST_POOL.recycle(neighborNotifies);
+                LONG2INT_POOL.recycle(neighborMask);
+            }
+        }
+    }
+
+    private final class SafeApplier implements CarveApplier {
+        @Override
+        public void apply(long cpLong, ExtendedBlockStorage[] storages, Int2ObjectOpenHashMap<BitMask> masks) {
+            prepareAndEnqueue(cpLong, masks, storages);
         }
     }
 

@@ -1,10 +1,8 @@
 package com.hbm.main;
 
 import com.google.common.collect.Multimap;
-import com.hbm.blocks.BlockEnums;
 import com.hbm.blocks.IStepTickReceiver;
 import com.hbm.blocks.ModBlocks;
-import com.hbm.blocks.generic.BlockOutgas;
 import com.hbm.capability.HbmCapability;
 import com.hbm.capability.HbmCapability.IHBMData;
 import com.hbm.capability.HbmLivingCapability;
@@ -13,11 +11,6 @@ import com.hbm.config.CompatibilityConfig;
 import com.hbm.config.GeneralConfig;
 import com.hbm.config.MobConfig;
 import com.hbm.config.RadiationConfig;
-import com.hbm.dim.CelestialBody;
-import com.hbm.dim.DebugTeleporter;
-import com.hbm.dim.WorldGeneratorCelestial;
-import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.entity.logic.IChunkLoader;
 import com.hbm.entity.mob.EntityCreeperTainted;
 import com.hbm.entity.mob.EntityCyberCrab;
@@ -31,6 +24,7 @@ import com.hbm.handler.threading.PacketThreading;
 import com.hbm.hazard.HazardSystem;
 import com.hbm.integration.groovy.HbmGroovyPropertyContainer;
 import com.hbm.interfaces.IBomb;
+import com.hbm.interfaces.IContainerOpenEventListener;
 import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.IEquipReceiver;
 import com.hbm.items.ModItems;
@@ -43,17 +37,16 @@ import com.hbm.items.weapon.ItemGunBase;
 import com.hbm.items.weapon.sedna.BulletConfig;
 import com.hbm.items.weapon.sedna.ItemGunBaseNT;
 import com.hbm.items.weapon.sedna.factory.XFactory12ga;
-import com.hbm.lib.*;
+import com.hbm.lib.HBMSoundHandler;
+import com.hbm.lib.Library;
+import com.hbm.lib.ModDamageSource;
+import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
-import com.hbm.packet.toclient.AuxParticlePacketNT;
-import com.hbm.packet.toclient.PlayerInformPacket;
-import com.hbm.packet.toclient.SerializableRecipePacket;
-import com.hbm.packet.toclient.SurveyPacket;
+import com.hbm.packet.toclient.*;
 import com.hbm.particle.bullet_hit.EntityHitDataHandler;
 import com.hbm.particle.helper.BlackPowderCreator;
 import com.hbm.potion.HbmDetox;
 import com.hbm.potion.HbmPotion;
-import com.hbm.render.amlfrom1710.Vec3;
 import com.hbm.tileentity.machine.TileEntityMachineRadarNT;
 import com.hbm.tileentity.machine.rbmk.RBMKDials;
 import com.hbm.tileentity.network.RTTYSystem;
@@ -95,7 +88,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraft.world.storage.loot.*;
 import net.minecraft.world.storage.loot.conditions.LootCondition;
 import net.minecraft.world.storage.loot.conditions.RandomChanceWithLooting;
@@ -110,10 +102,10 @@ import net.minecraftforge.event.entity.living.LivingEvent.LivingJumpEvent;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.living.PotionEvent.PotionApplicableEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.event.entity.player.PlayerFlyableFallEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
-import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Loader;
@@ -624,23 +616,8 @@ public class ModEventHandler {
             PacketThreading.createSendToAllThreadedPacket(new SurveyPacket(RBMKDials.getColumnHeight(event.world)));
         }
 
-        if (event.phase == Phase.END) {
-            DebugTeleporter.runQueuedTeleport();
-            if (event.world.getTotalWorldTime() % 20 == 0) {
-                CelestialBody.updateChemistry(event.world);
-            }
-        }
-
-
-        if (event.phase == Phase.START && event.world.provider instanceof WorldProviderCelestial && event.world.provider.getDimension() != 0) {
-            if (event.world.getGameRules().getBoolean("doDaylightCycle")) {
-                event.world.provider.setWorldTime(event.world.provider.getWorldTime() + 1L);
-            }
-        }
-
         if (event.phase == Phase.START) {
             BossSpawnHandler.rollTheDice(event.world);
-            updateWaterOpacity(event.world);
         }
 
         for (final Object e : entityList) {
@@ -656,17 +633,6 @@ public class ModEventHandler {
 
             NetworkHandler.flush(); // Flush ALL network packets.
         }
-    }
-
-    private void updateWaterOpacity(World world) {
-        // Per world water opacity!
-        int waterOpacity = 3;
-        if (world.provider instanceof WorldProviderCelestial) {
-            waterOpacity = ((WorldProviderCelestial) world.provider).getWaterOpacity();
-        }
-
-        Blocks.WATER.setLightOpacity(waterOpacity);
-        Blocks.FLOWING_WATER.setLightOpacity(waterOpacity);
     }
 
     @SubscribeEvent
@@ -842,17 +808,6 @@ public class ModEventHandler {
             fsb.handleTick(event);
         }
 
-        if (player.posY > 300 && player.posY < 1000) {
-            Vec3 vec = Vec3.createVectorHelper(3 * rand.nextDouble(), 0, 0);
-            CBT_Atmosphere thatmosphere = CelestialBody.getTrait(player.world, CBT_Atmosphere.class);
-
-            if (thatmosphere != null && thatmosphere.getPressure() > 0.05 && !player.isRiding()) {
-                if (Math.abs(player.motionX) > 1 || Math.abs(player.motionY) > 1 || Math.abs(player.motionZ) > 1) {
-                    ParticleUtil.spawnGasFlame(player.world, player.posX - 1 + vec.xCoord, player.posY + vec.yCoord, player.posZ + vec.zCoord, 0, 0, 0);
-                }
-            }
-        }
-
         if(event.phase == TickEvent.Phase.START) {
             int x = MathHelper.floor(player.posX);
             int y = MathHelper.floor(player.posY - 1);
@@ -889,28 +844,43 @@ public class ModEventHandler {
                 }
             }
             /// BETA HEALTH END ///
+
+            /// PU RADIATION START ///
+
+            if(player.getUniqueID().equals(ShadyUtil.Pu_238)) {
+
+                List<EntityLivingBase> entities = player.world.getEntitiesWithinAABB(EntityLivingBase.class, player.getEntityBoundingBox().grow(3, 3, 3));
+
+                for(EntityLivingBase e : entities) {
+
+                    if(e != player) {
+                        e.addPotionEffect(new PotionEffect(HbmPotion.radiation, 300, 2));
+                    }
+                }
+            }
+
+            /// PU RADIATION END ///
+
+            /// SYNC START ///
+            if(!player.world.isRemote && player instanceof EntityPlayerMP playerMP) PacketDispatcher.wrapper.sendTo(new PermaSyncPacket(playerMP), playerMP);
+            /// SYNC END ///
         }
+        // Alcater addition on June 2023
         if (!player.world.isRemote && event.phase == Phase.START) {
             ItemDigammaDiagnostic.playVoices(player.world, player);
         }
 
         if (player.world.isRemote && event.phase == Phase.START && !player.isInvisible() && !player.isSneaking()) {
 
-            if (player.getUniqueID().toString().equals(Library.HbMinecraft)) {
-
-                int i = player.ticksExisted * 3;
-
-                Vec3 vec = Vec3.createVectorHelper(3, 0, 0);
-
-                vec.rotateAroundY((float) (i * Math.PI / 180D));
-                for (int k = 0; k < 5; k++) {
-
-                    vec.rotateAroundY((float) (1F * Math.PI / 180D));
-                    player.world.spawnParticle(EnumParticleTypes.TOWN_AURA, player.posX + vec.xCoord, player.posY + 1 + player.world.rand.nextDouble() * 0.05, player.posZ + vec.zCoord, 0.0, 0.0, 0.0);
-                }
+            if (player.getUniqueID().equals(ShadyUtil.Pu_238)) {
+                MutableVec3d vec = new MutableVec3d(3 * rand.nextDouble(), 0, 0);
+                vec.rotateRollSelf(rand.nextDouble() * Math.PI);
+                vec.rotateYawSelf(rand.nextDouble() * Math.PI * 2);
+                player.world.spawnParticle(EnumParticleTypes.TOWN_AURA, player.posX + vec.x, player.posY + 1 + vec.y, player.posZ + vec.z, 0.0, 0.0, 0.0);
             }
         }
 
+        /// 1.12.2 EXCLUSIVE AKIMBO GHOST START ///
         if (player.world.isRemote && event.phase == TickEvent.Phase.START) {
             ItemStack main = player.getHeldItemMainhand();
             ItemStack off  = player.getHeldItemOffhand();
@@ -954,6 +924,7 @@ public class ModEventHandler {
                 }
             }
         }
+        /// AKIMBO GHOST END ///
     }
 
     @SubscribeEvent
@@ -973,13 +944,6 @@ public class ModEventHandler {
     public void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!event.player.world.isRemote) {
             HazardSystem.onPlayerLogout(event.player);
-        }
-    }
-
-    @SubscribeEvent
-    public void onGenerateOre(OreGenEvent.GenerateMinable event) {
-        if (event.getWorld().provider instanceof WorldProviderCelestial && event.getWorld().provider.getDimension() != 0) {
-            WorldGeneratorCelestial.onGenerateOre(event);
         }
     }
 
@@ -1038,6 +1002,8 @@ public class ModEventHandler {
 
                 if (event.getEntityLiving() instanceof IMob && event.getEntityLiving().getRNG().nextInt(1000) == 0) {
                     event.getEntityLiving().dropItem(ModItems.heart_piece, 1);
+                    if(event.getEntityLiving().getRNG().nextInt(250) == 0) event.getEntityLiving().dropItem(ModItems.key_red_cracked, 1);
+                    if(event.getEntityLiving().getRNG().nextInt(250) == 0) event.getEntityLiving().dropItem(ModItems.launch_code_piece, 1);
                 }
 
                 if (event.getEntityLiving() instanceof EntityCyberCrab && event.getEntityLiving().getRNG().nextInt(500) == 0) {
@@ -1219,7 +1185,7 @@ public class ModEventHandler {
     }
 
     @SubscribeEvent
-    public void blockBreak(BlockEvent.BreakEvent event) {
+    public void blockBreak(BlockEvent.BreakEvent event) { // only fired by players
         // Early validation checks
         if (event.isCancelable() && event.isCanceled()) {
             return;
@@ -1234,114 +1200,37 @@ public class ModEventHandler {
         World world = event.getWorld();
         BlockPos pos = event.getPos();
 
-        // Handle different block types
-        handleGneissBreak(block, playerMP, event);
-        handleCoalBreak(block, world, pos);
-        handleAsbestosBreak(block, event);
-        handleLeadPollution(player, world, pos);
-    }
-
-    // Constants
-    private static final int GNEISS_XP_REWARD = 500;
-    private static final int COAL_GAS_SPAWN_CHANCE = 2;
-    private static final int LEAD_EFFECT_DURATION = 100;
-    private static final float LEAD_LOW_THRESHOLD = 5.0f;
-    private static final float LEAD_MID_THRESHOLD = 10.0f;
-    private static final float LEAD_HIGH_THRESHOLD = 25.0f;
-
-    private void handleGneissBreak(Block block, EntityPlayerMP player, BlockEvent.BreakEvent event) {
-        if (block == ModBlocks.stone_gneiss &&
-                !AdvancementManager.hasAdvancement(player, AdvancementManager.achStratum)) {
-            AdvancementManager.grantAchievement(player, AdvancementManager.achStratum);
-            event.setExpToDrop(GNEISS_XP_REWARD);
+        if (block == ModBlocks.stone_gneiss && !AdvancementManager.hasAdvancement(playerMP, AdvancementManager.achStratum)) {
+            AdvancementManager.grantAchievement(playerMP, AdvancementManager.achStratum);
+            event.setExpToDrop(500);
         }
-    }
-
-    private void handleCoalBreak(Block block, World world, BlockPos pos) {
-        if (!GeneralConfig.enableCoalGas || (block != Blocks.COAL_ORE && block != Blocks.COAL_BLOCK && block != ModBlocks.ore_lignite)) {
-            return;
-        }
-
-        // Spawn coal gas in adjacent air blocks
-        for (EnumFacing dir : EnumFacing.values()) {
-            if (world.rand.nextInt(COAL_GAS_SPAWN_CHANCE) == 0) {
-                BlockPos adjacentPos = pos.offset(dir);
-                if (isAirBlock(world, adjacentPos)) {
-                    world.setBlockState(adjacentPos, ModBlocks.gas_coal.getDefaultState(), 3);
+        if (GeneralConfig.enableCoalGas && (block == Blocks.COAL_ORE || block == Blocks.COAL_BLOCK || block == ModBlocks.ore_lignite)) {// Spawn coal gas in adjacent air blocks
+            for (EnumFacing dir : EnumFacing.VALUES) {
+                if (world.rand.nextInt(2) == 0) {
+                    BlockPos adjacentPos = pos.offset(dir);
+                    DelayedTick.nextWorldTick(world, () -> {
+                        IBlockState adjacentState = world.getBlockState(adjacentPos);
+                        if (adjacentState.getBlock().isAir(adjacentState, world, adjacentPos)) {
+                            world.setBlockState(adjacentPos, ModBlocks.gas_coal.getDefaultState(), 3);
+                        }
+                    });
                 }
             }
         }
-    }
-
-    private void handleAsbestosBreak(Block block, BlockEvent.BreakEvent event) {
-        if (shouldSpawnAsbestosGas(block, event.getState())) {
-            scheduleAsbestosGasSpawn(event.getWorld(), event.getPos());
-        }
-    }
-
-    private boolean shouldSpawnAsbestosGas(Block block, IBlockState state) {
-        if(!GeneralConfig.enableAsbestosDust){
-            return false;
-        }
-        else if (block == ModBlocks.stone_resource) {
-            int meta = block.getMetaFromState(state);
-            return meta == BlockEnums.EnumStoneType.ASBESTOS.ordinal();
-        }
-        else if (block == ModBlocks.basalt_ore) {
-            int meta = block.getMetaFromState(state);
-            return meta == BlockEnums.EnumBasaltOreType.ASBESTOS.ordinal();
-        }
-
-        return false;
-    }
-
-    private void scheduleAsbestosGasSpawn(World world, BlockPos pos) {
-        if (world.isRemote) {
-            return;
-        }
-
-        ((WorldServer) world).addScheduledTask(() -> {
-            if (isAirBlock(world, pos)) {
-                world.setBlockState(pos, ModBlocks.gas_asbestos.getDefaultState(), 3);
+        if (RadiationConfig.enablePollution && RadiationConfig.enableLeadFromBlocks && !ArmorRegistry.hasProtection(player, EntityEquipmentSlot.HEAD, HazardClass.PARTICLE_FINE)) {
+            float metalPollution = PollutionHandler.getPollution(world, pos, PollutionHandler.PollutionType.HEAVYMETAL);
+            if (!(metalPollution < 5.0f)) {
+                int amplifier;
+                if (metalPollution < 10.0f) {
+                    amplifier = 0;
+                } else if (metalPollution < 25.0f) {
+                    amplifier = 1;
+                } else {
+                    amplifier = 2;
+                }
+                player.addPotionEffect(new PotionEffect(HbmPotion.lead, 100, amplifier));
             }
-        });
-    }
-
-    private void handleLeadPollution(EntityPlayer player, World world, BlockPos pos) {
-        if (!RadiationConfig.enablePollution || !RadiationConfig.enableLeadFromBlocks) {
-            return;
         }
-
-        if (ArmorRegistry.hasProtection(player, EntityEquipmentSlot.HEAD, HazardClass.PARTICLE_FINE)) {
-            return;
-        }
-
-        float metalPollution = PollutionHandler.getPollution(
-                world, pos, PollutionHandler.PollutionType.HEAVYMETAL
-        );
-
-        applyLeadEffect(player, metalPollution);
-    }
-
-    private void applyLeadEffect(EntityPlayer player, float metalPollution) {
-        if (metalPollution < LEAD_LOW_THRESHOLD) {
-            return;
-        }
-
-        int amplifier;
-        if (metalPollution < LEAD_MID_THRESHOLD) {
-            amplifier = 0;
-        } else if (metalPollution < LEAD_HIGH_THRESHOLD) {
-            amplifier = 1;
-        } else {
-            amplifier = 2;
-        }
-
-        player.addPotionEffect(new PotionEffect(HbmPotion.lead, LEAD_EFFECT_DURATION, amplifier));
-    }
-
-    private boolean isAirBlock(World world, BlockPos pos) {
-        return world.getBlockState(pos).getBlock() == Blocks.AIR;
     }
 
     @SubscribeEvent
@@ -1622,6 +1511,13 @@ public class ModEventHandler {
     public void onCheckLadder(CheckLadderEvent evt) {
         if (ClimbableRegistry.isEntityOnAny(evt.getWorld(), evt.getEntity())) {
             evt.setResult(Result.ALLOW);
+        }
+    }
+
+    @SubscribeEvent
+    public void onContainerOpen(PlayerContainerEvent.Open event) {
+        if (event.getContainer() instanceof IContainerOpenEventListener listener) {
+            listener.onContainerOpened(event.getEntityPlayer());
         }
     }
 

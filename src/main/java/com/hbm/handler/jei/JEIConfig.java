@@ -2,7 +2,6 @@ package com.hbm.handler.jei;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.config.GeneralConfig;
-import com.hbm.dim.SolarSystem;
 import com.hbm.handler.jei.transfer.ExposureChamberTransferInfo;
 import com.hbm.inventory.FluidContainerRegistry;
 import com.hbm.inventory.container.ContainerFurnaceCombo;
@@ -142,6 +141,7 @@ public class JEIConfig implements IModPlugin {
     private ShredderRecipeHandler shredderHandler;
     private VacuumRecipeHandler vacuumHandler;
     private ZirnoxRecipeHandler zirnoxHandler;
+    private PUREXRecipeHandler purexHandler;
 
     @Override
     public void register(@NotNull IModRegistry registry) {
@@ -233,6 +233,7 @@ public class JEIConfig implements IModPlugin {
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_exposure_chamber), EXPOSURE);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_radiolysis), RADIOLYSIS);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.furnace_combination), COMBINATION);
+        registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_purex), PUREX);
 
         registry.addRecipes(assemblyMachineRecipeHandler.getRecipes(), ASSEMBLY_MACHINE);
         registry.addRecipes(JeiRecipes.getCyclotronRecipes(), CYCLOTRON);
@@ -298,6 +299,7 @@ public class JEIConfig implements IModPlugin {
         registry.addRecipes(exposureChamberHandler.getRecipes(), EXPOSURE);
         registry.addRecipes(JeiRecipes.getRadiolysisRecipes(), RADIOLYSIS);
         registry.addRecipes(combinationHandler.getRecipes(), COMBINATION);
+        registry.addRecipes(purexHandler.getRecipes(), PUREX);
 
         registry.addRecipeClickArea(GUIMachineCoker.class, 60, 22, 32, 18, COKER);
 		registry.addRecipeClickArea(GUIMixer.class, 62, 36, 52, 44, MIXER);
@@ -370,7 +372,6 @@ public class JEIConfig implements IModPlugin {
         blacklist.addIngredientToBlacklist(new ItemStack(ModBlocks.zirnox_destroyed));
         blacklist.addIngredientToBlacklist(new ItemStack(ModBlocks.machine_furnace_brick_on));
         blacklist.addIngredientToBlacklist(new ItemStack(ModItems.ammo_misc));
-        blacklist.addIngredientToBlacklist(new ItemStack(ModItems.rocket_custom));
         if(!GeneralConfig.enableDebugMode) {
             blacklist.addIngredientToBlacklist(new ItemStack(ModBlocks.obj_tester));
             blacklist.addIngredientToBlacklist(new ItemStack(ModBlocks.test_render));
@@ -378,8 +379,6 @@ public class JEIConfig implements IModPlugin {
             blacklist.addIngredientToBlacklist(new ItemStack(ModItems.gun_debug));
             blacklist.addIngredientToBlacklist(new ItemStack(ModBlocks.keypad_test));
             // TODO
-            // WIP so removed it from JEI
-            for(int i = 0; i < SolarSystem.Body.values().length; i++) blacklist.addIngredientToBlacklist(new ItemStack(ModItems.full_drive, 1, i));
             blacklist.addIngredientToBlacklist(new ItemStack(ModItems.rp_capsule_20));
             blacklist.addIngredientToBlacklist(new ItemStack(ModItems.rp_fuselage_20_1));
             blacklist.addIngredientToBlacklist(new ItemStack(ModItems.rp_fuselage_20_3));
@@ -466,6 +465,7 @@ public class JEIConfig implements IModPlugin {
                 sawmillHandler = new SawmillHandler(help),
                 vacuumHandler = new VacuumRecipeHandler(help),
                 zirnoxHandler = new ZirnoxRecipeHandler(help),
+                purexHandler = new PUREXRecipeHandler(help),
                 new GasCentrifugeRecipeHandler(help),
                 new BreederRecipeHandler(help),
                 new CyclotronRecipeHandler(help),
@@ -483,8 +483,7 @@ public class JEIConfig implements IModPlugin {
                 new FusionRecipeHandler(help),
                 new HadronRecipeHandler(help),
                 new DFCRecipeHandler(help),
-                new BookRecipeHandler(help),
-                new PUREXRecipeHandler(help));
+                new BookRecipeHandler(help));
     }
 
     private static final ISubtypeRegistry.ISubtypeInterpreter metadataFluidContainerInterpreter = stack -> {

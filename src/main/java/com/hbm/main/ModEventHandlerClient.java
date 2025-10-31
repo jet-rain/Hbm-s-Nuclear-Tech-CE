@@ -62,6 +62,7 @@ import com.hbm.physics.ParticlePhysicsBlocks;
 import com.hbm.qmaw.GuiQMAW;
 import com.hbm.qmaw.QMAWLoader;
 import com.hbm.qmaw.QuickManualAndWiki;
+import com.hbm.render.GuiCTMWarning;
 import com.hbm.render.LightRenderer;
 import com.hbm.render.NTMRenderHelper;
 import com.hbm.render.anim.HbmAnimations;
@@ -93,7 +94,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
-import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.model.ModelBiped;
@@ -141,7 +141,6 @@ import net.minecraftforge.client.event.sound.PlaySoundEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -177,6 +176,13 @@ public class ModEventHandlerClient {
     public static TextureAtlasSprite uv_debug;
     public static TextureAtlasSprite debugPower;
     public static TextureAtlasSprite debugFluid;
+
+    //Lazy, I know
+    // 0 - CTM exists
+    // 1 - No CTM, Player didn't acknowledge
+    // 2 - No CTM, Player acknowledge
+    public static boolean ctmWarning = false;
+
     private static long canneryTimestamp;
     private static ComparableStack lastCannery = null;
     private static long qmawTimestamp;
@@ -230,7 +236,6 @@ public class ModEventHandlerClient {
         }
     }
 
-
     public static ItemStack getMouseOverStack() {
 
         Minecraft mc = Minecraft.getMinecraft();
@@ -250,6 +255,15 @@ public class ModEventHandlerClient {
         }
 
         return null;
+    }
+
+    @SubscribeEvent
+    public void onGuiInit(GuiScreenEvent.InitGuiEvent.Post event) {
+        if (!ctmWarning) return;
+        if (event.getGui() instanceof net.minecraft.client.gui.GuiMainMenu) {
+            Minecraft.getMinecraft().displayGuiScreen(new GuiCTMWarning());
+            ctmWarning = false;
+        }
     }
 
     @SubscribeEvent
@@ -278,8 +292,12 @@ public class ModEventHandlerClient {
             }
         }
         ModelLoader.setCustomModelResourceLocation(ModItems.canister_empty, 0, ItemCanister.fluidCanisterModel);
-        ModelLoader.setCustomModelResourceLocation(ModItems.icf_pellet, 0, new ModelResourceLocation(ModItems.icf_pellet.getRegistryName(),
-"inventory"));
+        ModelLoader.setCustomModelResourceLocation(ModItems.icf_pellet, 0, new ModelResourceLocation(ModItems.icf_pellet.getRegistryName(), "inventory"));
+
+        ModelResourceLocation clayTabletModel = new ModelResourceLocation(ModItems.clay_tablet.getRegistryName(), "inventory");
+
+        ModelLoader.setCustomModelResourceLocation(ModItems.clay_tablet, 0, clayTabletModel);
+        ModelLoader.setCustomModelResourceLocation(ModItems.clay_tablet, 1, clayTabletModel);
 
         for (Item item : ModItems.ALL_ITEMS) {
             try {
@@ -309,8 +327,10 @@ public class ModEventHandlerClient {
                 "inventory"));
         ModelLoader.setCustomModelResourceLocation(ModItems.conveyor_wand, 3, new ModelResourceLocation(ModBlocks.conveyor_triple.getRegistryName(),
                 "inventory"));
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(ModBlocks.fence_metal), 1, new ModelResourceLocation("hbm:fence_metal_post", "inventory"));
 
         //FIXME: this is a dogshit solution
+        // now 2 dogshit solutions!
 
 
         for (ItemAutogen item : ItemAutogen.INSTANCES) {
@@ -518,8 +538,6 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         swapModels(ModItems.meteorite_sword_irradiated, reg);
         swapModels(ModItems.meteorite_sword_fused, reg);
         swapModels(ModItems.meteorite_sword_baleful, reg);
-        swapModels(ModItems.meteorite_sword_warped, reg);
-        swapModels(ModItems.meteorite_sword_demonic, reg);
 
         swapModelsNoGui(ModItems.bedrock_ore, reg);
         swapModels(ModItems.detonator_laser, reg);
@@ -533,7 +551,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         swapModels(ModItems.jetpack_glider, reg);
         swapModels(ModItems.gear_large, reg);
 
-        for(Item item: ItemGunBaseNT.INSTANCES) {
+        for (Item item : ItemGunBaseNT.INSTANCES) {
             swapModelsNoFPV(item, reg);
         }
 
@@ -918,10 +936,10 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         EntityPlayer player = Minecraft.getMinecraft().player;
         ItemStack held = player.getHeldItemMainhand();
 
-        if(held.isEmpty()) return;
+        if (held.isEmpty()) return;
 
         TileEntityItemStackRenderer customRenderer = held.getItem().getTileEntityItemStackRenderer();
-        if(!(customRenderer instanceof ItemRenderWeaponBase renderGun)) return;
+        if (!(customRenderer instanceof ItemRenderWeaponBase renderGun)) return;
         event.setNewfov(renderGun.getViewFOV(held, event.getFov()));
     }
 
@@ -972,7 +990,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
                 boolean isHooked = player.getHeldItemMainhand().getItem() == ModItems.gun_supershotgun && ItemGunShotty.hasHookedEntity(player.world, player.getHeldItemMainhand());
                 if (isHooked)
                     player.distanceWalkedModified = player.prevDistanceWalkedModified; //Stops the held shotgun from bobbing when hooked
-                if(ClientConfig.GUN_VISUAL_RECOIL.get()) {
+                if (ClientConfig.GUN_VISUAL_RECOIL.get()) {
                     ItemGunBaseNT.offsetVertical += ItemGunBaseNT.recoilVertical;
                     ItemGunBaseNT.offsetHorizontal += ItemGunBaseNT.recoilHorizontal;
                     player.rotationPitch -= ItemGunBaseNT.recoilVertical;
@@ -1036,11 +1054,11 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
             }
         }
 
-        if(Keyboard.isKeyDown(HbmKeybinds.qmaw.getKeyCode()) && Minecraft.getMinecraft().currentScreen != null) {
+        if (Keyboard.isKeyDown(HbmKeybinds.qmaw.getKeyCode()) && Minecraft.getMinecraft().currentScreen != null) {
 
             QuickManualAndWiki qmaw = qmawTimestamp > System.currentTimeMillis() - 100 ? lastQMAW : null;
 
-            if(qmaw != null) {
+            if (qmaw != null) {
                 Minecraft.getMinecraft().player.closeScreen();
                 FMLCommonHandler.instance().showGuiScreen(new GuiQMAW(qmaw));
             }
@@ -1138,7 +1156,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
 
             ItemGunShotty.screenPos = new Vec2f(POSITION.get(0), POSITION.get(1));
         } else {
-            ItemGunShotty.screenPos = new Vec2f( (float)Minecraft.getMinecraft().displayWidth / 2, (float) Minecraft.getMinecraft().displayHeight / 2);
+            ItemGunShotty.screenPos = new Vec2f((float) Minecraft.getMinecraft().displayWidth / 2, (float) Minecraft.getMinecraft().displayHeight / 2);
         }
 
         //SSG meathook chain rendering
@@ -1268,14 +1286,16 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
                 ItemStack plate = plr.inventory.armorInventory.get(2);
                 ArmorFSB chestplate = (ArmorFSB) plate.getItem();
 
-                if(chestplate.thermal) thermalSights = true;
+                if (chestplate.thermal) thermalSights = true;
             }
 
-            if(!plr.getHeldItemMainhand().isEmpty() && plr.getHeldItemMainhand().getItem() instanceof ItemGunBaseNT gun && ItemGunBaseNT.aimingProgress == 1) {
-                for(int i = 0; i < gun.getConfigCount(); i++) if(gun.getConfig(plr.getHeldItemMainhand(), i).hasThermalSights(plr.getHeldItemMainhand())) thermalSights = true;
+            if (!plr.getHeldItemMainhand().isEmpty() && plr.getHeldItemMainhand().getItem() instanceof ItemGunBaseNT gun && ItemGunBaseNT.aimingProgress == 1) {
+                for (int i = 0; i < gun.getConfigCount(); i++)
+                    if (gun.getConfig(plr.getHeldItemMainhand(), i).hasThermalSights(plr.getHeldItemMainhand()))
+                        thermalSights = true;
             }
 
-            if(thermalSights) RenderOverhead.renderThermalSight(evt.getPartialTicks());
+            if (thermalSights) RenderOverhead.renderThermalSight(evt.getPartialTicks());
         }
 
         if (entity instanceof EntityPlayer) {
@@ -1474,12 +1494,12 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
 
         LightRenderer.worldRender();
 
-       WorldSpaceFPRender.doHandRendering(evt);
+        WorldSpaceFPRender.doHandRendering(evt);
 
-		for(Particle p : firstPersonAuxParticles){
-			if(p instanceof ParticlePhysicsBlocks)
-				p.renderParticle(null, Minecraft.getMinecraft().getRenderViewEntity(), MainRegistry.proxy.partialTicks(), 0, 0, 0, 0, 0);
-		}
+        for (Particle p : firstPersonAuxParticles) {
+            if (p instanceof ParticlePhysicsBlocks)
+                p.renderParticle(null, Minecraft.getMinecraft().getRenderViewEntity(), MainRegistry.proxy.partialTicks(), 0, 0, 0, 0, 0);
+        }
         if (!(Minecraft.getMinecraft().player.getHeldItemMainhand().getItem() instanceof IPostRender || Minecraft.getMinecraft().player.getHeldItemOffhand().getItem() instanceof IPostRender)) {
             HbmShaderManager2.postProcess();
         }
@@ -1632,20 +1652,20 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
 
         /// HANLDE SEDNA ANIMATION BUSES ///
 
-        for(int i = 0; i < HbmAnimationsSedna.hotbar.length; i++) {
-            for(int j = 0; j < HbmAnimationsSedna.hotbar[i].length; j++) {
+        for (int i = 0; i < HbmAnimationsSedna.hotbar.length; i++) {
+            for (int j = 0; j < HbmAnimationsSedna.hotbar[i].length; j++) {
 
                 HbmAnimationsSedna.Animation animation = HbmAnimationsSedna.hotbar[i][j];
 
-                if(animation == null)
+                if (animation == null)
                     continue;
 
-                if(animation.holdLastFrame)
+                if (animation.holdLastFrame)
                     continue;
 
                 long time = System.currentTimeMillis() - animation.startMillis;
 
-                if(time > animation.animation.getDuration())
+                if (time > animation.animation.getDuration())
                     HbmAnimationsSedna.hotbar[i][j] = null;
             }
         }
@@ -1653,30 +1673,26 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         /// HANDLE SCOPE OVERLAY ///
         ItemStack held = player.getHeldItemMainhand();
 
-        if(player.isSneaking() && !held.isEmpty() && held.getItem() instanceof ItemGunBaseSedna && event.getType() == ElementType.HOTBAR)  {
+        if (player.isSneaking() && !held.isEmpty() && held.getItem() instanceof ItemGunBaseSedna && event.getType() == ElementType.HOTBAR) {
             GunConfigurationSedna config = ((ItemGunBaseSedna) held.getItem()).mainConfig;
 
-            if(config.scopeTexture != null) {
+            if (config.scopeTexture != null) {
                 ScaledResolution resolution = event.getResolution();
                 RenderScreenOverlay.renderScope(resolution, config.scopeTexture);
             }
         }
 
-        if(!held.isEmpty() && held.getItem() instanceof ItemGunBaseNT gun && ItemGunBaseNT.aimingProgress == ItemGunBaseNT.prevAimingProgress && ItemGunBaseNT.aimingProgress == 1F && event.getType() == ElementType.HOTBAR)  {
+        if (!held.isEmpty() && held.getItem() instanceof ItemGunBaseNT gun && ItemGunBaseNT.aimingProgress == ItemGunBaseNT.prevAimingProgress && ItemGunBaseNT.aimingProgress == 1F && event.getType() == ElementType.HOTBAR) {
             GunConfig cfg = gun.getConfig(held, 0);
-            if(cfg.getScopeTexture(held) != null) {
+            if (cfg.getScopeTexture(held) != null) {
                 ScaledResolution resolution = event.getResolution();
                 RenderScreenOverlay.renderScope(resolution, cfg.getScopeTexture(held));
             }
         }
-        Minecraft mc = Minecraft.getMinecraft();
+
         //prevents NBT changes (read: every fucking tick) on guns from bringing up the item's name over the hotbar
-        ItemStack highlightedItem = ObfuscationReflectionHelper.getPrivateValue(GuiIngame.class, mc.ingameGUI, "highlightingItemStack", "field_92016_l");
-        if (!held.isEmpty() && held.getItem() instanceof ItemGunBaseNT) {
-            if (highlightedItem != null && !highlightedItem.isEmpty()
-                    && highlightedItem.getItem() == held.getItem()) {
-                ObfuscationReflectionHelper.setPrivateValue(GuiIngame.class, mc.ingameGUI, held, "highlightingItemStack", "field_92016_l");
-            }
+        if(!held.isEmpty() && held.getItem() instanceof ItemGunBaseNT && !Minecraft.getMinecraft().ingameGUI.highlightingItemStack.isEmpty() && Minecraft.getMinecraft().ingameGUI.highlightingItemStack.getItem() == held.getItem()) {
+            Minecraft.getMinecraft().ingameGUI.highlightingItemStack = held;
         }
 
         /// HANDLE ANIMATION BUSES ///
@@ -1733,10 +1749,10 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         if (helmet.getItem() instanceof ArmorFSB) {
             ((ArmorFSB) helmet.getItem()).handleOverlay(event, player);
         }
-        if(!event.isCanceled() && event.getType() == ElementType.HOTBAR) {
+        if (!event.isCanceled() && event.getType() == ElementType.HOTBAR) {
 
-            HbmCapability.IHBMData props  = HbmCapability.getData(player);
-            if(props.getDashCount() > 0) {
+            HbmCapability.IHBMData props = HbmCapability.getData(player);
+            if (props.getDashCount() > 0) {
                 RenderScreenOverlay.renderDashBar(event.getResolution(), Minecraft.getMinecraft().ingameGUI, props);
 
             }
@@ -1748,9 +1764,9 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
 
         EntityPlayer player = Minecraft.getMinecraft().player;
 
-        if(event.getType().equals(ElementType.ARMOR)) {
+        if (event.getType().equals(ElementType.ARMOR)) {
             HbmCapability.IHBMData props = HbmCapability.getData(player);
-            if(props.getEffectiveMaxShield(player) > 0) {
+            if (props.getEffectiveMaxShield(player) > 0) {
                 RenderScreenOverlay.renderShieldBar(event.getResolution(), Minecraft.getMinecraft().ingameGUI);
             }
         }
@@ -1791,7 +1807,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
             }
         }
 
-        if(player.getHeldItem(EnumHand.MAIN_HAND) != null && player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemGunBaseNT) {
+        if (player.getHeldItem(EnumHand.MAIN_HAND) != null && player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemGunBaseNT) {
             renderer.rightArmPose = ArmPose.BOW_AND_ARROW;
         }
         if (player.getHeldItem(EnumHand.OFF_HAND) != null && player.getHeldItem(EnumHand.OFF_HAND).getItem() instanceof ItemGunBaseNT) {
@@ -1828,7 +1844,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
 
             ModelBiped renderer = (ModelBiped) event.getRenderer().getMainModel();
 
-            if(player.getHeldItem(EnumHand.MAIN_HAND) != null && player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemGunBaseNT) {
+            if (player.getHeldItem(EnumHand.MAIN_HAND) != null && player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemGunBaseNT) {
                 renderer.rightArmPose = ArmPose.BOW_AND_ARROW;
             }
             if (player.getHeldItem(EnumHand.MAIN_HAND) != null && player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof IHoldableWeapon) {
@@ -1883,13 +1899,18 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
 
         boolean m1 = ItemGunBase.m1;
         boolean m2 = ItemGunBase.m2;
-        if (player.getHeldItem(EnumHand.MAIN_HAND) != null && player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemGunBase ||
-                player.getHeldItem(EnumHand.MAIN_HAND) != null && player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemGunBaseNT) {
+        if (!player.getHeldItem(EnumHand.MAIN_HAND).isEmpty() && (player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemGunBase ||
+                player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemGunBaseNT)) {
 
-            if (event.getButton() >= 0 && event.getButton() <= 2)
-                event.setCanceled(true);
+            if (event.getButton() >= 0 && event.getButton() <= 2) {
+                BlockPos selected = Minecraft.getMinecraft().objectMouseOver.getBlockPos();
+                //mlbv: the suppression below has to be added to avoid IntelliJ thinking it's NotNull
+                //noinspection ConstantValue
+                if (selected != null && !(player.world.getBlockState(selected).getBlock() instanceof IGunClickable))
+                    event.setCanceled(true);
+            }
             Item item = player.getHeldItem(EnumHand.MAIN_HAND).getItem();
-            if(item instanceof ItemGunBase weapon) {
+            if (item instanceof ItemGunBase weapon) {
                 if (event.getButton() == 0 && !m1 && !m2) {
                     ItemGunBase.m1 = true;
                     PacketDispatcher.wrapper.sendToServer(new GunButtonPacket(true, (byte) 0, EnumHand.MAIN_HAND));
@@ -2111,12 +2132,12 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
 
         try {
             QuickManualAndWiki qmaw = QMAWLoader.triggers.get(comp);
-            if(qmaw != null) {
+            if (qmaw != null) {
                 list.add(TextFormatting.GREEN + I18nUtil.resolveKey("qmaw.tab", Keyboard.getKeyName(HbmKeybinds.qmaw.getKeyCode())));
                 lastQMAW = qmaw;
                 qmawTimestamp = System.currentTimeMillis();
             }
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             list.add(TextFormatting.RED + "Error loading QMAW: " + ex.getLocalizedMessage());
         }
 
@@ -2177,7 +2198,7 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
             }
         }*/
 
-        if(event.phase == event.phase.END) {
+        if (event.phase == event.phase.END) {
             ItemCustomLore.updateSystem();
         }
     }
@@ -2190,3 +2211,6 @@ Object object6 = evt.getModelRegistry().getObject(com.hbm.items.tool.ItemCaniste
         }
     }
 }
+
+
+
