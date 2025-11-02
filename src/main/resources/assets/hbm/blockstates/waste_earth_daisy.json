@@ -1,5 +1,11 @@
 {
 	"variants": {
-		"normal": { "model": "hbm:waste_earth_daisy" }
+		"meta=0": { "model": "hbm:waste_earth_bop_daisy_0" },
+		"meta=1": { "model": "hbm:waste_earth_bop_daisy_1" },
+		"meta=2": { "model": "hbm:waste_earth_bop_daisy_2" },
+		"meta=3": { "model": "hbm:waste_earth_bop_daisy_3" },
+		"meta=4": { "model": "hbm:waste_earth_bop_daisy_4" },
+		"meta=5": { "model": "hbm:waste_earth_bop_daisy_5" },
+		"meta=6": { "model": "hbm:waste_earth_bop_daisy_6" }
 	}
 }

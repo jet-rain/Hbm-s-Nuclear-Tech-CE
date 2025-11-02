@@ -6,6 +6,8 @@ import net.minecraft.util.IStringSerializable;
 
 import javax.annotation.Nullable;
 
+import java.util.Locale;
+
 import static com.hbm.blocks.OreEnumUtil.OreEnum;
 
 public class BlockEnums {
@@ -138,26 +140,6 @@ public class BlockEnums {
             this.drop = drop;
         }
     }
-    public static enum EnumWasteEarthType {
-        SILTY, SANDY,
-        LOAMY, DAISY,
-        SILTY_BURNING,
-        SANDY_BURNING,
-        LOAMY_BURNING,
-        DAISY_BURNING
 
-    }
-    public static enum EnumWasteDirtType {
-        SILTY,
-        SANDY,
-        LOAMY
-    }
-    public static enum EnumWasteStoneType {
-        STONE, NETHERRACK, MOSS,
-        STONE_BURNING,
-        NETHERRACK_BURNING,
-        MOSS_BURNING
-
-    }
 }
 

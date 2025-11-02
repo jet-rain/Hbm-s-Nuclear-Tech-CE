@@ -454,7 +454,17 @@ public class ModBlocks {
     public static final Block waste_mycelium_netherrack = new WasteMycelium(Material.ROCK, SoundType.STONE, true, "waste_mycelium_netherrack").setLightLevel(0.25F).setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
     public static final Block waste_earth = new WasteEarth(Material.GRASS, SoundType.GROUND, true, "waste_earth").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
 	public static final Block waste_dirt = new WasteEarth(Material.GROUND, SoundType.GROUND, true, "waste_dirt").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
-	public static final Block waste_gravel = new WasteSand(Material.GROUND, SoundType.GROUND, "waste_gravel").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_dirt_silty = new WasteEarth(Material.GROUND, SoundType.GROUND, true, "waste_dirt_silty").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_dirt_sandy = new WasteEarth(Material.GROUND, SoundType.GROUND, true, "waste_dirt_sandy").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_dirt_loamy = new WasteEarth(Material.GROUND, SoundType.GROUND, true, "waste_dirt_loamy").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_earth_silty = new WasteEarth(Material.GRASS, SoundType.GROUND, true, "waste_earth_silty").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_earth_sandy = new WasteEarth(Material.GRASS, SoundType.GROUND, true, "waste_earth_sandy").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_earth_loamy = new WasteEarth(Material.GRASS, SoundType.GROUND, true, "waste_earth_loamy").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_earth_daisy = new WasteEarth(Material.GRASS, SoundType.GROUND, true, "waste_earth_daisy").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_stone = new WasteStone(Material.ROCK, SoundType.STONE, true, "waste_stone").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_stone_netherrack = new WasteStone(Material.ROCK, SoundType.STONE, true, "waste_stone_netherrack").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_stone_moss = new WasteStone(Material.ROCK, SoundType.STONE, true, "waste_stone_moss").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
+    public static final Block waste_gravel = new WasteSand(Material.GROUND, SoundType.GROUND, "waste_gravel").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
 	public static final Block waste_sandstone = new BlockHazardMeta(Material.ROCK, SoundType.STONE, "waste_sandstone", "contamination/sandstone/", BlockBakeFrame.BlockForm.PILLAR_BOTTOM, (short) 7).setCreativeTab(MainRegistry.resourceTab).setHardness(3.0F).setResistance(6.0F);
 	public static final Block waste_sand = new WasteSand(Material.SAND, SoundType.SAND, "waste_sand").setHardness(0.5F).setResistance(1.0F).setCreativeTab(MainRegistry.resourceTab);
 	public static final Block waste_trinitite = new WasteSand(Material.SAND, SoundType.SAND, "waste_trinitite").setHardness(0.5F).setResistance(2.5F).setCreativeTab(MainRegistry.resourceTab);
@@ -469,8 +479,13 @@ public class ModBlocks {
 	public static final Block waste_grass_tall = new WasteGrassTall(Material.PLANTS, "waste_grass_tall").setCreativeTab(MainRegistry.resourceTab);
 
 	public static final Block burning_earth = new WasteEarth(Material.GROUND, SoundType.PLANT, true, "burning_earth").setCreativeTab(MainRegistry.resourceTab).setHardness(0.6F);
-
-
+    public static final Block burning_earth_silty = new WasteEarth(Material.GROUND, SoundType.PLANT, true, "burning_earth_silty").setCreativeTab(MainRegistry.resourceTab).setHardness(0.6F);
+    public static final Block burning_earth_sandy = new WasteEarth(Material.GROUND, SoundType.PLANT, true, "burning_earth_sandy").setCreativeTab(MainRegistry.resourceTab).setHardness(0.6F);
+    public static final Block burning_earth_loamy = new WasteEarth(Material.GROUND, SoundType.PLANT, true, "burning_earth_loamy").setCreativeTab(MainRegistry.resourceTab).setHardness(0.6F);
+    public static final Block burning_earth_daisy = new WasteEarth(Material.GROUND, SoundType.PLANT, true, "burning_earth_daisy").setCreativeTab(MainRegistry.resourceTab).setHardness(0.6F);
+    public static final Block burning_stone = new WasteStone(Material.ROCK, SoundType.STONE, true, "burning_stone").setCreativeTab(MainRegistry.resourceTab).setHardness(0.6F);
+    public static final Block burning_stone_netherrack = new WasteStone(Material.ROCK, SoundType.STONE, true, "burning_stone_netherrack").setCreativeTab(MainRegistry.resourceTab).setHardness(0.6F);
+    public static final Block burning_stone_moss = new WasteStone(Material.ROCK, SoundType.STONE, true, "burning_stone_moss").setCreativeTab(MainRegistry.resourceTab).setHardness(0.6F);
     //PollutedBecauseOilThings
 	public static final Block plant_dead = new BlockDeadPlant("plant_dead").setHardness(0).setResistance(0).setCreativeTab(MainRegistry.resourceTab).setLightOpacity(0);
 	public static final Block plant_flower = new BlockFlowerPlant("plant_flower").setHardness(0).setResistance(0).setCreativeTab(MainRegistry.resourceTab).setLightOpacity(0);

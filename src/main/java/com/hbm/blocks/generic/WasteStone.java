@@ -26,22 +26,22 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.Random;
 
-public class WasteEarth extends Block {
+public class WasteStone extends Block {
 
     public static final PropertyInteger META = PropertyInteger.create("meta", 0, 6);
 
-    public WasteEarth(Material materialIn, boolean tick, String s) {
+    public WasteStone(Material materialIn, boolean tick, String s) {
         super(materialIn);
         this.setTranslationKey(s);
         this.setRegistryName(s);
         this.setCreativeTab(MainRegistry.controlTab);
         this.setTickRandomly(tick);
-        this.setHarvestLevel("shovel", 0);
+        this.setHarvestLevel("pickaxe", 0);
 
         ModBlocks.ALL_BLOCKS.add(this);
     }
 
-    public WasteEarth(Material materialIn, SoundType type, boolean tick, String s) {
+    public WasteStone(Material materialIn, SoundType type, boolean tick, String s) {
         this(materialIn, tick, s);
         setSoundType(type);
     }
@@ -78,38 +78,21 @@ public class WasteEarth extends Block {
     public void onEntityWalk(World worldIn, BlockPos pos, Entity entity) {
         if (entity instanceof EntityLivingBase) {
             EntityLivingBase castedEntity = ((EntityLivingBase) entity);
-            if (this == ModBlocks.waste_earth) {
+
+            if (this == ModBlocks.waste_stone) {
                 castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 15 * 20, 4));
-            } else if (this == ModBlocks.waste_earth_silty) {
+            } else  if (this == ModBlocks.waste_stone_netherrack) {
                 castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 15 * 20, 4));
-            } else if (this == ModBlocks.waste_earth_sandy) {
+            } else  if (this == ModBlocks.waste_stone_moss) {
                 castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 15 * 20, 4));
-            } else if (this == ModBlocks.waste_earth_loamy) {
-                castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 15 * 20, 4));
-            } else if (this == ModBlocks.waste_earth_daisy) {
-                castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 15 * 20, 4));
-            } else if (this == ModBlocks.waste_dirt) {
-                castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 20 * 20, 9));
-            } else if (this == ModBlocks.waste_dirt_silty) {
-                castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 20 * 20, 9));
-            } else if (this == ModBlocks.waste_dirt_sandy) {
-                castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 20 * 20, 9));
-            } else if (this == ModBlocks.waste_dirt_loamy) {
-                castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 20 * 20, 9));
-            } else if (this == ModBlocks.waste_mycelium) {
+            } else if (this == ModBlocks.waste_mycelium_netherrack) {
                 castedEntity.addPotionEffect(new PotionEffect(HbmPotion.radiation, 30 * 20, 29));
                 castedEntity.addPotionEffect(new PotionEffect(MobEffects.NAUSEA, 5 * 20, 0));
-            } else if (this == ModBlocks.frozen_grass) {
-                castedEntity.addPotionEffect(new PotionEffect(MobEffects.SLOWNESS, 2 * 60 * 20, 2));
-            } else if (this == ModBlocks.burning_earth) {
+            } else if (this == ModBlocks.burning_stone) {
                 entity.setFire(3);
-            } else if (this == ModBlocks.burning_earth_silty) {
-                entity.setFire(3);
-            } else if (this == ModBlocks.burning_earth_sandy) {
-                entity.setFire(3);
-            } else if (this == ModBlocks.burning_earth_loamy) {
-                entity.setFire(3);
-            } else if (this == ModBlocks.burning_earth_daisy) {
+            } else if (this == ModBlocks.burning_stone_netherrack) {
+                entity.setFire(9);
+            } else if (this == ModBlocks.burning_stone_moss) {
                 entity.setFire(3);
             }
         }
@@ -120,7 +103,7 @@ public class WasteEarth extends Block {
     public void randomDisplayTick(IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
         super.randomDisplayTick(stateIn, worldIn, pos, rand);
 
-        if (this == ModBlocks.waste_earth || this == ModBlocks.waste_earth_silty || this == ModBlocks.waste_earth_sandy || this == ModBlocks.waste_earth_loamy || this == ModBlocks.waste_earth_daisy || this == ModBlocks.waste_mycelium) {
+        if (this == ModBlocks.waste_stone || this == ModBlocks.waste_mycelium_netherrack) {
             worldIn.spawnParticle(EnumParticleTypes.TOWN_AURA, pos.getX() + rand.nextFloat(), pos.getY() + 1.1F, pos.getZ() + rand.nextFloat(), 0.0D, 0.0D, 0.0D);
         }
     }

@@ -1,10 +1,13 @@
 package com.hbm.handler.radiation;
 
+import biomesoplenty.common.block.BlockBOPDirt;
+import biomesoplenty.common.block.BlockBOPGrass;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.config.GeneralConfig;
 import com.hbm.config.RadiationConfig;
 import com.hbm.handler.radiation.RadiationSystemNT.RadPocket;
 import com.hbm.main.MainRegistry;
+import com.hbm.util.EnumUtil;
 import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -91,6 +94,30 @@ public class RadiationWorldHandler {
 
         IBlockState newState = switch (registryName) {
             case "minecraft:grass" -> ModBlocks.waste_earth.getDefaultState();
+            case "biomesoplenty:grass" -> {
+                BlockBOPGrass.BOPGrassType BOPGrassVariant = EnumUtil.grabEnumSafely(BlockBOPGrass.BOPGrassType.class, block.getMetaFromState(world.getBlockState(pos)));
+                switch (BOPGrassVariant) {
+                    case SILTY -> ModBlocks.waste_earth_silty.getDefaultState();
+                    case SANDY -> ModBlocks.waste_earth_sandy.getDefaultState();
+                    case LOAMY -> ModBlocks.waste_earth_loamy.getDefaultState();
+                    case DAISY -> ModBlocks.waste_earth_daisy.getDefaultState();
+                    case OVERGROWN_STONE -> ModBlocks.waste_stone.getDefaultState();
+                    case OVERGROWN_NETHERRACK -> ModBlocks.waste_stone_netherrack.getDefaultState();
+                    case SPECTRAL_MOSS -> ModBlocks.waste_stone_moss.getDefaultState();
+                    case MYCELIAL_NETHERRACK -> ModBlocks.waste_mycelium_netherrack.getDefaultState();
+                    case ORIGIN -> ModBlocks.waste_dirt.getDefaultState();
+                }
+                yield null;
+            }
+            case "biomesoplenty:dirt" -> {
+                BlockBOPDirt.BOPDirtType BOPDirtVariant = EnumUtil.grabEnumSafely(BlockBOPDirt.BOPDirtType.class, block.getMetaFromState(world.getBlockState(pos)));
+                switch (BOPDirtVariant) {
+                    case SILTY -> ModBlocks.waste_dirt_silty.getDefaultState();
+                    case SANDY -> ModBlocks.waste_dirt_sandy.getDefaultState();
+                    case LOAMY -> ModBlocks.waste_dirt_loamy.getDefaultState();
+                }
+                yield null;
+            }
             case "minecraft:dirt", "minecraft:farmland" -> ModBlocks.waste_dirt.getDefaultState();
             case "minecraft:sandstone" -> ModBlocks.waste_sandstone.getDefaultState();
             case "minecraft:red_sandstone" -> ModBlocks.waste_red_sandstone.getDefaultState();

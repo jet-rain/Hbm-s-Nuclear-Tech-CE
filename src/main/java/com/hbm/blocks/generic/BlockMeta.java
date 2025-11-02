@@ -49,16 +49,24 @@ public class BlockMeta extends BlockBase implements ICustomBlockItem, IDynamicMo
     //Norwood:Yes you could use strings, enums or whatever, but this is much simpler and more efficient, as well as has exactly same scope as 1.7.10
     public static final PropertyInteger META = PropertyInteger.create("meta", 0, 15);
     protected short META_COUNT;
+    protected short META_COUNT_2;
     protected boolean separateTranslationKeys = true;
 
     protected BlockBakeFrame[] blockFrames;
     protected boolean showMetaInCreative = true;
+
+
+
 
     public IBlockState getRandomState(Random rand){
         return this.getDefaultState().withProperty(META, rand.nextInt(META_COUNT));
 
     }
 
+    public IBlockState getRandomState2(Random rand){
+        return this.getDefaultState().withProperty(META, rand.nextInt(META_COUNT_2));
+
+    }
 
     public BlockMeta(Material m, String s) {
         super(m, s);
@@ -79,6 +87,12 @@ public class BlockMeta extends BlockBase implements ICustomBlockItem, IDynamicMo
         META_COUNT = metaCount;
     }
 
+    public BlockMeta(Material mat, SoundType type, String s, short metaCount, short metaCount2) {
+        super(mat, type, s);
+        INSTANCES.add(this);
+        META_COUNT = metaCount;
+        META_COUNT_2 = metaCount2;
+    }
 
     public BlockMeta(Material m, String s, short metaCount, boolean showMetaInCreative) {
         super(m, s);
