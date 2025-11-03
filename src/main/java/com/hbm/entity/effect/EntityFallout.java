@@ -1,5 +1,6 @@
 package com.hbm.entity.effect;
 
+import biomesoplenty.api.block.BOPBlocks;
 import biomesoplenty.common.block.BlockBOPDirt;
 import biomesoplenty.common.block.BlockBOPGrass;
 import com.hbm.blocks.ModBlocks;
@@ -174,7 +175,7 @@ public abstract class EntityFallout extends Entity implements IChunkLoader {
             } else if (blockBelow instanceof BlockGrass) {
                 placeBlockFromDist(dist, ModBlocks.waste_earth, lowerPos.down());
                 placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-            } else if (blockBelow instanceof BlockBOPGrass) {
+            } else if (blockBelow == BOPBlocks.grass) {
                 BlockBOPGrass.BOPGrassType grassType = EnumUtil.grabEnumSafely(BlockBOPGrass.BOPGrassType.class, block.getMetaFromState(world.getBlockState(pos)));
                 switch (grassType) {
                     case SILTY :
@@ -190,6 +191,9 @@ public abstract class EntityFallout extends Entity implements IChunkLoader {
                         placeBlockFromDist(dist, ModBlocks.waste_earth_daisy, lowerPos.down());
                         placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
                     case OVERGROWN_STONE:
+                        placeBlockFromDist(dist, ModBlocks.waste_stone, lowerPos.down());
+                        placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
+                    case OVERGROWN_NETHERRACK:
                         placeBlockFromDist(dist, ModBlocks.waste_stone, lowerPos.down());
                         placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
                     case ORIGIN:

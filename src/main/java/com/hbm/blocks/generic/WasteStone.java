@@ -103,7 +103,7 @@ public class WasteStone extends Block {
     public void randomDisplayTick(IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
         super.randomDisplayTick(stateIn, worldIn, pos, rand);
 
-        if (this == ModBlocks.waste_stone || this == ModBlocks.waste_mycelium_netherrack) {
+        if (this == ModBlocks.waste_stone || this == ModBlocks.waste_stone_netherrack ||this == ModBlocks.waste_stone_moss || this == ModBlocks.waste_mycelium_netherrack) {
             worldIn.spawnParticle(EnumParticleTypes.TOWN_AURA, pos.getX() + rand.nextFloat(), pos.getY() + 1.1F, pos.getZ() + rand.nextFloat(), 0.0D, 0.0D, 0.0D);
         }
     }

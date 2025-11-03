@@ -1,0 +1,8 @@
+{
+    "parent": "block/cube_bottom_top",
+    "textures": {
+        "top": "hbm:blocks/contamination/mycelium/waste_mycelium_top",
+        "bottom": "minecraft:blocks/netherrack",
+        "side": "hbm:blocks/contamination/mycelium/waste_mycelium_netherrack"
+    }
+}

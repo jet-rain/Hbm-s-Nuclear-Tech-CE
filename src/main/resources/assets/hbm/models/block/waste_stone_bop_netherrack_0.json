@@ -1,0 +1,8 @@
+{
+    "parent": "block/cube_bottom_top",
+    "textures": {
+        "top": "hbm:blocks/contamination/grass/waste_grass_top_0",
+        "bottom": "minecraft:blocks/netherrack",
+        "side": "hbm:blocks/contamination/stone_bop/waste_stone_bop_netherrack_0"
+    }
+}
