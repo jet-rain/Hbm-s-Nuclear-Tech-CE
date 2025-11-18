@@ -1,6 +1,6 @@
-//version: 1753288091
+//version: 1762213476
 /*
- * DO NOT CHANGE THIS FILE! fuck off
+ * DO NOT CHANGE THIS FILE!
  * Also, you may replace this file at any time if there is an update available.
  * Please check https://github.com/GregTechCEu/Buildscripts/blob/master/build.gradle for updates.
  * You can also run ./gradlew updateBuildScript to update your buildscript.
@@ -33,7 +33,7 @@ plugins {
     id 'base'
     id 'eclipse'
     id 'maven-publish'
-    id 'org.jetbrains.gradle.plugin.idea-ext' version '1.2'
+    id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.8'
     id 'com.gtnewhorizons.retrofuturagradle' version '1.4.0'
     id 'net.darkhax.curseforgegradle' version '1.1.24' apply false
     id 'com.modrinth.minotaur' version '2.8.7' apply false
@@ -288,7 +288,7 @@ java {
             languageVersion.set(JavaLanguageVersion.of(8))
         }
         // Azul covers the most platforms for Java 8+ toolchains, crucially including MacOS arm64
-//        vendor.set(JvmVendorSpec.AZUL)
+        vendor.set(JvmVendorSpec.AZUL)
     }
     if (!noPublishedSources.toBoolean()) {
         withSourcesJar()
@@ -308,21 +308,13 @@ tasks.withType(JavaCompile).configureEach {
 
         javaCompiler.set(javaToolchains.compilerFor {
             languageVersion.set(JavaLanguageVersion.of(17))
-//            vendor.set(JvmVendorSpec.AZUL)
+            vendor.set(JvmVendorSpec.AZUL)
         })
     }
 }
 
 tasks.withType(ScalaCompile).configureEach {
     options.encoding = 'UTF-8'
-}
-
-
-// Allow others using this buildscript to have custom gradle code run
-if (getFile('addon.gradle').exists()) {
-    apply from: 'addon.gradle'
-} else if (getFile('addon.gradle.kts').exists()) {
-    apply from: 'addon.gradle.kts'
 }
 
 
@@ -372,11 +364,14 @@ minecraft {
 
     // JVM arguments
     extraRunJvmArguments.add("-ea:${modGroup}")
+
+    // enable JLine Terminal since idea_rt.jar is no longer added to the classpath
+    extraRunJvmArguments.add('-Dterminal.jline=true')
     if (usesMixins.toBoolean()) {
         extraRunJvmArguments.addAll([
-            '-Dmixin.hotSwap=true',
-            '-Dmixin.checks.interfaces=true',
-            '-Dmixin.debug.export=true'
+                '-Dmixin.hotSwap=true',
+                '-Dmixin.checks.interfaces=true',
+                '-Dmixin.debug.export=true'
         ])
     }
 
@@ -565,8 +560,8 @@ dependencies {
         testCompileOnly "me.eigenraven.java8unsupported:java-8-unsupported-shim:1.0.0"
     }
 
-    compileOnlyApi 'org.jetbrains:annotations:26.0.2'
-    annotationProcessor 'org.jetbrains:annotations:26.0.2'
+    compileOnlyApi 'org.jetbrains:annotations:24.1.0'
+    annotationProcessor 'org.jetbrains:annotations:24.1.0'
     patchedMinecraft('net.minecraft:launchwrapper:1.17.2') {
         transitive = false
     }
@@ -874,7 +869,7 @@ if (enableJava17RunTasks.toBoolean()) {
         if (modId != 'lwjgl3ify') {
             java17Dependencies("io.github.twilightflower:lwjgl3ify:1.0.1")
             java17PatchDependencies("io.github.twilightflower:lwjgl3ify:1.0.1:forgePatches") {
-            transitive = false
+                transitive = false
             }
         }
     }
@@ -1550,81 +1545,10 @@ def getLastTag() {
             (githubTag.isPresent() ? runShell('git rev-list --tags --skip=1 --max-count=1') : ''))
 }
 
-def sourceBackupDir = file("build/tmp/sourceBackup")
 
-tasks.register('patchAndBackupSources') {
-    group = 'build'
-
-    def targetFile = file("build/rfg/minecraft-src/java/net/minecraft/client/renderer/GlStateManager.java")
-    def backupFile = file("$sourceBackupDir/GlStateManager.java.bak")
-
-    inputs.file(targetFile).withPathSensitivity(PathSensitivity.NONE)
-    outputs.file(backupFile)
-    outputs.file(targetFile).withPropertyName("patchedSource")
-
-    doLast {
-        copy { from targetFile; into sourceBackupDir; rename { 'GlStateManager.java.bak' } }
-
-        String originalContent = targetFile.getText('UTF-8')
-        if (!originalContent.contains("public static void rotate(double")) {
-            def methodToInject = """
-
-    @SuppressWarnings("all")
-    public static void rotate(double angle, float x, float y, float z) {
-        // This is a compile-time-only stub. The real implementation is injected by coremod at runtime.
-    }
-
-"""
-            int lastBraceIndex = originalContent.lastIndexOf('}')
-            String newContent = originalContent.substring(0, lastBraceIndex) + methodToInject + originalContent.substring(lastBraceIndex)
-            targetFile.setText(newContent, 'UTF-8')
-        }
-    }
+// Allow others using this buildscript to have custom gradle code run
+if (getFile('addon.gradle').exists()) {
+    apply from: 'addon.gradle'
+} else if (getFile('addon.gradle.kts').exists()) {
+    apply from: 'addon.gradle.kts'
 }
-
-tasks.register('restoreOriginalSources') {
-    group = 'build'
-
-    def targetFile = file("build/rfg/minecraft-src/java/net/minecraft/client/renderer/GlStateManager.java")
-    def backupFile = file("$sourceBackupDir/GlStateManager.java.bak")
-
-    inputs.file(backupFile)
-    outputs.file(targetFile)
-
-    doLast {
-        if (backupFile.exists()) {
-            copy { from backupFile; into targetFile.parent; rename { 'GlStateManager.java' } }
-            delete(backupFile)
-        }
-    }
-}
-
-tasks.register('repatchSourcesForIDE') {
-    group = 'ide'
-
-    def targetFile = file("build/rfg/minecraft-src/java/net/minecraft/client/renderer/GlStateManager.java")
-    outputs.file(targetFile)
-
-    doLast {
-        String originalContent = targetFile.getText('UTF-8')
-        if (!originalContent.contains("public static void rotate(double")) {
-            def methodToInject = """
-
-    @SuppressWarnings("all")
-    public static void rotate(double angle, float x, float y, float z) {
-        // This is a compile-time-only stub. The real implementation is injected by a coremod at runtime.
-    }
-
-"""
-            int lastBraceIndex = originalContent.lastIndexOf('}')
-            String newContent = originalContent.substring(0, lastBraceIndex) + methodToInject + originalContent.substring(lastBraceIndex)
-            targetFile.setText(newContent, 'UTF-8')
-        }
-    }
-}
-
-tasks.named('patchAndBackupSources').configure {it.dependsOn(tasks.named('decompressDecompiledSources'))}
-tasks.named('compilePatchedMcJava').configure {it.dependsOn(tasks.named('patchAndBackupSources'))}
-tasks.named('restoreOriginalSources').configure {it.dependsOn(tasks.named('classes'))}
-tasks.named('reobfJar').configure {it.dependsOn(tasks.named('restoreOriginalSources'))}
-tasks.named('build').configure {it.finalizedBy(tasks.named('repatchSourcesForIDE'))}

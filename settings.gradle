@@ -26,6 +26,5 @@ blowdryerSetup {
     repoSubfolder 'spotless'
     github 'GregTechCEu/Buildscripts', 'tag', 'v1.0.7'
 }
-
 include 'processor'
 rootProject.name = rootProject.projectDir.getName()
