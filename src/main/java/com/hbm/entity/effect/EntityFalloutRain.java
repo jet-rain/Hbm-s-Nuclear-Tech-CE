@@ -72,6 +72,7 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
     public UUID detonator;
     private ForkJoinPool pool;
     private int tickDelay = BombConfig.falloutDelay;
+    private boolean biomeChange = true;
 
     public EntityFalloutRain(World worldIn) {
         super(worldIn);
@@ -167,6 +168,14 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
         }
     }
 
+    private void enqueueWork(long cp, boolean clamp) {
+        if (clamp) qOuter.add(cp);
+        else qInner.add(cp);
+        if (pool != null && !pool.isShutdown() && !finished.get()) {
+            pool.execute(new WorkerTask());
+        }
+    }
+
     private void loadMissingChunks(int timeBudgetMs) {
         final long deadline = System.nanoTime() + timeBudgetMs * 1_000_000L;
         while (System.nanoTime() < deadline) {
@@ -177,10 +186,7 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
             int cz = ChunkUtil.getChunkPosZ(ck);
             world.getChunk(cx, cz);
             Boolean clamp = waitingRoom.remove(ck);
-            if (clamp != null) {
-                if (clamp) qOuter.add(ck);
-                else qInner.add(ck);
-            }
+            if (clamp != null) enqueueWork(ck, clamp.booleanValue());
         }
     }
 
@@ -212,7 +218,7 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
                 if (clampToRadius && distance > (double) scale) continue;
                 final double percent = (double) scale <= 0 ? 100.0 : (distance * 100.0 / (double) scale);
                 Biome target = getBiomeChange(percent, scale, world.getBiome(TL_POS.get().setPos(x, 0, z)));
-                if (target != null) biomeChanges.put(ChunkPos.asLong(x, z), Biome.getIdForBiome(target));
+                if (biomeChange && target != null) biomeChanges.put(ChunkPos.asLong(x, z), Biome.getIdForBiome(target));
                 stompColumnToUpdates(ebs, x, z, percent, updates, spawnFalling, rand);
             }
         }
@@ -578,6 +584,10 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
 
     public void setScale(int i, int ignored) {
         this.dataManager.set(SCALE, i);
+    }
+
+    public void noBiomeChange() {
+        this.biomeChange = false;
     }
 
     private void gatherChunks() {

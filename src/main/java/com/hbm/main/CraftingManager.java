@@ -43,6 +43,7 @@ import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.oredict.OreIngredient;
 import net.minecraftforge.oredict.ShapedOreRecipe;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -272,7 +273,7 @@ public class CraftingManager {
 		// TODO: I don't know what the fuck red_cable_classic are btw
 		/*addShapelessAuto(new ItemStack(ModBlocks.red_cable_classic, 1), ModBlocks.red_cable );
 		addShapelessAuto(new ItemStack(ModBlocks.red_cable, 1), ModBlocks.red_cable_classic );*/
-		//addRecipeAuto(new ItemStack(ModBlocks.red_connector, 4), "C", "I", "S", 'C', ModItems.coil_copper, 'I', ModItems.plate_polymer, 'S', STEEL.ingot() );
+		addRecipeAuto(new ItemStack(ModBlocks.red_connector, 4), "C", "I", "S", 'C', ModItems.coil_copper, 'I', ModItems.plate_polymer, 'S', STEEL.ingot() );
 		addShapelessAuto(new ItemStack(ModBlocks.red_cable_gauge), ModBlocks.red_wire_coated, STEEL.ingot(), DictFrame.fromOne(ModItems.circuit, EnumCircuitType.BASIC) );
 		addRecipeAuto(new ItemStack(ModBlocks.red_pylon, 4), "CWC", "PWP", " T ", 'C', ModItems.coil_copper, 'W', KEY_PLANKS, 'P', ModItems.plate_polymer, 'T', ModBlocks.red_wire_coated );
 		addRecipeAuto(new ItemStack(ModBlocks.red_pylon_medium_wood, 2), "CCW", "IIW", "  S", 'C', ModItems.coil_copper, 'W', KEY_PLANKS, 'I', ModItems.plate_polymer, 'S', KEY_COBBLESTONE );
@@ -407,8 +408,7 @@ public class CraftingManager {
 			String dyeName = "dye" + dyes[15 - i];
 			addRecipeAuto(new ItemStack(ModBlocks.concrete_colored, 8, i), "CCC", "CDC", "CCC", 'C', ModBlocks.concrete_smooth, 'D', dyeName );
 		}
-		addShapelessAuto(new ItemStack(ModBlocks.concrete_smooth, 1), new ItemStack(ModBlocks.concrete_colored, 1, OreDictionary.WILDCARD_VALUE) );
-		addShapelessAuto(new ItemStack(ModBlocks.concrete_smooth, 1), new ItemStack(ModBlocks.concrete_colored_ext, 1, OreDictionary.WILDCARD_VALUE) );
+		addShapelessAuto(new ItemStack(ModBlocks.concrete_smooth, 1), "unknownConcrete");
 
 		addRecipeAuto(new ItemStack(ModBlocks.concrete_colored_ext, 6, EnumConcreteType.MACHINE.ordinal()), "CCC", "1 2", "CCC", 'C', ModBlocks.concrete_smooth, '1', KEY_BROWN, '2', KEY_GRAY );
 		addRecipeAuto(new ItemStack(ModBlocks.concrete_colored_ext, 6, EnumConcreteType.MACHINE_STRIPE.ordinal()), "CCC", "1 2", "CCC", 'C', ModBlocks.concrete_smooth, '1', KEY_BROWN, '2', KEY_BLACK );
@@ -928,8 +928,8 @@ public class CraftingManager {
 		addRecipeAuto(new ItemStack(Items.LEAD, 4), "RSR", 'R', DictFrame.fromOne(ModItems.plant_item, ItemEnums.EnumPlantType.ROPE), 'S', KEY_SLIME );
 		addRecipeAuto(new ItemStack(ModItems.rag, 4), "SW", "WS", 'S', Items.STRING, 'W', Blocks.WOOL );
 
-		addShapelessAuto(new ItemStack(ModItems.solid_fuel, 3), Fluids.HEATINGOIL.getDict(16000), KEY_TOOL_CHEMISTRYSET );
-		addShapelessAuto(new ItemStack(ModItems.canister_full, 2, Fluids.LUBRICANT.getID()), Fluids.HEATINGOIL.getDict(1000), Fluids.UNSATURATEDS.getDict(1000), ModItems.canister_empty, ModItems.canister_empty, KEY_TOOL_CHEMISTRYSET );
+		addShapelessAuto(new ItemStack(ModItems.solid_fuel, 3), Fluids.HEATINGOIL.getDict(16000), new ComplexOreIngredient(KEY_TOOL_CHEMISTRYSET));
+		addShapelessAuto(new ItemStack(ModItems.canister_full, 2, Fluids.LUBRICANT.getID()), Fluids.HEATINGOIL.getDict(1000), Fluids.UNSATURATEDS.getDict(1000), ModItems.canister_empty, ModItems.canister_empty, new ComplexOreIngredient(KEY_TOOL_CHEMISTRYSET));
 
 		addRecipeAuto(new ItemStack(ModBlocks.machine_condenser), "SIS", "ICI", "SIS", 'S', STEEL.ingot(), 'I', IRON.plate(), 'C', CU.plateCast() );
 
@@ -1200,8 +1200,8 @@ public class CraftingManager {
 		for(int meta = 0; meta < 16; meta++) {
 			Block slab = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("hbm", "concrete_" + EnumDyeColor.byMetadata(meta).getName() + "_slab"));
 			if(slab != null){
-				addRecipeAuto(new ItemStack(slab, 6, meta), "###", '#', new ItemStack(block, 1, meta));			addRecipeAuto(new ItemStack(stair, 4, meta), "#  ", "## ", "###", '#', new ItemStack(slab, 1, meta));
-				addShapelessAuto(new ItemStack(block, 1, meta), new ItemStack(slab, 1, meta), new ItemStack(slab, 1, meta));
+				addRecipeAuto(new ItemStack(slab, 6, 0), "###", '#', new ItemStack(block, 1, meta));			addRecipeAuto(new ItemStack(stair, 4, meta), "#  ", "## ", "###", '#', new ItemStack(slab, 1, 0));
+				addShapelessAuto(new ItemStack(block, 1, meta), new ItemStack(slab, 1, meta), new ItemStack(slab, 1, 0));
 			}
 			addRecipeAuto(new ItemStack(stair, 8, meta), "#  ", "## ", "###", '#', new ItemStack(block, 1, meta));
 			addShapelessAuto(new ItemStack(block, 3, meta), new ItemStack(stair, 1, meta), new ItemStack(stair, 1, meta), new ItemStack(stair, 1, meta), new ItemStack(stair, 1, meta));
@@ -1433,7 +1433,10 @@ public class CraftingManager {
 		boolean shouldUseOD = false;
 		boolean patternEnded = false;
         for (Object arg : args) {
-            if (arg instanceof String) {
+			if (arg instanceof OreIngredient) {
+				shouldUseOD = true;
+				break;
+			} else if (arg instanceof String) {
                 if (patternEnded) {
                     shouldUseOD = true;
                     break;
@@ -1458,7 +1461,7 @@ public class CraftingManager {
 	public static void addRecipeAutoOreShapeless(ItemStack output, Object... args) {
 		boolean shouldUseOD = false;
 		for (Object arg : args) {
-			if (arg instanceof String) {
+			if (arg instanceof String || arg instanceof OreIngredient) {
 				shouldUseOD = true;
 				break;
 			}
@@ -1488,7 +1491,7 @@ public class CraftingManager {
 		boolean shouldUseOD = false;
 
         for (Object arg : args) {
-            if (arg instanceof String) {
+            if (arg instanceof String || arg instanceof OreIngredient) {
                 shouldUseOD = true;
                 break;
             }
@@ -1559,4 +1562,15 @@ public class CraftingManager {
 		}
 	}
 
+	public static class ComplexOreIngredient extends OreIngredient {
+		public ComplexOreIngredient(String ore) {
+			super(ore);
+		}
+
+		@Override
+		public boolean isSimple() {
+			//mlbv: with isSimple() == true it fucking ignores apply()
+			return false;
+		}
+	}
 }

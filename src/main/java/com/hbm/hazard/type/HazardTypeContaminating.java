@@ -3,8 +3,10 @@ package com.hbm.hazard.type;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BlockClean;
 import com.hbm.config.RadiationConfig;
-import com.hbm.entity.effect.EntityFalloutUnderGround;
-import com.hbm.hazard.modifier.HazardModifier;
+import com.hbm.entity.effect.EntityFalloutRain;
+import com.hbm.handler.radiation.ChunkRadiationManager;
+import com.hbm.handler.radiation.RadiationWorldHandler;
+import com.hbm.hazard.modifier.IHazardModifier;
 import com.hbm.util.I18nUtil;
 import net.minecraft.block.Block;
 import net.minecraft.entity.EntityLivingBase;
@@ -19,7 +21,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.List;
 
-public class HazardTypeContaminating extends HazardTypeBase {
+public class HazardTypeContaminating implements IHazardType {
 
     private static final int MAX_RADIUS = 500;
 
@@ -45,10 +47,14 @@ public class HazardTypeContaminating extends HazardTypeBase {
             }
             int radius = computeRadius(level);
             if (radius > 1) {
-                EntityFalloutUnderGround falloutBall = new EntityFalloutUnderGround(world);
-                falloutBall.setPosition(item.posX, item.posY, item.posZ);
-                falloutBall.setScale(radius);
-                world.spawnEntity(falloutBall);
+                //mlbv: with no biome change, the falloutrain would leave no radiation behind
+                //so I choose to manually compensate the radiation
+                ChunkRadiationManager.proxy.incrementRad(world, item.getPosition(), level);
+                EntityFalloutRain falloutRain = new EntityFalloutRain(world);
+                falloutRain.setPosition(item.posX, item.posY, item.posZ);
+                falloutRain.setScale(radius);
+                falloutRain.noBiomeChange();
+                world.spawnEntity(falloutRain);
             }
             item.setDead();
         }
@@ -56,7 +62,7 @@ public class HazardTypeContaminating extends HazardTypeBase {
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void addHazardInformation(EntityPlayer player, List<String> list, double level, ItemStack stack, List<HazardModifier> modifiers) {
+    public void addHazardInformation(EntityPlayer player, List<String> list, double level, ItemStack stack, List<IHazardModifier> modifiers) {
         int radius = computeRadius(level);
         if (radius > 1) {
             list.add(TextFormatting.DARK_GREEN + "[" + I18nUtil.resolveKey("trait.contaminating") + "]");

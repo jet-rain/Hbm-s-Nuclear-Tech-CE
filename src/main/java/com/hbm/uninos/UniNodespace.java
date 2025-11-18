@@ -1,11 +1,18 @@
 package com.hbm.uninos;
 
+import com.hbm.config.GeneralConfig;
 import com.hbm.lib.DirPos;
+import it.unimi.dsi.fastutil.objects.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.common.DimensionManager;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 /**
  * Unified Nodespace, a Nodespace for all applications.
@@ -18,7 +25,7 @@ import java.util.*;
  */
 public final class UniNodespace {
 
-    private static final Map<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>> managers = new HashMap<>();
+    private static final Object2ObjectOpenHashMap<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>> managers = new Object2ObjectOpenHashMap<>();
 
     private UniNodespace() {
     }
@@ -35,19 +42,59 @@ public final class UniNodespace {
         getManagerFor(type).destroyNode(world, pos);
     }
 
+    /**
+     * <code>GeneralConfig.enableThreadedNodeSpaceUpdate</code> is safe provided that:
+     * <ul>
+     *   <li>This method is called only from the server thread.</li>
+     *   <li>While this method is running, no other thread may call createNode/destroyNode or otherwise mutate UniNodespace / PerTypeNodeManager state.</li>
+     *   <li>TileEntity logic that interacts with NodeNet must not run concurrently with this method.</li>
+     * </ul>
+     */
     public static void updateNodespace() {
-        World[] currentWorlds = FMLCommonHandler.instance().getMinecraftServerInstance().worlds;
-        for (World world : currentWorlds) {
-            for (PerTypeNodeManager<?, ?, ?, ?> manager : managers.values()) {
-                manager.updateForWorld(world);
+        World[] currentWorlds = DimensionManager.getWorlds();
+        if (currentWorlds.length == 0) return;
+
+        if (!GeneralConfig.enableThreadedNodeSpaceUpdate) {
+            for (World world : currentWorlds) {
+                ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet().fastIterator();
+                while (iterator.hasNext()) {
+                    PerTypeNodeManager<?, ?, ?, ?> manager = iterator.next().getValue();
+                    manager.updateForWorld(world);
+                }
             }
+            updateNetworks();
+            return;
+        }
+        List<Callable<Void>> tasks = new ArrayList<>(currentWorlds.length);
+        for (World world : currentWorlds) {
+            tasks.add(() -> {
+                ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet().fastIterator();
+                while (iterator.hasNext()) {
+                    PerTypeNodeManager<?, ?, ?, ?> manager = iterator.next().getValue();
+                    manager.updateForWorld(world);
+                }
+                return null;
+            });
+        }
+        try {
+            List<Future<Void>> futures = ForkJoinPool.commonPool().invokeAll(tasks);
+            for (Future<Void> future : futures) {
+                future.get();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("UniNodespace update interrupted", e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException("Exception during UniNodespace update", e.getCause());
         }
         updateNetworks();
     }
 
     static void removeActiveNet(NodeNet<?, ?, ?, ?> net) {
         if (net.links.isEmpty()) {
-            for (PerTypeNodeManager<?, ?, ?, ?> manager : managers.values()) {
+            ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet().fastIterator();
+            while (iterator.hasNext()) {
+                PerTypeNodeManager<?, ?, ?, ?> manager = iterator.next().getValue();
                 manager.removeActiveNet(net);
             }
             return;
@@ -75,8 +122,8 @@ public final class UniNodespace {
 
     private static class PerTypeNodeManager<R, P, L extends GenNode<N>, N extends NodeNet<R, P, L, N>> {
 
-        private final Map<World, UniNodeWorld<N, L>> worlds = new HashMap<>();
-        private final Set<N> activeNodeNets = new HashSet<>();
+        private final Object2ObjectOpenHashMap<World, UniNodeWorld<N, L>> worlds = new Object2ObjectOpenHashMap<>();
+        private final Set<N> activeNodeNets = GeneralConfig.enableThreadedNodeSpaceUpdate ? ConcurrentHashMap.newKeySet() : new ObjectOpenHashSet<>();
         private final INetworkProvider<N> provider;
 
         PerTypeNodeManager(INetworkProvider<N> provider) {
@@ -134,10 +181,22 @@ public final class UniNodespace {
         }
 
         void updateNetworks() {
-            Set<N> netsToUpdate = new HashSet<>(activeNodeNets);
-            for (N net : netsToUpdate) net.resetTrackers();
-            for (N net : netsToUpdate) {
-                if (net.isValid()) net.update();
+            if (!GeneralConfig.enableThreadedNodeSpaceUpdate) {
+                for (N net : activeNodeNets) {
+                    net.resetTrackers();
+                }
+                for (N net : activeNodeNets) {
+                    if (net.isValid()) net.update();
+                }
+            } else {
+                for (N net : activeNodeNets) {
+                    net.resetTrackers();
+                }
+                activeNodeNets.parallelStream().forEach(net -> {
+                    if (net.isValid()) {
+                        net.update();
+                    }
+                });
             }
         }
 
@@ -177,7 +236,7 @@ public final class UniNodespace {
      * Holds all nodes of a single network type for a specific World.
      */
     private static class UniNodeWorld<N extends NodeNet<?, ?, L, N>, L extends GenNode<N>> {
-        private final Map<BlockPos, L> nodesByPosition = new LinkedHashMap<>();
+        private final Object2ObjectLinkedOpenHashMap<BlockPos, L> nodesByPosition = new Object2ObjectLinkedOpenHashMap<>();
 
         L getNode(BlockPos pos) {
             return nodesByPosition.get(pos);
@@ -199,8 +258,9 @@ public final class UniNodespace {
             node.expired = true;
         }
 
-        Set<L> getAllNodes() {
-            return new HashSet<>(nodesByPosition.values());
+        /** @return a view of all nodes in this world, do not modify */
+        Collection<L> getAllNodes() {
+            return nodesByPosition.values();
         }
     }
 }

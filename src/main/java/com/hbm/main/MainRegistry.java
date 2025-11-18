@@ -37,6 +37,7 @@ import com.hbm.inventory.OreDictManager;
 import com.hbm.inventory.RecipesCommon;
 import com.hbm.inventory.control_panel.ControlEvent;
 import com.hbm.inventory.control_panel.ControlRegistry;
+import com.hbm.inventory.control_panel.modular.StockNodesRegister;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.recipes.*;
 import com.hbm.inventory.recipes.anvil.AnvilRecipes;
@@ -322,6 +323,8 @@ public class MainRegistry {
         proxy.preInit(event);
         Library.initSuperusers();
 
+        StockNodesRegister.register();
+
         enumArmorMaterialSchrabidium.setRepairItem(new ItemStack(ModItems.ingot_schrabidium));
         enumArmorMaterialHazmat.setRepairItem(new ItemStack(ModItems.hazmat_cloth));
         enumArmorMaterialHazmat2.setRepairItem(new ItemStack(ModItems.hazmat_cloth_red));
@@ -393,6 +396,8 @@ public class MainRegistry {
         HazmatRegistry.registerHazmats();
         ControlRegistry.init();
         OreDictManager.registerOres();
+        if(RadiationConfig.enableContaminationOnGround)
+            HazardRegistry.registerContaminatingDrops();
         Fluids.initForgeFluidCompat();
         PacketThreading.init();
         IMCHandler.init();
