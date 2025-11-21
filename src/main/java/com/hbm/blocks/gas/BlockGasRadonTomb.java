@@ -1,5 +1,7 @@
 package com.hbm.blocks.gas;
 
+import biomesoplenty.api.block.BOPBlocks;
+import biomesoplenty.common.block.BlockBOPGrass;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.config.GeneralConfig;
 import com.hbm.handler.ArmorUtil;
@@ -10,6 +12,7 @@ import com.hbm.util.ArmorRegistry.HazardClass;
 import com.hbm.util.ContaminationUtil;
 import com.hbm.util.ContaminationUtil.ContaminationType;
 import com.hbm.util.ContaminationUtil.HazardType;
+import com.hbm.util.EnumUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirt;
 import net.minecraft.block.material.Material;
@@ -111,8 +114,39 @@ public class BlockGasRadonTomb extends BlockGasBase {
                         world.setBlockState(pos.down(), Blocks.DIRT.getDefaultState().withProperty(BlockDirt.VARIANT, BlockDirt.DirtType.COARSE_DIRT), 3);
                     else
                         world.setBlockState(pos.down(), ModBlocks.waste_earth.getDefaultState());
+                } else if (b == BOPBlocks.grass) {
+                    BlockBOPGrass.BOPGrassType grassType = EnumUtil.grabEnumSafely(BlockBOPGrass.BOPGrassType.class, getMetaFromState(world.getBlockState(pos)));
+                    switch (grassType) {
+                        case SILTY :
+                            world.setBlockState(pos.down(), ModBlocks.waste_earth_silty.getDefaultState());
+                        case SANDY:
+                            world.setBlockState(pos.down(), ModBlocks.waste_earth_sandy.getDefaultState());
+                        case LOAMY:
+                            world.setBlockState(pos.down(), ModBlocks.waste_earth_loamy.getDefaultState());
+                        case DAISY:
+                            world.setBlockState(pos.down(), ModBlocks.waste_earth_daisy.getDefaultState());
+                        case OVERGROWN_STONE:
+                            if (rand.nextInt(5) == 0)
+                                world.setBlockState(pos.down(), Blocks.STONE.getDefaultState());
+                            else
+                                world.setBlockState(pos.down(), ModBlocks.waste_stone.getDefaultState());
+                        case OVERGROWN_NETHERRACK:
+                            if (rand.nextInt(5) == 0)
+                                world.setBlockState(pos.down(), Blocks.NETHERRACK.getDefaultState());
+                            else
+                             world.setBlockState(pos.down(), ModBlocks.waste_stone_netherrack.getDefaultState());
+                        case SPECTRAL_MOSS:
+                            if (rand.nextInt(5) == 0)
+                                world.setBlockState(pos.down(), Blocks.END_STONE.getDefaultState());
+                            else
+                                world.setBlockState(pos.down(), ModBlocks.waste_stone_moss.getDefaultState());
+                        case ORIGIN:
+                            if (rand.nextInt(5) == 0)
+                                world.setBlockState(pos.down(), Blocks.DIRT.getDefaultState().withProperty(BlockDirt.VARIANT, BlockDirt.DirtType.COARSE_DIRT), 3);
+                            else
+                                world.setBlockState(pos.down(), ModBlocks.waste_earth.getDefaultState());
+                    }
                 }
-
                 if ((state2.getMaterial() == Material.GRASS || state2.getMaterial() == Material.LEAVES || state2.getMaterial() == Material.PLANTS || state2.getMaterial() == Material.VINE) && !state2.isNormalCube())
                     world.setBlockToAir(pos.down());
             }

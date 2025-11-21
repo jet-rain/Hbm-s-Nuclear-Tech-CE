@@ -105,7 +105,7 @@ public class RadiationWorldHandler {
                     case OVERGROWN_NETHERRACK -> ModBlocks.waste_stone_netherrack.getDefaultState();
                     case SPECTRAL_MOSS -> ModBlocks.waste_stone_moss.getDefaultState();
                     case MYCELIAL_NETHERRACK -> ModBlocks.waste_mycelium_netherrack.getDefaultState();
-                    case ORIGIN -> ModBlocks.waste_dirt.getDefaultState();
+                    case ORIGIN -> ModBlocks.waste_earth.getDefaultState();
                 }
                 yield null;
             }
