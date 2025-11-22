@@ -117,7 +117,7 @@ public class BlockGasRadonTomb extends BlockGasBase {
                 } else if (b == BOPBlocks.grass) {
                     BlockBOPGrass.BOPGrassType grassType = EnumUtil.grabEnumSafely(BlockBOPGrass.BOPGrassType.class, getMetaFromState(world.getBlockState(pos)));
                     switch (grassType) {
-                        case SILTY :
+                        case SILTY:
                             world.setBlockState(pos.down(), ModBlocks.waste_earth_silty.getDefaultState());
                         case SANDY:
                             world.setBlockState(pos.down(), ModBlocks.waste_earth_sandy.getDefaultState());

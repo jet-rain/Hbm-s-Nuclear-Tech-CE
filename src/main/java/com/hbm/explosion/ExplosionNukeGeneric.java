@@ -343,8 +343,8 @@ public class ExplosionNukeGeneric {
                 BlockBOPDirt.BOPDirtType dirtType = EnumUtil.grabEnumSafely(BlockBOPDirt.BOPDirtType.class, b.getMetaFromState(world.getBlockState(pos)));
                switch (dirtType) {
                    case SILTY ->  world.setBlockState(pos, ModBlocks.waste_dirt_silty.getDefaultState());
-                   case SANDY ->  world.setBlockState(pos, ModBlocks.waste_dirt_silty.getDefaultState());
-                   case LOAMY ->  world.setBlockState(pos, ModBlocks.waste_dirt_silty.getDefaultState());
+                   case SANDY ->  world.setBlockState(pos, ModBlocks.waste_dirt_sandy.getDefaultState());
+                   case LOAMY ->  world.setBlockState(pos, ModBlocks.waste_dirt_loamy.getDefaultState());
                }
             } else if (b instanceof BlockSnow) {
                 world.setBlockState(pos, ModBlocks.waste_snow.getDefaultState());
