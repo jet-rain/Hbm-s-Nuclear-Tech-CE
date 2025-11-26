@@ -2,17 +2,14 @@ package com.hbm.blocks;
 
 import com.hbm.items.ModItems;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.IStringSerializable;
 
 import javax.annotation.Nullable;
-
-import java.util.Locale;
 
 import static com.hbm.blocks.OreEnumUtil.OreEnum;
 
 public class BlockEnums {
 
-    public static enum EnumStoneType {
+    public enum EnumStoneType {
         SULFUR,
         ASBESTOS,
         HEMATITE,
@@ -21,7 +18,7 @@ public class BlockEnums {
         BAUXITE
     }
 
-    public static enum EnumMeteorType {
+    public enum EnumMeteorType {
         IRON,
         COPPER,
         ALUMINIUM,
@@ -29,7 +26,7 @@ public class BlockEnums {
         COBALT
     }
 
-    public static enum EnumStalagmiteType {
+    public enum EnumStalagmiteType {
         SULFUR,
         ASBESTOS
     }
@@ -37,12 +34,12 @@ public class BlockEnums {
     /** DECO / STRUCTURE ENUMS */
     //i apologize in advance
 
-    public static enum TileType {
+    public enum TileType {
         LARGE,
         SMALL
     }
 
-    public static enum LightstoneType {
+    public enum LightstoneType {
         UNREFINED,
         TILE,
         BRICKS,
@@ -50,11 +47,11 @@ public class BlockEnums {
         CHISELED
     }
 
-    public static enum DecoComputerEnum {
+    public enum DecoComputerEnum {
         IBM_300PL
     }
 
-    public static enum DecoCabinetEnum {
+    public enum DecoCabinetEnum {
         GREEN,
         STEEL
     }
@@ -72,7 +69,7 @@ public class BlockEnums {
         WOOD
     }
 
-    public static enum OreType {
+    public enum OreType {
         EMERALD ("emerald",OreEnum.EMERALD),
         DIAMOND ("diamond", OreEnum.DIAMOND),
         RADGEM ("radgem",OreEnum.RAD_GEM),
@@ -95,7 +92,7 @@ public class BlockEnums {
     }
 
 
-    public static enum EnumBasaltOreType {
+    public enum EnumBasaltOreType {
         SULFUR (new ItemStack(ModItems.sulfur)),
         FLUORITE(new ItemStack(ModItems.fluorite)),
         ASBESTOS(new ItemStack(ModItems.ingot_asbestos)),
@@ -116,7 +113,7 @@ public class BlockEnums {
         }
     }
 
-    public static enum EnumBlockCapType {
+    public enum EnumBlockCapType {
         NUKA (new ItemStack(ModItems.cap_nuka)),
         QUANTUM (new ItemStack(ModItems.cap_quantum)),
         RAD (new ItemStack(ModItems.cap_rad)),
@@ -132,7 +129,7 @@ public class BlockEnums {
             return drop;
         }
 
-        public int getDropCount(int rand){
+        public int getDropCount(){
             return 128;
         }
 
@@ -140,6 +137,4 @@ public class BlockEnums {
             this.drop = drop;
         }
     }
-
 }
-
