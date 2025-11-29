@@ -25,7 +25,7 @@ import com.hbm.blocks.network.PneumoTubePaintableBlock.TileEntityPneumoTubePaint
 import com.hbm.blocks.network.energy.BlockCableGauge;
 import com.hbm.blocks.network.energy.BlockCablePaintable;
 import com.hbm.blocks.network.energy.CableDiode;
-import com.hbm.lib.MethodHandleHelper;
+import com.hbm.lib.internal.MethodHandleHelper;
 import com.hbm.tileentity.bomb.*;
 import com.hbm.tileentity.deco.*;
 import com.hbm.tileentity.machine.*;
@@ -524,6 +524,9 @@ public class TileMappings {
         try {
             oclass = map.get(s);
             if (oclass == null) oclass = REGISTRY.getObject(new ResourceLocation(s));
+            if (oclass == null && !s.contains(":"))
+                // slize forgot to add namespace to some tiles
+                oclass = map.get(Tags.MODID + ":" + s);
             if (oclass != null) tileentity = oclass.newInstance();
         } catch (Throwable throwable1) {
             LOGGER.error("Failed to create block entity {}", s, throwable1);
