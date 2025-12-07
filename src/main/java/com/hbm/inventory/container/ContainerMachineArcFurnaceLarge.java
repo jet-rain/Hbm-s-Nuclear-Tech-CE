@@ -3,6 +3,7 @@ package com.hbm.inventory.container;
 import com.hbm.api.energymk2.IBatteryItem;
 import com.hbm.inventory.SlotBattery;
 import com.hbm.inventory.SlotNonRetarded;
+import com.hbm.inventory.SlotUpgrade;
 import com.hbm.inventory.recipes.ArcFurnaceRecipes;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemMachineUpgrade;
@@ -14,7 +15,6 @@ import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.SlotItemHandler;
 
 public class ContainerMachineArcFurnaceLarge extends Container {
 
@@ -28,7 +28,7 @@ public class ContainerMachineArcFurnaceLarge extends Container {
         //Battery
         this.addSlotToContainer(new SlotBattery(tile.inventory, 3, 8, 108));
         //Upgrade
-        this.addSlotToContainer(new SlotItemHandler(tile.inventory, 4, 152, 108));
+        this.addSlotToContainer(new SlotUpgrade(tile.inventory, 4, 152, 108));
         //Inputs
         for(int i = 0; i < 4; i++) for(int j = 0; j < 5; j++) this.addSlotToContainer(new SlotArcFurnace(tile, tile.inventory, 5 + j + i * 5, 44 + j * 18, 54 + i * 18));
 
@@ -46,7 +46,7 @@ public class ContainerMachineArcFurnaceLarge extends Container {
     @Override
     public ItemStack transferStackInSlot(EntityPlayer player, int index) {
         ItemStack rStack = ItemStack.EMPTY;
-        Slot slot = (Slot) this.inventorySlots.get(index);
+        Slot slot = this.inventorySlots.get(index);
 
         if(slot != null && slot.getHasStack()) {
             ItemStack stack = slot.getStack();
@@ -61,9 +61,9 @@ public class ContainerMachineArcFurnaceLarge extends Container {
                 if(rStack.getItem() instanceof IBatteryItem || rStack.getItem() == ModItems.battery_creative) {
                     if(!InventoryUtil.mergeItemStack(this.inventorySlots, stack, 3, 4, false)) return ItemStack.EMPTY;
                 } else if(rStack.getItem() == ModItems.arc_electrode) {
-                    if(!InventoryUtil.mergeItemStack(this.inventorySlots, stack, 4, 5, false)) return ItemStack.EMPTY;
-                } else if(rStack.getItem() instanceof ItemMachineUpgrade) {
                     if(!InventoryUtil.mergeItemStack(this.inventorySlots, stack, 0, 3, false)) return ItemStack.EMPTY;
+                } else if(rStack.getItem() instanceof ItemMachineUpgrade) {
+                    if(!InventoryUtil.mergeItemStack(this.inventorySlots, stack, 4, 5, false)) return ItemStack.EMPTY;
                 } else {
                     if(!InventoryUtil.mergeItemStack(this.inventorySlots, stack, 5, 25, false)) return ItemStack.EMPTY;
                 }

@@ -71,6 +71,7 @@ import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -1130,12 +1131,12 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
 	}
 
 	/** @return true if is instance of IBatteryItem or has FE capability */
-	public static boolean isItemBattery(@NotNull ItemStack stack){
+	public static boolean isItemCanStoreEnergy(@NotNull ItemStack stack){
 		if (stack.isEmpty()) return false;
 		return stack.getItem() instanceof IBatteryItem || getFE(stack) != null;
 	}
 
-	public static boolean isItemDischargeableBattery(@NotNull ItemStack stack){
+	public static boolean isItemDischargeable(@NotNull ItemStack stack){
 		if (stack.isEmpty()) return false;
 		if (stack.getItem() instanceof IBatteryItem battery) {
 			return battery.getCharge(stack) > 0 && battery.getDischargeRate() > 0;
@@ -1144,7 +1145,7 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
 		return cap != null && cap.getEnergyStored() > 0 && cap.canExtract();
 	}
 
-	public static boolean isItemChargeableBattery(@NotNull ItemStack stack) {
+	public static boolean isItemChargeable(@NotNull ItemStack stack) {
 		if (stack.isEmpty()) return false;
 		if (stack.getItem() instanceof IBatteryItem battery) {
 			return battery.getMaxCharge(stack) > battery.getCharge(stack) && battery.getChargeRate() > 0;
@@ -1153,7 +1154,7 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
 		return cap != null && cap.getMaxEnergyStored() > cap.getEnergyStored() && cap.canReceive();
 	}
 
-	public static boolean isItemEmptyBattery(@NotNull ItemStack stack){
+	public static boolean isItemEmptyEnergy(@NotNull ItemStack stack){
 		if (stack.isEmpty()) return false;
 		if (stack.getItem() instanceof IBatteryItem battery) {
 			return battery.getCharge(stack) <= 0;
@@ -1162,7 +1163,7 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
 		return cap != null && cap.getEnergyStored() <= 0;
 	}
 
-	public static boolean isItemFullBattery(@NotNull ItemStack stack){
+	public static boolean isItemFullEnergy(@NotNull ItemStack stack){
 		if (stack.isEmpty()) return false;
 		if (stack.getItem() instanceof IBatteryItem battery) {
 			long max = battery.getMaxCharge(stack);
@@ -1177,12 +1178,14 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
     public static boolean isStackDrainableForTank(@NotNull ItemStack stack, @NotNull FluidTankNTM tank) {
         Item item = stack.getItem();
         if (tank.getFill() >= tank.getMaxFill()) return false;
+
         if (NTMFluidCapabilityHandler.isNtmFluidContainer(item)) {
             if (!NTMFluidCapabilityHandler.isFullNtmFluidContainer(item)) return false;
-            return tank.getTankType() == Fluids.NONE || tank.getTankType() == FluidContainerRegistry.getFluidType(stack);
+            if (tank.getTankType() != Fluids.NONE && tank.getTankType() != FluidContainerRegistry.getFluidType(stack)) return false;
+            return tank.getFill() + FluidContainerRegistry.getFluidContent(stack) <= tank.getMaxFill();
         } else if (stack.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null)) {
             IFluidHandlerItem handler = stack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null);
-            FluidStack test = handler.drain(1, false);
+            FluidStack test = handler.drain(Integer.MAX_VALUE, false);
             if (test == null) return false;
             return tank.fill(test, false) > 0;
         } else return false;
@@ -1197,7 +1200,7 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
             return FluidContainerRegistry.getFillRecipe(stack, tank.getTankType()) != null;
         } else if (stack.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null)) {
             IFluidHandlerItem handler = stack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null);
-            return handler.fill(new FluidStack(tank.getTankTypeFF(), 1), false) > 0;
+            return handler.fill(new FluidStack(tank.getTankTypeFF(), Integer.MAX_VALUE), false) > 0;
         } else return false;
     }
 
@@ -1276,7 +1279,7 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
         }
     }
 
-    public static <T extends TileEntity> float getTENbtPercentage(T te, float limitByteSize) {
+    public static float getTENbtPercentage(TileEntity te, float limitByteSize) {
         NBTTagCompound compound = new NBTTagCompound();
         compound = te.writeToNBT(compound);
         float percent = 0.0f;
@@ -1723,12 +1726,26 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
 		return (int)(serialized << 38 >> 38);
 	}
 
+    @Contract(pure = true)
+    public static long shiftBlockPos(long serialized, long shift) {
+        int dx = getBlockPosX(shift);
+        int dy = getBlockPosY(shift);
+        int dz = getBlockPosZ(shift);
+        return shiftBlockPos(serialized, dx, dy, dz);
+    }
+
+    @Contract(pure = true)
+    public static long shiftBlockPos(long serialized, int dx, int dy, int dz) {
+        int x = getBlockPosX(serialized);
+        int y = getBlockPosY(serialized);
+        int z = getBlockPosZ(serialized);
+        return blockPosToLong(x + dx, y + dy, z + dz);
+    }
+
 	@Contract(mutates = "param1")
-	public static void fromLong(@NotNull BlockPos.MutableBlockPos pos, long serialized) {
-		int x = (int)(serialized >> 38);
-		int y = (int)(serialized << 26 >> 52);
-		int z = (int)(serialized << 38 >> 38);
-		pos.setPos(x, y, z);
+	public static BlockPos.@NotNull MutableBlockPos fromLong(@NotNull BlockPos.MutableBlockPos pos, long serialized) {
+		pos.setPos(getBlockPosX(serialized), getBlockPosY(serialized), getBlockPosZ(serialized));
+        return pos;
 	}
 
 	@Contract(pure = true)
@@ -1790,5 +1807,17 @@ public static boolean canConnect(IBlockAccess world, BlockPos pos, ForgeDirectio
     // mlbv: remove and replace it with Thread.onSpinWait() if we ever migrate to Java 9+
     public static void onSpinWait() {
         SPIN_WAITER.run();
+    }
+
+    @Contract(pure = true)
+    public static int nextIntDeterministic(long worldSeed, int chunkX, int chunkZ, @Range(from = 1, to = Integer.MAX_VALUE) int bound) {
+        long x = (long) chunkX * 341873128712L;
+        long z = (long) chunkZ * 132897987541L;
+        long s = worldSeed ^ x ^ z;
+        s ^= (s >> 12);
+        s ^= (s << 25);
+        s ^= (s >> 27);
+        int r = (int) (s & 0x7FFFFFFFL);
+        return r % bound;
     }
 }

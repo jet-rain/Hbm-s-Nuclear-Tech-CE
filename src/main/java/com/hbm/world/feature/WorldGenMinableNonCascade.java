@@ -1,40 +1,75 @@
 package com.hbm.world.feature;
 
 import com.google.common.base.Predicate;
-import com.hbm.config.GeneralConfig;
-import com.hbm.main.MainRegistry;
+import com.hbm.lib.Library;
+import com.hbm.world.WorldUtil;
 import com.hbm.world.phased.AbstractPhasedStructure;
-import com.hbm.world.phased.PhasedStructureGenerator;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.block.state.pattern.BlockMatcher;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 
 // mlbv: vanilla WorldGenMinable DOES cascade
 public class WorldGenMinableNonCascade extends AbstractPhasedStructure {
 
+    private static final Int2ObjectMap<LongArrayList> CHUNK_OFFSETS_CACHE = new Int2ObjectOpenHashMap<>();
+
+
     private final IBlockState oreBlock;
     private final int numberOfBlocks;
+    private final Block target;
     private final Predicate<IBlockState> predicate;
-    private final List<ChunkPos> chunkOffsets;
+    private final LongArrayList chunkOffsets;
 
     public WorldGenMinableNonCascade(@NotNull IBlockState state, int blockCount) {
-        this(state, blockCount, BlockMatcher.forBlock(Blocks.STONE));
-    }
-
-    public WorldGenMinableNonCascade(@NotNull IBlockState state, int blockCount, @NotNull Predicate<IBlockState> predicate) {
         this.oreBlock = state;
         this.numberOfBlocks = blockCount;
-        this.predicate = predicate;
-        this.chunkOffsets = collectChunkOffsetsByRadius(computeHorizontalRadius(blockCount) + 32);
+        this.target = Blocks.STONE;
+        this.predicate = WorldUtil.STONE_PREDICATE;
+        this.chunkOffsets = getOrCreateChunkOffsets(computeHorizontalRadius(blockCount));
+    }
+
+    public WorldGenMinableNonCascade(@NotNull IBlockState state, int blockCount, Block target) {
+        this.oreBlock = state;
+        this.numberOfBlocks = blockCount;
+        this.target = target;
+        this.predicate = BlockMatcher.forBlock(target);
+        this.chunkOffsets = getOrCreateChunkOffsets(computeHorizontalRadius(blockCount));
+    }
+
+    private static LongArrayList getOrCreateChunkOffsets(int horizontalRadius) {
+        LongArrayList cached = CHUNK_OFFSETS_CACHE.get(horizontalRadius);
+        if (cached != null) return cached;
+        LongArrayList offsets = collectChunkOffsetsByRadius(horizontalRadius);
+        CHUNK_OFFSETS_CACHE.put(horizontalRadius, offsets);
+        return offsets;
+    }
+
+    private static int computeHorizontalRadius(int blockCount) {
+        double radius = 23.5 + (3.0 * blockCount) / 16.0;
+        return (int) Math.ceil(radius);
+    }
+
+    @Override
+    protected boolean useDynamicScheduler() {
+        return true;
+    }
+
+    @Override
+    public LongArrayList getWatchedChunkOffsets(long origin) {
+        return chunkOffsets;
     }
 
     @Override
@@ -43,34 +78,21 @@ public class WorldGenMinableNonCascade extends AbstractPhasedStructure {
     }
 
     @Override
-    protected void buildStructure(@NotNull LegacyBuilder builder, @NotNull Random rand) {
-    }
-
-    @NotNull
-    @Override
-    public Optional<PhasedStructureGenerator.ReadyToGenerateStructure> validate(@NotNull World world,
-                                                                                @NotNull PhasedStructureGenerator.PendingValidationStructure pending) {
-        if (checkSpawningConditions(world, pending.origin)) {
-            return Optional.of(new PhasedStructureGenerator.ReadyToGenerateStructure(pending, pending.origin));
-        } else if (GeneralConfig.enableDebugWorldGen) {
-            MainRegistry.logger.info("WorldGenMinableNonCascade at {} did not pass spawn condition check.", pending.origin);
-        }
-        return Optional.empty();
-    }
-
-    @Override
-    public void postGenerate(@NotNull World world, @NotNull Random rand, @NotNull BlockPos finalOrigin) {
+    public void postGenerate(@NotNull World world, @NotNull Random rand, long finalOrigin) {
         float f = rand.nextFloat() * (float) Math.PI;
         int numberOfBlocks1 = this.numberOfBlocks;
+        int x = Library.getBlockPosX(finalOrigin);
+        int y = Library.getBlockPosY(finalOrigin);
+        int z = Library.getBlockPosZ(finalOrigin);
 
-        double d0 = (finalOrigin.getX() + 8F) + MathHelper.sin(f) * numberOfBlocks1 / 8.0F;
-        double d1 = (finalOrigin.getX() + 8F) - MathHelper.sin(f) * numberOfBlocks1 / 8.0F;
-        double d2 = (finalOrigin.getZ() + 8F) + MathHelper.cos(f) * numberOfBlocks1 / 8.0F;
-        double d3 = (finalOrigin.getZ() + 8F) - MathHelper.cos(f) * numberOfBlocks1 / 8.0F;
-        double d4 = finalOrigin.getY() + rand.nextInt(3) - 2;
-        double d5 = finalOrigin.getY() + rand.nextInt(3) - 2;
+        double d0 = x + 8F + MathHelper.sin(f) * numberOfBlocks1 / 8.0F;
+        double d1 = x + 8F - MathHelper.sin(f) * numberOfBlocks1 / 8.0F;
+        double d2 = z + 8F + MathHelper.cos(f) * numberOfBlocks1 / 8.0F;
+        double d3 = z + 8F - MathHelper.cos(f) * numberOfBlocks1 / 8.0F;
+        double d4 = y + rand.nextInt(3) - 2;
+        double d5 = y + rand.nextInt(3) - 2;
 
-        BlockPos.MutableBlockPos blockpos = new BlockPos.MutableBlockPos();
+        MutableBlockPos blockpos = this.mutablePos;
 
         for (int i = 0; i < numberOfBlocks1; ++i) {
             float f1 = (float) i / (float) numberOfBlocks1;
@@ -115,12 +137,18 @@ public class WorldGenMinableNonCascade extends AbstractPhasedStructure {
     }
 
     @Override
-    public List<ChunkPos> getAdditionalChunks(@NotNull BlockPos origin) {
-        return translateOffsets(origin, chunkOffsets);
+    public void writeToNBT(NBTTagCompound nbt) {
+        nbt.setString("oreBlock", oreBlock.getBlock().getRegistryName().toString());
+        nbt.setInteger("numberOfBlocks", numberOfBlocks);
+        nbt.setString("target", target.getRegistryName().toString());
     }
 
-    private static int computeHorizontalRadius(int blockCount) {
-        double radius = 8.5 + (3.0 * blockCount) / 16.0;
-        return (int) Math.ceil(radius);
+    public static WorldGenMinableNonCascade readFromNBT(NBTTagCompound nbt) {
+        Block oreBlock = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(nbt.getString("oreBlock")));
+        int numberOfBlocks = nbt.getInteger("numberOfBlocks");
+        Block target = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(nbt.getString("target")));
+        if (oreBlock == null || target == null || numberOfBlocks == 0) return null;
+        if (oreBlock == Blocks.STONE) return new WorldGenMinableNonCascade(oreBlock.getDefaultState(), numberOfBlocks);
+        return new WorldGenMinableNonCascade(oreBlock.getDefaultState(), numberOfBlocks, target);
     }
 }

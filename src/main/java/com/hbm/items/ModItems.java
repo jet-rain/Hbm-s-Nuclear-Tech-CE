@@ -697,7 +697,7 @@ public class ModItems {
     public static final Item euphemium_stopper = new ItemConsumable("euphemium_stopper").setMaxStackSize(1).setFull3D().setCreativeTab(null);
     public static final Item matchstick = new ItemMatch("matchstick").setCreativeTab(CreativeTabs.TOOLS).setFull3D().setCreativeTab(MainRegistry.weaponTab);
     public static final Item balefire_and_steel = new ItemBalefireMatch("balefire_and_steel").setFull3D().setCreativeTab(MainRegistry.weaponTab);
-    public static final Item wrench = new WeaponSpecial(MainRegistry.enumToolMaterialSteel, "wrench").setMaxStackSize(1).setCreativeTab(MainRegistry.weaponTab);
+    public static final Item wrench = new ItemWrench(MainRegistry.enumToolMaterialSteel, "wrench").setMaxStackSize(1).setCreativeTab(MainRegistry.weaponTab);
     public static final Item wrench_flipped = new WeaponSpecial(MainRegistry.enumToolMaterialElec, "wrench_flipped").setMaxStackSize(1).setCreativeTab(MainRegistry.weaponTab);
     public static final Item memespoon = new WeaponSpecial(MainRegistry.enumToolMaterialSteel, "memespoon").setMaxStackSize(1).setCreativeTab(MainRegistry.weaponTab);
     public static final Item wood_gavel = new WeaponSpecial(ToolMaterial.WOOD, "wood_gavel").setMaxStackSize(1).setCreativeTab(MainRegistry.weaponTab);
@@ -2266,6 +2266,12 @@ public class ModItems {
             .setMeltingPoint(100000)
             .setFuelColor(0.733F, 0F, 0F)
             .setCherenkovColor(1F, 0.25F, 0F);
+    public static final ItemRBMKRod rbmk_fuel_test = new ItemRBMKRod("THE VOICES", "rbmk_fuel_test")
+            .setYield(1000000D)
+            .setStats(100)
+            .setFunction(EnumBurnFunc.EXPERIMENTAL)
+            .setHeat(1.0D)
+            .setMeltingPoint(100000);
     public static final Item icf_pellet_empty = new ItemBase("icf_pellet_empty").setCreativeTab(MainRegistry.controlTab);
     public static final Item icf_pellet = new ItemICFPellet("icf_pellet").setCreativeTab(MainRegistry.controlTab);
     public static final Item icf_pellet_depleted = new ItemBase("icf_pellet_depleted").setCreativeTab(MainRegistry.controlTab).setMaxStackSize(1);

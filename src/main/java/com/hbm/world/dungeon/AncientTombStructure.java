@@ -1,13 +1,15 @@
 package com.hbm.world.dungeon;
 
+import com.hbm.lib.Library;
 import com.hbm.world.phased.AbstractPhasedStructure;
 import com.hbm.world.phased.PhasedStructureGenerator;
-import net.minecraft.util.math.BlockPos;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Optional;
+import java.util.Random;
 
 public class AncientTombStructure extends AbstractPhasedStructure {
     public static final AncientTombStructure INSTANCE = new AncientTombStructure();
@@ -19,57 +21,49 @@ public class AncientTombStructure extends AbstractPhasedStructure {
     }
 
     @Override
-    public List<@NotNull BlockPos> getValidationPoints(@NotNull BlockPos origin) {
-        final int r = 32;
+    public @NotNull LongArrayList getHeightPoints(long origin) {
         final int inner = 16;
-        return Arrays.asList(origin,
-                origin.add( r, 0,  0),
-                origin.add(-r, 0,  0),
-                origin.add( 0, 0,  r),
-                origin.add( 0, 0, -r),
-                origin.add( r, 0,  r),
-                origin.add( r, 0, -r),
-                origin.add(-r, 0,  r),
-                origin.add(-r, 0, -r),
-                origin.add( inner, 0,  inner),
-                origin.add( inner, 0, -inner),
-                origin.add(-inner, 0,  inner),
-                origin.add(-inner, 0, -inner)
-        );
+        LongArrayList points = new LongArrayList(4);
+        points.add(origin);
+        points.add(Library.shiftBlockPos(origin, inner, 0, inner));
+        points.add(Library.shiftBlockPos(origin, inner, 0, -inner));
+        points.add(Library.shiftBlockPos(origin, -inner, 0, inner));
+        points.add(Library.shiftBlockPos(origin, -inner, 0, -inner));
+        return points;
     }
+
     @Override
     protected void buildStructure(@NotNull LegacyBuilder builder, @NotNull Random rand) {
         new AncientTomb().buildChamber(builder, rand, 0, 0, 0);
     }
 
     @Override
-    @NotNull
-    public Optional<PhasedStructureGenerator.ReadyToGenerateStructure> validate(@NotNull World world, @NotNull PhasedStructureGenerator.PendingValidationStructure pending) {
-        BlockPos origin = pending.origin;
-        int surfaceY = world.getHeight(origin.getX(), origin.getZ());
+    public PhasedStructureGenerator.ReadyToGenerateStructure validate(@NotNull World world, @NotNull PhasedStructureGenerator.PendingValidationStructure pending) {
+        long origin = pending.origin;
+        int originX = Library.getBlockPosX(origin);
+        int originZ = Library.getBlockPosZ(origin);
+        int surfaceY = world.getHeight(originX, originZ);
         if (surfaceY > 35) {
-            BlockPos finalOrigin = new BlockPos(origin.getX(), 20, origin.getZ());
-            return Optional.of(new PhasedStructureGenerator.ReadyToGenerateStructure(pending, finalOrigin));
+            long finalOrigin = Library.blockPosToLong(originX, 20, originZ);
+            return new PhasedStructureGenerator.ReadyToGenerateStructure(pending, finalOrigin);
         }
-        return Optional.empty();
+        return null;
     }
 
     @Override
-    public void postGenerate(@NotNull World world, @NotNull Random rand, @NotNull BlockPos finalOrigin) {
-        new AncientTomb().buildSurfaceFeatures(world, rand, finalOrigin.getX(), finalOrigin.getZ());
+    public void postGenerate(@NotNull World world, @NotNull Random rand, long finalOrigin) {
+        new AncientTomb().buildSurfaceFeatures(world, rand, Library.getBlockPosX(finalOrigin), Library.getBlockPosZ(finalOrigin));
     }
 
     @Override
-    public List<ChunkPos> getAdditionalChunks(@NotNull BlockPos origin) {
-        int originChunkX = origin.getX() >> 4;
-        int originChunkZ = origin.getZ() >> 4;
+    public LongArrayList getWatchedChunkOffsets(long origin) {
         int radiusChunks = 2;
-        List<ChunkPos> chunks = new ArrayList<>();
+        LongArrayList offsets = new LongArrayList();
         for (int dx = -radiusChunks; dx <= radiusChunks; dx++) {
             for (int dz = -radiusChunks; dz <= radiusChunks; dz++) {
-                chunks.add(new ChunkPos(originChunkX + dx, originChunkZ + dz));
+                offsets.add(ChunkPos.asLong(dx, dz));
             }
         }
-        return chunks;
+        return offsets;
     }
 }

@@ -7,21 +7,16 @@ import com.hbm.itempool.ItemPool;
 import com.hbm.itempool.ItemPoolsLegacy;
 import com.hbm.lib.Library;
 import com.hbm.world.phased.AbstractPhasedStructure;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockChest;
 import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockPos.MutableBlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Random;
 
 @SuppressWarnings({"UnnecessaryUnaryMinus", "PointlessArithmeticExpression"})
@@ -29,8 +24,6 @@ public class DesertAtom001 extends AbstractPhasedStructure {
 	public static final DesertAtom001 INSTANCE = new DesertAtom001();
 	private final DesertAtom002 part2 = new DesertAtom002();
 	private final DesertAtom003 part3 = new DesertAtom003();
-	private static final int HORIZONTAL_RADIUS = 40;
-	private static final List<ChunkPos> CHUNK_OFFSETS = collectChunkOffsetsByRadius(HORIZONTAL_RADIUS);
 	private DesertAtom001() {}
 	Block Block2 = ModBlocks.yellow_barrel;
 	Block Block3 = ModBlocks.reinforced_sand;
@@ -60,49 +53,6 @@ public class DesertAtom001 extends AbstractPhasedStructure {
 	Block Block27 = ModBlocks.pole_top;
 	Block Block28 = ModBlocks.machine_battery;
 	Block Block29 = ModBlocks.machine_electric_furnace_off;
-	
-	protected Block[] GetValidSpawnBlocks()
-	{
-		return new Block[]
-		{
-			Blocks.GRASS,
-			Blocks.DIRT,
-			Blocks.SAND,
-			Blocks.SANDSTONE,
-			Blocks.STONE,
-			Blocks.HARDENED_CLAY,
-			Blocks.STAINED_HARDENED_CLAY,
-		};
-	}
-
-	public boolean LocationIsValidSpawn(World world, BlockPos pos)
-	{
-		IBlockState checkBlockState = world.getBlockState(pos.down());
-		Block checkBlock = checkBlockState.getBlock();
-		Block blockAbove = world.getBlockState(pos).getBlock();
-		Block blockBelow = world.getBlockState(pos.down(2)).getBlock();
-
-		for (Block i : GetValidSpawnBlocks())
-		{
-			if (blockAbove != Blocks.AIR)
-			{
-				return false;
-			}
-			if (checkBlock == i)
-			{
-				return true;
-			}
-			else if (checkBlock == Blocks.SNOW_LAYER && blockBelow == i)
-			{
-				return true;
-			}
-			else if (checkBlockState.getMaterial() == Material.PLANTS && blockBelow == i)
-			{
-				return true;
-			}
-		}
-		return false;
-	}
 
 	@Override
 	public void buildStructure(@NotNull LegacyBuilder builder, @NotNull Random rand) {
@@ -110,24 +60,31 @@ public class DesertAtom001 extends AbstractPhasedStructure {
 	}
 
 	@Override
-	public boolean checkSpawningConditions(@NotNull World world, @NotNull BlockPos pos) {
-		return LocationIsValidSpawn(world, pos.add(20, 0, 16));
+	public boolean checkSpawningConditions(@NotNull World world, long pos) {
+		return locationIsValidSpawn(world, Library.shiftBlockPos(pos, 20, 0, 16));
 	}
 
-	@Override
-	public @NotNull List<BlockPos> getValidationPoints(@NotNull BlockPos origin){
-		return Collections.singletonList(origin.add(20, 0, 16));
-	}
+    @Override
+    public boolean isCacheable() {
+        return false;
+    }
+
+    @Override
+    protected boolean isValidSpawnBlock(Block block) {
+        return block == Blocks.GRASS || block == Blocks.DIRT || block == Blocks.STONE || block == Blocks.SAND || block == Blocks.SANDSTONE || block == Blocks.HARDENED_CLAY || block == Blocks.STAINED_HARDENED_CLAY;
+    }
 
 	@Override
-	public List<ChunkPos> getAdditionalChunks(@NotNull BlockPos origin) {
-		return translateOffsets(origin, CHUNK_OFFSETS);
+	public @NotNull LongArrayList getHeightPoints(long origin){
+		LongArrayList points = new LongArrayList(1);
+		points.add(Library.shiftBlockPos(origin, 20, 0, 16));
+		return points;
 	}
 
 	public boolean generate_r0(LegacyBuilder world, Random rand, int x, int y, int z)
 	{
-		MutableBlockPos pos = new BlockPos.MutableBlockPos();
-		
+		MutableBlockPos pos = this.mutablePos;
+
 		world.setBlockState(pos.setPos(x + 6, y + -5, z + 9), Library.getRandomConcrete().getDefaultState(), 3);
 		world.setBlockState(pos.setPos(x + 7, y + -5, z + 9), Library.getRandomConcrete().getDefaultState(), 3);
 		world.setBlockState(pos.setPos(x + 8, y + -5, z + 9), Library.getRandomConcrete().getDefaultState(), 3);
@@ -231,7 +188,7 @@ public class DesertAtom001 extends AbstractPhasedStructure {
 		world.setBlockState(pos.setPos(x + 9, y + -4, z + 14), Blocks.CHEST.getDefaultState().withProperty(BlockChest.FACING, EnumFacing.NORTH),
 				(worldIn, random, blockPos, chest) ->
 						WeightedRandomChestContentFrom1710.generateChestContents(random, ItemPool.getPool(ItemPoolsLegacy.POOL_NUKE_MISC), chest, 10));
-        world.setBlockState(pos.setPos(x + 10, y + -4, z + 14), Library.getRandomConcrete().getDefaultState(), 3);
+		world.setBlockState(pos.setPos(x + 10, y + -4, z + 14), Library.getRandomConcrete().getDefaultState(), 3);
 		world.setBlockState(pos.setPos(x + 11, y + -4, z + 14), Library.getRandomConcrete().getDefaultState(), 3);
 		world.setBlockState(pos.setPos(x + 6, y + -4, z + 15), Library.getRandomConcrete().getDefaultState(), 3);
 		world.setBlockState(pos.setPos(x + 7, y + -4, z + 15), Library.getRandomConcrete().getDefaultState(), 3);
