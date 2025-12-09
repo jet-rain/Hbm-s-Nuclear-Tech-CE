@@ -45,9 +45,9 @@ dependencies {
     compileOnly rfg.deobf("com.azanor.baubles:Baubles:${version_baubles}")
     compileOnly rfg.deobf("cofh:RedstoneFlux:1.12-${version_redstoneflux}:universal")
     compileOnly rfg.deobf("cofh:CoFHCore:1.12.2-${version_cofhcore}:universal")
+    compileOnly rfg.deobf("curse.maven:biomes-o-plenty-220318:3558882")
     compileOnly('appeng:ae2-uel:v0.56.7') { transitive false } // use devOnlyNonPublishable/implementation if need to test in dev env
     shadowImplementation 'org.jctools:jctools-core:4.0.5'
-    implementation rfg.deobf("curse.maven:biomes-o-plenty-220318:3558882")
     implementation rfg.deobf("curse.maven:opencomputers-223008:6608365")
     implementation 'mezz:jei:4.29.9'
     implementation 'com.google.guava:guava:31.0.1-jre'
