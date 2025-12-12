@@ -1169,7 +1169,7 @@ public final class RadiationSystemNT {
         public static final int NO_POCKET_INDEX = 15; // The sentinel value for a resistant block (binary 1111)
         public WorldRadiationData parent;
         /**
-         * the base position of the sub chunk. see {@link RadiationWorldHandler#handleAdvancedDestruction}
+         * the base position of the sub chunk. see RadiationWorldHandler#handleAdvancedDestruction
          */
         public BlockPos subChunkPos;
         public int yLevel;
