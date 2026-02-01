@@ -9,6 +9,7 @@ import com.hbm.inventory.recipes.loader.GenericRecipe;
 import com.hbm.inventory.recipes.loader.GenericRecipes;
 import com.hbm.items.ItemEnums;
 import com.hbm.items.ModItems;
+import com.hbm.items.machine.ItemBatteryPack;
 import com.hbm.items.machine.ItemFluidIcon;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -143,6 +144,36 @@ public class ChemicalPlantRecipes extends GenericRecipes<GenericRecipe> {
                 .inputItems(new RecipesCommon.ComparableStack(Blocks.GRAVEL, 2), new RecipesCommon.ComparableStack(Blocks.SAND, 6))
                 .inputFluids(new FluidStack(Fluids.BITUMEN, 1_000))
                 .outputItems(new ItemStack(ModBlocks.asphalt, 16)));
+
+        /// BATTERIES ///
+        this.register(new GenericRecipe("chem.batterylead").setup(100, 100)
+                .inputItems(new RecipesCommon.OreDictStack(STEEL.plate(), 4),
+                        new RecipesCommon.OreDictStack(PB.ingot(), 4))
+                .inputFluids(new FluidStack(Fluids.SULFURIC_ACID, 8_000))
+                .outputItems(new ItemStack(ModItems.battery_pack, 1, ItemBatteryPack.EnumBatteryPack.BATTERY_LEAD.ordinal())));
+        this.register(new GenericRecipe("chem.batterylithium").setup(100, 1_000)
+                .inputItems(new RecipesCommon.OreDictStack(LI.dust(), 12),
+                        new RecipesCommon.OreDictStack(CO.dust(), 8),
+                        new RecipesCommon.OreDictStack(ANY_PLASTIC.ingot(), 4))
+                .inputFluids(new FluidStack(Fluids.OXYGEN, 2_000))
+                .outputItems(new ItemStack(ModItems.battery_pack, 1, ItemBatteryPack.EnumBatteryPack.BATTERY_LITHIUM.ordinal())));
+        this.register(new GenericRecipe("chem.batterysodium").setup(100, 10_000)
+                .inputItems(new RecipesCommon.OreDictStack(NA.dust(), 24),
+                        new RecipesCommon.OreDictStack(IRON.dust(), 24),
+                        new RecipesCommon.OreDictStack(ANY_HARDPLASTIC.ingot(), 12))
+                .outputItems(new ItemStack(ModItems.battery_pack, 1, ItemBatteryPack.EnumBatteryPack.BATTERY_SODIUM.ordinal())));
+        this.register(new GenericRecipe("chem.batteryschrabidium").setup(100, 25_000)
+                .inputItems(new RecipesCommon.OreDictStack(SA326.dust(), 24),
+                        new RecipesCommon.OreDictStack(ANY_BISMOIDBRONZE.plateCast(), 8))
+                .inputFluids(new FluidStack(Fluids.HELIUM4, 8_000))
+                .outputItems(new ItemStack(ModItems.battery_pack, 1, ItemBatteryPack.EnumBatteryPack.BATTERY_SCHRABIDIUM.ordinal())));
+        this.register(new GenericRecipe("chem.batteryquantum").setup(100, 100_000)
+                .inputItems(new RecipesCommon.OreDictStack(BSCCO.wireDense(), 24),
+                        new RecipesCommon.ComparableStack(ModItems.pellet_charged, 32),
+                        new RecipesCommon.ComparableStack(ModItems.ingot_cft, 16))
+                .inputFluids(new FluidStack(Fluids.PERFLUOROMETHYL_COLD, 8_000))
+                .outputItems(new ItemStack(ModItems.battery_pack, 1, ItemBatteryPack.EnumBatteryPack.BATTERY_QUANTUM.ordinal()))
+                .outputFluids(new FluidStack(Fluids.PERFLUOROMETHYL, 8_000)));
 
         /// SOLIDS ///
         this.register(new GenericRecipe("chem.desh").setup(100, 100)
@@ -314,6 +345,10 @@ public class ChemicalPlantRecipes extends GenericRecipes<GenericRecipe> {
                 .inputFluids(new FluidStack(Fluids.KEROSENE, 6_000))
                 .outputItems(new ItemStack(ModItems.powder_balefire))
                 .outputFluids(new FluidStack(Fluids.BALEFIRE, 8_000)));
+
+        this.register(new GenericRecipe("chem.dhc").setup(400, 500).setIcon(ModItems.fluid_icon, Fluids.DHC.getID())
+                .inputFluids(new FluidStack(Fluids.DEUTERIUM, 500), new FluidStack(Fluids.REFORMGAS, 250), new FluidStack(Fluids.SYNGAS, 250))
+                .outputFluids(new FluidStack(Fluids.DHC, 500)));
 
         /// OSMIRIDIUM ///
         this.register(new GenericRecipe("chem.osmiridiumdeath").setup(240, 1_000)

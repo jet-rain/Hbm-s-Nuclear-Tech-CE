@@ -2,9 +2,9 @@ package com.hbm.inventory.container;
 
 import com.hbm.capability.NTMFluidCapabilityHandler;
 import com.hbm.inventory.FluidContainerRegistry;
-import com.hbm.inventory.SlotCraftingOutput;
-import com.hbm.inventory.SlotNonRetarded;
-import com.hbm.inventory.SlotUpgrade;
+import com.hbm.inventory.slot.SlotCraftingOutput;
+import com.hbm.inventory.slot.SlotNonRetarded;
+import com.hbm.inventory.slot.SlotUpgrade;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.items.machine.ItemBlueprints;
@@ -46,7 +46,7 @@ public class ContainerMachineChemicalPlant extends ContainerBase {
     @Override
     public ItemStack transferStackInSlot(EntityPlayer player, int index) {
         ItemStack slotOriginal = ItemStack.EMPTY;
-        Slot slot = (Slot) this.inventorySlots.get(index);
+        Slot slot = this.inventorySlots.get(index);
 
         if(slot != null && slot.getHasStack()) {
             ItemStack slotStack = slot.getStack();
@@ -60,7 +60,7 @@ public class ContainerMachineChemicalPlant extends ContainerBase {
                     return ItemStack.EMPTY;
                 }
             } else {
-                if(Library.isItemCanStoreEnergy(slotOriginal)) {
+                if(Library.isBattery(slotOriginal)) {
                     if(!this.mergeItemStack(slotStack, 0, 1, false)) return ItemStack.EMPTY;
                 } else if(slotOriginal.getItem() instanceof ItemBlueprints) {
                     if(!this.mergeItemStack(slotStack, 1, 2, false)) return ItemStack.EMPTY;

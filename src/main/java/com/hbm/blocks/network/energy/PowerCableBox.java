@@ -11,6 +11,7 @@ import com.hbm.lib.Library;
 import com.hbm.render.model.CableBoxBakedModel;
 import com.hbm.tileentity.network.energy.TileEntityCableBaseNT;
 import net.minecraft.block.Block;
+import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.properties.PropertyInteger;
@@ -54,9 +55,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicModels, IBlockSpecialPlacementAABB{
+public class PowerCableBox extends Block implements ITileEntityProvider, ICustomBlockItem, IDynamicModels, IBlockSpecialPlacementAABB {
 
-    public static final PropertyInteger META = PropertyInteger.create("meta", 0, 14);
+    public static final PropertyInteger META = PropertyInteger.create("meta", 0, 4);
     public static final IUnlistedProperty<Boolean> CONN_NORTH = new PowerCableBox.ConnectionProperty("north");
     public static final IUnlistedProperty<Boolean> CONN_SOUTH = new PowerCableBox.ConnectionProperty("south");
     public static final IUnlistedProperty<Boolean> CONN_WEST = new PowerCableBox.ConnectionProperty("west");
@@ -65,19 +66,25 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
     public static final IUnlistedProperty<Boolean> CONN_DOWN = new PowerCableBox.ConnectionProperty("down");
 
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite[] iconStraight;
+    public static TextureAtlasSprite iconStraight;
     @SideOnly(Side.CLIENT)
     public static TextureAtlasSprite[] iconEnd;
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite[] iconCurveTL;
+    public static TextureAtlasSprite iconCurveTL;
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite[] iconCurveTR;
+    public static TextureAtlasSprite iconCurveTR;
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite[] iconCurveBL;
+    public static TextureAtlasSprite iconCurveBL;
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite[] iconCurveBR;
+    public static TextureAtlasSprite iconCurveBR;
     @SideOnly(Side.CLIENT)
-    public static TextureAtlasSprite[] iconJunction;
+    public static TextureAtlasSprite iconJunction;
+
+    static {
+        if (FMLCommonHandler.instance().getSide() == Side.CLIENT) {
+            iconEnd = new TextureAtlasSprite[5];
+        }
+    }
 
     public PowerCableBox(String s) {
         super(Material.IRON);
@@ -86,15 +93,7 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
         this.useNeighborBrightness = true;
 
         ModBlocks.ALL_BLOCKS.add(this);
-        if (FMLCommonHandler.instance().getSide() == Side.CLIENT) {
-            iconStraight = new TextureAtlasSprite[1];
-            iconEnd = new TextureAtlasSprite[5];
-            iconCurveTL = new TextureAtlasSprite[1];
-            iconCurveTR = new TextureAtlasSprite[1];
-            iconCurveBL = new TextureAtlasSprite[1];
-            iconCurveBR = new TextureAtlasSprite[1];
-            iconJunction = new TextureAtlasSprite[1];
-        }
+        IDynamicModels.INSTANCES.add(this);
     }
 
     @Override
@@ -102,6 +101,7 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
         return BlockFaceShape.UNDEFINED;
     }
 
+    @Override
     public TileEntity createNewTileEntity(World world, int meta) {
         return new TileEntityCableBaseNT();
     }
@@ -130,7 +130,7 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
 
     @Override
     public IBlockState getStateFromMeta(int meta) {
-        return this.getDefaultState().withProperty(META, meta % 15);
+        return this.getDefaultState().withProperty(META, meta % 5);
     }
 
     @Override
@@ -154,7 +154,7 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
 
     @Override
     public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
-        int meta = stack.getMetadata();
+        int meta = stack.getMetadata() % 5;
         worldIn.setBlockState(pos, this.getStateFromMeta(meta), 3);
     }
 
@@ -187,7 +187,6 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
     @SideOnly(Side.CLIENT)
     public void registerModel() {
         Item itemBlock = Item.getItemFromBlock(this);
-
         for (int meta = 0; meta < 5; meta++) {
             ModelResourceLocation modelLocation = new ModelResourceLocation(this.getRegistryName(), "meta=" + meta);
             ModelLoader.setCustomModelResourceLocation(itemBlock, meta, modelLocation);
@@ -196,15 +195,15 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
 
     @SideOnly(Side.CLIENT)
     public void registerSprite(TextureMap map) {
-        iconStraight[0] = map.registerSprite(new ResourceLocation(Tags.MODID, "boxduct_cable_straight"));
-        iconCurveTL[0] = map.registerSprite(new ResourceLocation(Tags.MODID, "boxduct_cable_curve_tl"));
-        iconCurveTR[0] = map.registerSprite(new ResourceLocation(Tags.MODID, "boxduct_cable_curve_tr"));
-        iconCurveBL[0] = map.registerSprite(new ResourceLocation(Tags.MODID, "boxduct_cable_curve_bl"));
-        iconCurveBR[0] = map.registerSprite(new ResourceLocation(Tags.MODID, "boxduct_cable_curve_br"));
-        iconJunction[0] = map.registerSprite(new ResourceLocation(Tags.MODID, "boxduct_cable_junction"));
+        iconStraight = map.registerSprite(new ResourceLocation(Tags.MODID, "blocks/boxduct_cable_straight"));
+        iconCurveTL = map.registerSprite(new ResourceLocation(Tags.MODID, "blocks/boxduct_cable_curve_tl"));
+        iconCurveTR = map.registerSprite(new ResourceLocation(Tags.MODID, "blocks/boxduct_cable_curve_tr"));
+        iconCurveBL = map.registerSprite(new ResourceLocation(Tags.MODID, "blocks/boxduct_cable_curve_bl"));
+        iconCurveBR = map.registerSprite(new ResourceLocation(Tags.MODID, "blocks/boxduct_cable_curve_br"));
+        iconJunction = map.registerSprite(new ResourceLocation(Tags.MODID, "blocks/boxduct_cable_junction"));
 
         for (int i = 0; i < iconEnd.length; i++) {
-            iconEnd[i] = map.registerSprite(new ResourceLocation(Tags.MODID, "boxduct_cable_end_" + i));
+            iconEnd[i] = map.registerSprite(new ResourceLocation(Tags.MODID, "blocks/boxduct_cable_end_" + i));
         }
     }
 
@@ -238,25 +237,23 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
         boolean pZ = canConnectTo(world, pos.getX(), pos.getY(), pos.getZ(), EnumFacing.SOUTH);
 
         int mask = (pX ? 32 : 0) + (nX ? 16 : 0) + (pY ? 8 : 0) + (nY ? 4 : 0) + (pZ ? 2 : 0) + (nZ ? 1 : 0);
-        int count = (pX ? 1 : 0) + (nX ? 1 : 0) + (pY ? 1 : 0) + (nY ? 1 : 0) + (pZ ? 1 : 0) + (nZ ? 1 : 0);
 
         int meta = getMetaFromState(state);
         double lower = 0.125D;
         double upper = 0.875D;
-        double jLower = 0.0625D;
-        double jUpper = 0.9375D;
 
-        for (int i = 0; i < meta; i++) {
-            lower += 0.0625D;
-            upper -= 0.0625D;
-            jLower += 0.0625D;
-            jUpper -= 0.0625D;
+        for (int i = 0; i < 5; i++) {
+            if (meta > i) {
+                lower += 0.0625D;
+                upper -= 0.0625D;
+            }
         }
 
-        lower = Math.min(lower, 0.5D);
-        upper = Math.max(upper, 0.5D);
-        jLower = Math.min(jLower, 0.5D);
-        jUpper = Math.max(jUpper, 0.5D);
+        if (lower > 0.5) lower = 0.5;
+        if (upper < 0.5) upper = 0.5;
+
+        double jLower = lower;
+        double jUpper = upper;
 
         List<AxisAlignedBB> bbs = new ArrayList<>();
 
@@ -269,11 +266,10 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
         } else if (mask == 0b000010 || mask == 0b000001 || mask == 0b000011) {
             bbs.add(new AxisAlignedBB(pos.getX() + lower, pos.getY() + lower, pos.getZ() + 0.0D, pos.getX() + upper, pos.getY() + upper, pos.getZ() + 1.0D));
         } else {
-            if (count != 2) {
-                bbs.add(new AxisAlignedBB(pos.getX() + jLower, pos.getY() + jLower, pos.getZ() + jLower, pos.getX() + jUpper, pos.getY() + jUpper, pos.getZ() + jUpper));
-            } else {
-                bbs.add(new AxisAlignedBB(pos.getX() + lower, pos.getY() + lower, pos.getZ() + lower, pos.getX() + upper, pos.getY() + upper, pos.getZ() + upper));
-            }
+            // Center
+            bbs.add(new AxisAlignedBB(pos.getX() + jLower, pos.getY() + jLower, pos.getZ() + jLower, pos.getX() + jUpper, pos.getY() + jUpper, pos.getZ() + jUpper));
+
+            // Arms
             if (pX) bbs.add(new AxisAlignedBB(pos.getX() + upper, pos.getY() + lower, pos.getZ() + lower, pos.getX() + 1.0D, pos.getY() + upper, pos.getZ() + upper));
             if (nX) bbs.add(new AxisAlignedBB(pos.getX() + 0.0D, pos.getY() + lower, pos.getZ() + lower, pos.getX() + lower, pos.getY() + upper, pos.getZ() + upper));
             if (pY) bbs.add(new AxisAlignedBB(pos.getX() + lower, pos.getY() + upper, pos.getZ() + lower, pos.getX() + upper, pos.getY() + 1.0D, pos.getZ() + upper));
@@ -291,7 +287,6 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
 
     @Override
     public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) {
-
         boolean nX = canConnectTo(source, pos.getX(), pos.getY(), pos.getZ(), EnumFacing.WEST);
         boolean pX = canConnectTo(source, pos.getX(), pos.getY(), pos.getZ(), EnumFacing.EAST);
         boolean nY = canConnectTo(source, pos.getX(), pos.getY(), pos.getZ(), EnumFacing.DOWN);
@@ -300,37 +295,27 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
         boolean pZ = canConnectTo(source, pos.getX(), pos.getY(), pos.getZ(), EnumFacing.SOUTH);
 
         int mask = (pX ? 32 : 0) + (nX ? 16 : 0) + (pY ? 8 : 0) + (nY ? 4 : 0) + (pZ ? 2 : 0) + (nZ ? 1 : 0);
-        int count = (pX ? 1 : 0) + (nX ? 1 : 0) + (pY ? 1 : 0) + (nY ? 1 : 0) + (pZ ? 1 : 0) + (nZ ? 1 : 0);
 
         int meta = getMetaFromState(state);
         float lower = 0.125F;
         float upper = 0.875F;
-        float jLower = 0.0625F;
-        float jUpper = 0.9375F;
-        for (int i = 2; i < 13; i += 3) {
+        for (int i = 0; i < 5; i++) {
             if (meta > i) {
                 lower += 0.0625F;
                 upper -= 0.0625F;
-                jLower += 0.0625F;
-                jUpper -= 0.0625F;
             }
         }
 
-        if (mask == 0) {
-            return new AxisAlignedBB(jLower, jLower, jLower, jUpper, jUpper, jUpper);
-        } else if (mask == 0b100000 || mask == 0b010000 || mask == 0b110000) {
-            return new AxisAlignedBB(0F, lower, lower, 1F, upper, upper);
-        } else if (mask == 0b001000 || mask == 0b000100 || mask == 0b001100) {
-            return new AxisAlignedBB(lower, 0F, lower, upper, 1F, upper);
-        } else if (mask == 0b000010 || mask == 0b000001 || mask == 0b000011) {
-            return new AxisAlignedBB(lower, lower, 0F, upper, upper, 1F);
-        } else {
-            if (count != 2) {
-                return new AxisAlignedBB(nX ? 0F : jLower, nY ? 0F : jLower, nZ ? 0F : jLower, pX ? 1F : jUpper, pY ? 1F : jUpper, pZ ? 1F : jUpper);
-            } else {
-                return new AxisAlignedBB(nX ? 0F : lower, nY ? 0F : lower, nZ ? 0F : lower, pX ? 1F : upper, pY ? 1F : upper, pZ ? 1F : upper);
-            }
-        }
+        float jLower = lower;
+        float jUpper = upper;
+
+        return switch (mask) {
+            case 0 -> new AxisAlignedBB(jLower, jLower, jLower, jUpper, jUpper, jUpper);
+            case 0b100000, 0b010000, 0b110000 -> new AxisAlignedBB(0F, lower, lower, 1F, upper, upper);
+            case 0b001000, 0b000100, 0b001100 -> new AxisAlignedBB(lower, 0F, lower, upper, 1F, upper);
+            case 0b000010, 0b000001, 0b000011 -> new AxisAlignedBB(lower, lower, 0F, upper, upper, 1F);
+            default -> new AxisAlignedBB(nX ? 0F : lower, nY ? 0F : lower, nZ ? 0F : lower, pX ? 1F : upper, pY ? 1F : upper, pZ ? 1F : upper);
+        };
     }
 
     @Override
@@ -372,21 +357,19 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
         boolean pZ = canConnectTo(source, pos.getX(), pos.getY(), pos.getZ(), EnumFacing.SOUTH);
 
         int mask = (pX ? 32 : 0) + (nX ? 16 : 0) + (pY ? 8 : 0) + (nY ? 4 : 0) + (pZ ? 2 : 0) + (nZ ? 1 : 0);
-        int count = (pX ? 1 : 0) + (nX ? 1 : 0) + (pY ? 1 : 0) + (nY ? 1 : 0) + (pZ ? 1 : 0) + (nZ ? 1 : 0);
 
         int meta = stack.getMetadata();
         float lower = 0.125F;
         float upper = 0.875F;
-        float jLower = 0.0625F;
-        float jUpper = 0.9375F;
-        for (int i = 2; i < 13; i += 3) {
+        for (int i = 0; i < 5; i++) {
             if (meta > i) {
                 lower += 0.0625F;
                 upper -= 0.0625F;
-                jLower += 0.0625F;
-                jUpper -= 0.0625F;
             }
         }
+
+        float jLower = lower;
+        float jUpper = upper;
 
         switch (mask) {
             case 0:
@@ -404,11 +387,7 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
             case 0b000011:
                 return new AxisAlignedBB(lower, lower, 0F, upper, upper, 1F);
             default:
-                if (count != 2) {
-                    return new AxisAlignedBB(nX ? 0F : jLower, nY ? 0F : jLower, nZ ? 0F : jLower, pX ? 1F : jUpper, pY ? 1F : jUpper, pZ ? 1F : jUpper);
-                } else {
-                    return new AxisAlignedBB(nX ? 0F : lower, nY ? 0F : lower, nZ ? 0F : lower, pX ? 1F : upper, pY ? 1F : upper, pZ ? 1F : upper);
-                }
+                return new AxisAlignedBB(nX ? 0F : lower, nY ? 0F : lower, nZ ? 0F : lower, pX ? 1F : upper, pY ? 1F : upper, pZ ? 1F : upper);
         }
     }
 
@@ -450,6 +429,4 @@ public class PowerCableBox extends Block implements ICustomBlockItem, IDynamicMo
             case NORTH -> canConnectToNeighbor(world, pos, Library.NEG_Z);
         };
     }
-
-
 }

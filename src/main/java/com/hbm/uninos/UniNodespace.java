@@ -2,17 +2,19 @@ package com.hbm.uninos;
 
 import com.hbm.config.GeneralConfig;
 import com.hbm.lib.DirPos;
+import com.hbm.main.MainRegistry;
 import it.unimi.dsi.fastutil.objects.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
+import java.util.concurrent.Executor;
 
 /**
  * Unified Nodespace, a Nodespace for all applications.
@@ -21,6 +23,7 @@ import java.util.concurrent.Future;
  * respective position in nodespace, the nodespace itself handles stuff like connections which can also happen in unloaded chunks.
  * A node is so to say the "soul" of a tile entity which can act independent of its "body".
  * Edit: now every NodeNet have their own "dimension"
+ *
  * @author hbm
  */
 public final class UniNodespace {
@@ -42,57 +45,98 @@ public final class UniNodespace {
         getManagerFor(type).destroyNode(world, pos);
     }
 
+    @SuppressWarnings("unchecked, rawtypes")
+    public static <N extends NodeNet<R, P, L, N>, L extends GenNode<N>, R, P> void destroyNode(World world, L node) {
+        if (world == null || node == null) return;
+        INetworkProvider<N> provider = node.networkProvider;
+        if (provider != null) {
+            PerTypeNodeManager<R, P, L, N> manager = (PerTypeNodeManager<R, P, L, N>) managers.get(provider);
+            if (manager != null) {
+                if (!manager.destroyNode(world, node)) {
+                    MainRegistry.logger.warn("Failed to destroy node {}", node.getClass().getName());
+                    Thread.dumpStack();
+                }
+                return;
+            }
+        }
+        MainRegistry.logger.warn("[UniNodeSpace] Node {} attempts to be destroyed through mismatched type provider {}", node.getClass().getName(), provider);
+        // Fallback: if provider is null/mismatched or manager isn't present yet, locate the node by identity.
+        ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> it = managers.object2ObjectEntrySet().fastIterator();
+        while (it.hasNext()) {
+            PerTypeNodeManager manager = it.next().getValue();
+            if (manager.destroyNode(world, node)) return;
+        }
+        if (node.net != null) node.net.destroy();
+        node.expired = true;
+    }
+
     /**
      * <code>GeneralConfig.enableThreadedNodeSpaceUpdate</code> is safe provided that:
      * <ul>
-     *   <li>This method is called only from the server thread.</li>
      *   <li>While this method is running, no other thread may call createNode/destroyNode or otherwise mutate UniNodespace / PerTypeNodeManager state.</li>
      *   <li>TileEntity logic that interacts with NodeNet must not run concurrently with this method.</li>
      * </ul>
      */
-    public static void updateNodespace() {
-        World[] currentWorlds = DimensionManager.getWorlds();
-        if (currentWorlds.length == 0) return;
-
+    public static CompletableFuture<Void> updateNodespaceAsync(Executor executor) {
+        final World[] currentWorlds = DimensionManager.getWorlds();
+        if (currentWorlds.length == 0) return CompletableFuture.completedFuture(null);
         if (!GeneralConfig.enableThreadedNodeSpaceUpdate) {
-            for (World world : currentWorlds) {
-                ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet().fastIterator();
-                while (iterator.hasNext()) {
-                    PerTypeNodeManager<?, ?, ?, ?> manager = iterator.next().getValue();
-                    manager.updateForWorld(world);
+            return CompletableFuture.runAsync(() -> {
+                for (World world : currentWorlds) {
+                    ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet()
+                                                                                                                                   .fastIterator();
+                    while (iterator.hasNext()) {
+                        iterator.next().getValue().updateForWorld(world);
+                    }
                 }
-            }
-            updateNetworks();
-            return;
+                updateNetworks();
+            }, executor).exceptionally(UniNodespace::rethrowAsRuntime);
         }
-        List<Callable<Void>> tasks = new ArrayList<>(currentWorlds.length);
+        List<CompletableFuture<Void>> phase1 = new ArrayList<>(currentWorlds.length * Math.max(1, managers.size()));
         for (World world : currentWorlds) {
-            tasks.add(() -> {
-                ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet().fastIterator();
-                while (iterator.hasNext()) {
-                    PerTypeNodeManager<?, ?, ?, ?> manager = iterator.next().getValue();
-                    manager.updateForWorld(world);
-                }
-                return null;
-            });
-        }
-        try {
-            List<Future<Void>> futures = ForkJoinPool.commonPool().invokeAll(tasks);
-            for (Future<Void> future : futures) {
-                future.get();
+            ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet()
+                                                                                                                           .fastIterator();
+            while (iterator.hasNext()) {
+                PerTypeNodeManager<?, ?, ?, ?> manager = iterator.next().getValue();
+                phase1.add(CompletableFuture.runAsync(() -> manager.updateForWorld(world), executor));
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("UniNodespace update interrupted", e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException("Exception during UniNodespace update", e.getCause());
         }
-        updateNetworks();
+
+        return CompletableFuture.allOf(phase1.toArray(new CompletableFuture[0]))
+                                .thenRunAsync(UniNodespace::resetAllNetTrackers, executor)
+                                .thenCompose(_ -> updateAllNetsAsync(executor))
+                                .thenRunAsync(UniNodespace::clearAllEmpty, executor)
+                                .exceptionally(UniNodespace::rethrowAsRuntime);
+    }
+
+    private static void resetAllNetTrackers() {
+        for (PerTypeNodeManager<?, ?, ?, ?> manager : managers.values()) {
+            manager.resetTrackers();
+        }
+    }
+
+    private static CompletableFuture<Void> updateAllNetsAsync(Executor executor) {
+        List<CompletableFuture<Void>> tasks = new ArrayList<>();
+        for (PerTypeNodeManager<?, ?, ?, ?> manager : managers.values()) {
+            manager.collectNetUpdateTasks(executor, tasks);
+        }
+        if (tasks.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0]));
+    }
+
+    private static Void rethrowAsRuntime(Throwable t) {
+        if (t instanceof CompletionException && t.getCause() != null) t = t.getCause();
+        if (t instanceof RuntimeException) throw (RuntimeException) t;
+        if (t instanceof Error) throw (Error) t;
+        throw new RuntimeException("Exception during UniNodespace update", t);
     }
 
     static void removeActiveNet(NodeNet<?, ?, ?, ?> net) {
         if (net.links.isEmpty()) {
-            ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet().fastIterator();
+            ObjectIterator<Object2ObjectMap.Entry<INetworkProvider<?>, PerTypeNodeManager<?, ?, ?, ?>>> iterator = managers.object2ObjectEntrySet()
+                                                                                                                           .fastIterator();
             while (iterator.hasNext()) {
                 PerTypeNodeManager<?, ?, ?, ?> manager = iterator.next().getValue();
                 manager.removeActiveNet(net);
@@ -105,13 +149,18 @@ public final class UniNodespace {
     }
 
     private static void updateNetworks() {
-        for (PerTypeNodeManager<?, ?, ?, ?> manager : managers.values()) {
-            manager.updateNetworks();
-        }
+        for (PerTypeNodeManager<?, ?, ?, ?> manager : managers.values()) manager.resetTrackers();
+        for (PerTypeNodeManager<?, ?, ?, ?> manager : managers.values()) manager.updateNetworks();
+        clearAllEmpty();
+    }
+
+    private static void clearAllEmpty() {
+        for (PerTypeNodeManager<?, ?, ?, ?> manager : managers.values()) manager.removeEmptyNets();
     }
 
     @SuppressWarnings("unchecked")
-    private static <R, P, L extends GenNode<N>, N extends NodeNet<R, P, L, N>> PerTypeNodeManager<R, P, L, N> getManagerFor(INetworkProvider<N> provider) {
+    private static <R, P, L extends GenNode<N>, N extends NodeNet<R, P, L, N>> PerTypeNodeManager<R, P, L, N> getManagerFor(
+            INetworkProvider<N> provider) {
         PerTypeNodeManager<?, ?, ?, ?> manager = managers.get(provider);
         if (manager == null) {
             manager = new PerTypeNodeManager<>(provider);
@@ -131,16 +180,19 @@ public final class UniNodespace {
         }
 
         private static boolean checkConnection(GenNode<?> connectsTo, DirPos connectFrom, boolean skipSideCheck) {
-            for (DirPos revCon : connectsTo.connections) {
-                if (revCon.getPos().getX() - revCon.getDir().offsetX == connectFrom.getPos().getX() && revCon.getPos().getY() - revCon.getDir().offsetY == connectFrom.getPos().getY() && revCon.getPos().getZ() - revCon.getDir().offsetZ == connectFrom.getPos().getZ() && (revCon.getDir() == connectFrom.getDir().getOpposite() || skipSideCheck)) {
+            for (DirPos revCon : connectsTo.connections) {// @formatter:off
+                if (revCon.getPos().getX() - revCon.getDir().offsetX == connectFrom.getPos().getX() &&
+                        revCon.getPos().getY() - revCon.getDir().offsetY == connectFrom.getPos().getY() &&
+                        revCon.getPos().getZ() - revCon.getDir().offsetZ == connectFrom.getPos().getZ() &&
+                        (revCon.getDir() == connectFrom.getDir().getOpposite() || skipSideCheck)) {
                     return true;
-                }
+                }// @formatter:on
             }
             return false;
         }
 
         private UniNodeWorld<N, L> getWorldManager(World world) {
-            return worlds.computeIfAbsent(world, k -> new UniNodeWorld<>());
+            return worlds.computeIfAbsent(world, _ -> new UniNodeWorld<>());
         }
 
         L getNode(World world, BlockPos pos) {
@@ -157,6 +209,14 @@ public final class UniNodespace {
             if (node != null) {
                 getWorldManager(world).popNode(node);
             }
+        }
+
+        boolean destroyNode(World world, L node) {
+            UniNodeWorld<N, L> nodeWorld = worlds.get(world);
+            if (nodeWorld == null) return false;
+            if (!nodeWorld.containsNode(node)) return false;
+            nodeWorld.popNode(node);
+            return true;
         }
 
         void addActiveNet(N net) {
@@ -180,23 +240,29 @@ public final class UniNodespace {
             }
         }
 
+        void resetTrackers() {
+            for (N net : activeNodeNets) {
+                net.resetTrackers();
+            }
+        }
+
+        void removeEmptyNets() {
+            activeNodeNets.removeIf(net -> net.links.isEmpty());
+        }
+
         void updateNetworks() {
-            if (!GeneralConfig.enableThreadedNodeSpaceUpdate) {
-                for (N net : activeNodeNets) {
-                    net.resetTrackers();
-                }
-                for (N net : activeNodeNets) {
-                    if (net.isValid()) net.update();
-                }
-            } else {
-                for (N net : activeNodeNets) {
-                    net.resetTrackers();
-                }
-                activeNodeNets.parallelStream().forEach(net -> {
+            for (N net : activeNodeNets) {
+                if (net.isValid()) net.update();
+            }
+        }
+
+        void collectNetUpdateTasks(Executor executor, List<CompletableFuture<Void>> tasks) {
+            for (N net : activeNodeNets) {
+                tasks.add(CompletableFuture.runAsync(() -> {
                     if (net.isValid()) {
                         net.update();
                     }
-                });
+                }, executor));
             }
         }
 
@@ -258,8 +324,18 @@ public final class UniNodespace {
             node.expired = true;
         }
 
+        boolean containsNode(GenNode<?> node) {
+            if (node == null) return false;
+            BlockPos[] positions = node.positions;
+            if (positions == null) return false;
+            for (BlockPos pos : positions) {
+                if (nodesByPosition.get(pos) == node) return true;
+            }
+            return false;
+        }
+
         /** @return a view of all nodes in this world, do not modify */
-        Collection<L> getAllNodes() {
+        ObjectCollection<L> getAllNodes() {
             return nodesByPosition.values();
         }
     }

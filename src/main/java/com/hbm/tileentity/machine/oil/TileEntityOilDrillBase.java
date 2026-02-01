@@ -5,7 +5,7 @@ import com.hbm.api.fluid.IFluidStandardTransceiver;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.forgefluid.FFUtils;
 import com.hbm.interfaces.IFFtoNTMF;
-import com.hbm.inventory.UpgradeManager;
+import com.hbm.inventory.UpgradeManagerNT;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTankNTM;
 import com.hbm.items.machine.ItemMachineUpgrade;
@@ -29,12 +29,13 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Queue;
 
-public abstract class TileEntityOilDrillBase extends TileEntityMachineBase implements ITickable, IEnergyReceiverMK2, IFluidStandardTransceiver, IConfigurableMachine, IPersistentNBT, IGUIProvider, IFluidCopiable, IFFtoNTMF {
+public abstract class TileEntityOilDrillBase extends TileEntityMachineBase implements ITickable, IEnergyReceiverMK2, IFluidStandardTransceiver, IConfigurableMachine, IPersistentNBT, IGUIProvider, IFluidCopiable, IFFtoNTMF, IUpgradeInfoProvider {
     private static boolean converted = false;
-    private final UpgradeManager upgradeManager;
+    private final UpgradeManagerNT upgradeManager = new UpgradeManagerNT(this);
     public long power;
     public int indicator = 0;
     public FluidTank[] tanksOld;
@@ -61,7 +62,6 @@ public abstract class TileEntityOilDrillBase extends TileEntityMachineBase imple
         tanks[0] = new FluidTankNTM(Fluids.OIL, 64_000);
         tanks[1] = new FluidTankNTM(Fluids.GAS, 64_000);
 
-        upgradeManager = new UpgradeManager();
 
         converted = true;
     }
@@ -139,7 +139,7 @@ public abstract class TileEntityOilDrillBase extends TileEntityMachineBase imple
             this.tanks[0].unloadTank(1, 2, inventory);
             this.tanks[1].unloadTank(3, 4, inventory);
 
-            upgradeManager.eval(inventory, 5, 7);
+            upgradeManager.checkSlots(inventory, 5, 7);
             this.speedLevel = Math.min(upgradeManager.getLevel(ItemMachineUpgrade.UpgradeType.SPEED), 3);
             this.energyLevel = Math.min(upgradeManager.getLevel(ItemMachineUpgrade.UpgradeType.POWER), 3);
             this.overLevel = Math.min(upgradeManager.getLevel(ItemMachineUpgrade.UpgradeType.OVERDRIVE), 3) + 1;
@@ -351,4 +351,20 @@ public abstract class TileEntityOilDrillBase extends TileEntityMachineBase imple
     public FluidTankNTM getTankToPaste() {
         return null;
     }
+
+    @Override
+    public boolean canProvideInfo(ItemMachineUpgrade.UpgradeType type, int level, boolean extendedInfo) {
+        return type == ItemMachineUpgrade.UpgradeType.SPEED || type == ItemMachineUpgrade.UpgradeType.POWER || type == ItemMachineUpgrade.UpgradeType.OVERDRIVE || type == ItemMachineUpgrade.UpgradeType.AFTERBURN;
+    }
+
+    @Override
+    public HashMap<ItemMachineUpgrade.UpgradeType, Integer> getValidUpgrades() {
+        HashMap<ItemMachineUpgrade.UpgradeType, Integer> upgrades = new HashMap<>();
+        upgrades.put(ItemMachineUpgrade.UpgradeType.SPEED, 3);
+        upgrades.put(ItemMachineUpgrade.UpgradeType.POWER, 3);
+        upgrades.put(ItemMachineUpgrade.UpgradeType.AFTERBURN, 3);
+        upgrades.put(ItemMachineUpgrade.UpgradeType.OVERDRIVE, 3);
+        return upgrades;
+    }
+
 }

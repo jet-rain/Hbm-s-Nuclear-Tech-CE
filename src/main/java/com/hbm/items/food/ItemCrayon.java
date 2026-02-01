@@ -59,7 +59,7 @@ public class ItemCrayon extends ItemFood implements IDynamicModels {
                 "inventory"
         );
 
-        for (int i = 0; i < ItemChemicalDye.EnumChemDye.values().length; i++) {
+        for (int i = 0; i < ItemChemicalDye.EnumChemDye.VALUES.length; i++) {
             ModelLoader.setCustomModelResourceLocation(this, i, mrl);
         }
     }
@@ -94,7 +94,7 @@ public class ItemCrayon extends ItemFood implements IDynamicModels {
     @SideOnly(Side.CLIENT)
     public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> items) {
         if (tab == CreativeTabs.SEARCH || tab == this.getCreativeTab()) {
-            for (int i = 0; i < ItemChemicalDye.EnumChemDye.values().length; i++) {
+            for (int i = 0; i < ItemChemicalDye.EnumChemDye.VALUES.length; i++) {
                 items.add(new ItemStack(this, 1, i));
             }
         }
@@ -102,7 +102,7 @@ public class ItemCrayon extends ItemFood implements IDynamicModels {
 
     @Override
     public String getTranslationKey(ItemStack stack) {
-        Enum num = EnumUtil.grabEnumSafely(ItemChemicalDye.EnumChemDye.class, stack.getItemDamage());
+        Enum num = EnumUtil.grabEnumSafely(ItemChemicalDye.EnumChemDye.VALUES, stack.getItemDamage());
         return super.getTranslationKey() + "." + num.name().toLowerCase(Locale.US);
     }
 }

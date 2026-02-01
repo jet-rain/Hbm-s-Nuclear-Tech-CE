@@ -5,6 +5,7 @@ import com.google.common.collect.Queues;
 import com.hbm.Tags;
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ModBlocks;
+import com.hbm.blocks.generic.BlockRebar;
 import com.hbm.capability.HbmCapability;
 import com.hbm.config.ClientConfig;
 import com.hbm.config.GeneralConfig;
@@ -56,6 +57,7 @@ import com.hbm.render.misc.SoyuzPronter;
 import com.hbm.render.modelrenderer.EgonBackpackRenderer;
 import com.hbm.render.util.RenderOverhead;
 import com.hbm.render.world.RenderNTMSkyboxChainloader;
+import com.hbm.handler.radiation.RadVisOverlay;
 import com.hbm.sound.*;
 import com.hbm.sound.MovingSoundPlayerLoop.EnumHbmSound;
 import com.hbm.tileentity.bomb.TileEntityNukeCustom;
@@ -116,6 +118,9 @@ import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 import net.minecraftforge.fml.common.gameevent.TickEvent.RenderTickEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
@@ -126,6 +131,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.*;
 
+@SideOnly(Side.CLIENT)
 public class ModEventHandlerClient {
 
     public static final int flashDuration = 5_000;
@@ -162,28 +168,13 @@ public class ModEventHandlerClient {
         }
     }
 
-
-    public static ItemStack getMouseOverStack() {
-
+    public static @Nullable Slot getSlotUnderMouse() {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.currentScreen instanceof GuiContainer container) {
-
-            ScaledResolution scaledresolution = new ScaledResolution(mc);
-            int width = scaledresolution.getScaledWidth();
-            int height = scaledresolution.getScaledHeight();
-            int mouseX = Mouse.getX() * width / mc.displayWidth;
-            int mouseY = height - Mouse.getY() * height / mc.displayHeight - 1;
-
-            for (Slot slot : container.inventorySlots.inventorySlots) {
-                if (slot.getHasStack() && container.isMouseOverSlot(slot, mouseX, mouseY)) {
-                    return slot.getStack();
-                }
-            }
+            return container.getSlotUnderMouse();
         }
-
         return null;
     }
-
 
     @SubscribeEvent
     public void renderTick(RenderTickEvent e) {
@@ -321,6 +312,10 @@ public class ModEventHandlerClient {
                 }
             }
         }
+
+        if (event.phase == Phase.END) {
+            NetworkHandler.flushClient();
+        }
     }
 
     @SubscribeEvent
@@ -366,6 +361,7 @@ public class ModEventHandlerClient {
                     ItemGunBaseNT.recoilHorizontal = 0;
                 }
             }
+            RadVisOverlay.clientTick(mc);
         } else {
 
             if (Minecraft.getMinecraft().world != null) {
@@ -396,8 +392,8 @@ public class ModEventHandlerClient {
             ComparableStack comp = canneryTimestamp > Clock.get_ms() - 100 ? lastCannery : null;
 
             if (comp == null) {
-                ItemStack stack = getMouseOverStack();
-                if (stack != null) comp = new ComparableStack(stack).makeSingular();
+                Slot slot = getSlotUnderMouse();
+                if (slot != null) comp = new ComparableStack(slot.getStack()).makeSingular();
             }
 
             if (comp != null) {
@@ -500,6 +496,7 @@ public class ModEventHandlerClient {
             }
         }
         ClientProxy.renderingConstant = false;
+        BlockRebar.renderRebar(evt.getPartialTicks());
 
         //SSG meathook icon projection
         if (ItemGunShotty.rayTrace != null) {
@@ -860,6 +857,7 @@ public class ModEventHandlerClient {
             HbmShaderManager2.postProcess();
         }
         RenderOverhead.renderActionPreview(evt.getPartialTicks());
+        RadVisOverlay.render(evt);
     }
 
     @SubscribeEvent

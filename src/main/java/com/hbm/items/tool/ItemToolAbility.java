@@ -57,6 +57,7 @@ import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
+import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.IShearable;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -354,11 +355,11 @@ public class ItemToolAbility extends ItemTool implements IDepthRockTool, IGUIPro
 		float refStrength = refState.getPlayerRelativeBlockHardness(player, world, refPos);
 		float strength = state.getPlayerRelativeBlockHardness(player, world, pos);
 
-		if (!net.minecraftforge.common.ForgeHooks.canHarvestBlock(state.getBlock(), player, world, pos) || strength <= 0.0F || refStrength / strength > 10f || refState.getPlayerRelativeBlockHardness(player, world, refPos) < 0
+		if (!ForgeHooks.canHarvestBlock(state.getBlock(), player, world, pos) || strength <= 0.0F || refStrength / strength > 10f || refState.getPlayerRelativeBlockHardness(player, world, refPos) < 0
 		)
 			return;
 
-		int exp = net.minecraftforge.common.ForgeHooks.onBlockBreakEvent(world, player.interactionManager.getGameType(), player, pos);
+		int exp = ForgeHooks.onBlockBreakEvent(world, player.interactionManager.getGameType(), player, pos);
 		if (exp == -1)
 			return;
 
@@ -412,7 +413,7 @@ public class ItemToolAbility extends ItemTool implements IDepthRockTool, IGUIPro
 			player.connection.sendPacket(new SPacketBlockChange(world, pos));
 		} else {
 			ItemStack itemstack = player.getHeldItemMainhand();
-			boolean canHarvest = net.minecraftforge.common.ForgeHooks.canHarvestBlock(block, player, world, pos);
+			boolean canHarvest = ForgeHooks.canHarvestBlock(block, player, world, pos);
 
 			removedByPlayer = removeBlock(world, x, y, z, canHarvest, player);
 

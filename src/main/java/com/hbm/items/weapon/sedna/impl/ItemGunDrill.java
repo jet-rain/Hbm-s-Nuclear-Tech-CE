@@ -10,10 +10,8 @@ import com.hbm.items.weapon.sedna.factory.XFactoryDrill;
 import com.hbm.items.weapon.sedna.mags.IMagazine;
 import com.hbm.items.weapon.sedna.mags.MagazineEnergy;
 import com.hbm.items.weapon.sedna.mags.MagazineFluid;
-import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
@@ -23,7 +21,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 
 public class ItemGunDrill extends ItemGunBaseNT implements IFillableItem, IBatteryItem {
@@ -64,8 +61,7 @@ public class ItemGunDrill extends ItemGunBaseNT implements IFillableItem, IBatte
                 .getMagazine(stack);
 
         // Only accept if it's a fluid magazine and supports this type
-        if (mag instanceof MagazineFluid) {
-            MagazineFluid engine = (MagazineFluid) mag;
+        if (mag instanceof MagazineFluid engine) {
             FluidType[] allowedFluids = new FluidType[] { Fluids.GASOLINE, Fluids.GASOLINE_LEADED, Fluids.COALGAS, Fluids.COALGAS_LEADED };
             boolean isSupportedType = false;
             for (FluidType accepted : engine.acceptedTypes) {
@@ -129,8 +125,7 @@ public class ItemGunDrill extends ItemGunBaseNT implements IFillableItem, IBatte
         IMagazine mag = ((ItemGunBaseNT) stack.getItem()).getConfig(stack, 0)
                 .getReceivers(stack)[0].getMagazine(stack);
 
-        if (mag instanceof MagazineFluid) {
-            MagazineFluid engine = (MagazineFluid) mag;
+        if (mag instanceof MagazineFluid engine) {
             FluidType type = engine.getType(stack, null);
             int amount = engine.getAmount(stack, null);
             int capacity = engine.getCapacity(stack);
@@ -165,8 +160,7 @@ public class ItemGunDrill extends ItemGunBaseNT implements IFillableItem, IBatte
     public void chargeBattery(ItemStack stack, long i) {
         IMagazine mag = ((ItemGunBaseNT) stack.getItem()).getConfig(stack, 0).getReceivers(stack)[0].getMagazine(stack);
 
-        if(mag instanceof MagazineEnergy) {
-            MagazineEnergy engine = (MagazineEnergy) mag;
+        if(mag instanceof MagazineEnergy engine) {
             engine.setAmount(stack, Math.min(engine.capacity, engine.getAmount(stack, null) + (int) i));
         }
     }
@@ -175,8 +169,7 @@ public class ItemGunDrill extends ItemGunBaseNT implements IFillableItem, IBatte
     public void setCharge(ItemStack stack, long i) {
         IMagazine mag = ((ItemGunBaseNT) stack.getItem()).getConfig(stack, 0).getReceivers(stack)[0].getMagazine(stack);
 
-        if(mag instanceof MagazineEnergy) {
-            MagazineEnergy engine = (MagazineEnergy) mag;
+        if(mag instanceof MagazineEnergy engine) {
             engine.setAmount(stack, (int) i);
         }
     }
@@ -185,8 +178,7 @@ public class ItemGunDrill extends ItemGunBaseNT implements IFillableItem, IBatte
     public void dischargeBattery(ItemStack stack, long i) {
         IMagazine mag = ((ItemGunBaseNT) stack.getItem()).getConfig(stack, 0).getReceivers(stack)[0].getMagazine(stack);
 
-        if(mag instanceof MagazineEnergy) {
-            MagazineEnergy engine = (MagazineEnergy) mag;
+        if(mag instanceof MagazineEnergy engine) {
             engine.setAmount(stack, Math.max(0, engine.getAmount(stack, null) - (int) i));
         }
     }
@@ -195,8 +187,7 @@ public class ItemGunDrill extends ItemGunBaseNT implements IFillableItem, IBatte
     public long getCharge(ItemStack stack) {
         IMagazine mag = ((ItemGunBaseNT) stack.getItem()).getConfig(stack, 0).getReceivers(stack)[0].getMagazine(stack);
 
-        if(mag instanceof MagazineEnergy) {
-            MagazineEnergy engine = (MagazineEnergy) mag;
+        if(mag instanceof MagazineEnergy engine) {
             return engine.getAmount(stack, null);
         }
 
@@ -207,15 +198,14 @@ public class ItemGunDrill extends ItemGunBaseNT implements IFillableItem, IBatte
     public long getMaxCharge(ItemStack stack) {
         IMagazine mag = ((ItemGunBaseNT) stack.getItem()).getConfig(stack, 0).getReceivers(stack)[0].getMagazine(stack);
 
-        if(mag instanceof MagazineEnergy) {
-            MagazineEnergy engine = (MagazineEnergy) mag;
+        if(mag instanceof MagazineEnergy engine) {
             return engine.getCapacity(stack);
         }
 
         return 0;
     }
 
-    @Override public long getChargeRate() { return 50_000; }
-    @Override public long getDischargeRate() { return 0; }
+    @Override public long getChargeRate(ItemStack stack) { return 50_000; }
+    @Override public long getDischargeRate(ItemStack stack) { return 0; }
 }
 

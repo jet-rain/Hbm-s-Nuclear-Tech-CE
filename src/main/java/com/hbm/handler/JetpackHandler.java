@@ -3,6 +3,7 @@ package com.hbm.handler;
 import com.hbm.animloader.AnimationWrapper;
 import com.hbm.animloader.AnimationWrapper.EndResult;
 import com.hbm.animloader.AnimationWrapper.EndType;
+import com.hbm.handler.threading.PacketThreading;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTankNTM;
@@ -15,6 +16,7 @@ import com.hbm.main.MainRegistry;
 import com.hbm.main.ResourceManager;
 import com.hbm.packet.JetpackSyncPacket;
 import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.threading.ThreadedPacket;
 import com.hbm.particle.ParticleFakeBrightness;
 import com.hbm.particle.ParticleHeatDistortion;
 import com.hbm.particle.ParticleJetpackTrail;
@@ -24,6 +26,9 @@ import com.hbm.render.misc.ColorGradient;
 import com.hbm.sound.MovingSoundJetpack;
 import com.hbm.util.BobMathUtil;
 import io.netty.buffer.ByteBuf;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.particle.Particle;
@@ -59,7 +64,9 @@ import org.lwjgl.util.vector.Vector4f;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 public class JetpackHandler {
@@ -73,7 +80,7 @@ public class JetpackHandler {
 	private static boolean hud_key_down = false;
 	
 	//I should be able to use this cheesily for both server and client, since they're technically different entities.
-	private static final Map<PlayerKey, JetpackInfo> perPlayerInfo = new HashMap<>();
+	private static final Object2ObjectOpenHashMap<PlayerKey, JetpackInfo> perPlayerInfo = new Object2ObjectOpenHashMap<>();
 	
 	public static JetpackInfo get(EntityPlayer p){
 		return perPlayerInfo.get(new PlayerKey(p));
@@ -291,7 +298,7 @@ public class JetpackHandler {
 	}
 	
 	public static void serverTick(){
-		Iterator<Entry<PlayerKey, JetpackInfo>> itr = perPlayerInfo.entrySet().iterator();
+		ObjectIterator<Object2ObjectMap.Entry<PlayerKey, JetpackInfo>> itr = perPlayerInfo.object2ObjectEntrySet().fastIterator();
 		while(itr.hasNext()){
 			Entry<PlayerKey, JetpackInfo> e = itr.next();
 			EntityPlayer player = e.getKey().player;
@@ -311,7 +318,7 @@ public class JetpackHandler {
 					setTank(player, tank);
 				}
 				if(player.motionY > -0.5) player.fallDistance = 0;
-				PacketDispatcher.wrapper.sendToAllTracking(new JetpackSyncPacket(player), player);
+				PacketThreading.createSendToAllTrackingThreadedPacket(new JetpackSyncPacket(player), player);
 			}
 		}
 	}
@@ -335,8 +342,9 @@ public class JetpackHandler {
 			JetpackInfo j = new JetpackInfo(player.world.isRemote);
 			j.readFromNBT(tag);
 			put(player, j);
-			PacketDispatcher.wrapper.sendToAllTracking(new JetpackSyncPacket(player), (EntityPlayerMP) player);
-		}
+            ThreadedPacket message = new JetpackSyncPacket(player);
+            PacketThreading.createSendToAllTrackingThreadedPacket(message, (EntityPlayerMP) player);
+        }
 	}
 	
 	public static void worldLoad(WorldEvent.Load e){
@@ -372,8 +380,9 @@ public class JetpackHandler {
 				EntityPlayer player = (EntityPlayer)e.getTarget();
 				JetpackInfo j = get(player);
 				if(j != null){
-					PacketDispatcher.wrapper.sendTo(new JetpackSyncPacket(player), (EntityPlayerMP) e.getEntityPlayer());
-				}
+                    ThreadedPacket message = new JetpackSyncPacket(player);
+                    PacketThreading.createSendToThreadedPacket(message, (EntityPlayerMP) e.getEntityPlayer());
+                }
 			}
 		}
 	}
@@ -763,8 +772,8 @@ public class JetpackHandler {
 				
 				//SYNC
 				if(player == Minecraft.getMinecraft().player && j.dirty){
-					PacketDispatcher.wrapper.sendToServer(new JetpackSyncPacket(player));
-					j.dirty = false;
+                    PacketThreading.createSendToServerThreadedPacket(new JetpackSyncPacket(player));
+                    j.dirty = false;
 				}
 			}
 		}

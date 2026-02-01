@@ -11,6 +11,8 @@ import com.hbm.inventory.recipes.*;
 import com.hbm.inventory.recipes.MagicRecipes.MagicRecipe;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemAssemblyTemplate;
+import com.hbm.items.machine.ItemBatteryPack;
+import com.hbm.items.machine.ItemBatterySC;
 import com.hbm.items.machine.ItemFELCrystal.EnumWavelengths;
 import com.hbm.items.machine.ItemFluidIcon;
 import com.hbm.lib.Library;
@@ -680,8 +682,6 @@ public class JeiRecipes {
 		batteries = new ArrayList<>();
 		batteries.add(new ItemStack(ModItems.battery_potato));
 		batteries.add(new ItemStack(ModItems.battery_potatos));
-		batteries.add(new ItemStack(ModItems.battery_su));
-		batteries.add(new ItemStack(ModItems.battery_su_l));
 		batteries.add(new ItemStack(ModItems.battery_generic));
 		batteries.add(new ItemStack(ModItems.battery_red_cell));
 		batteries.add(new ItemStack(ModItems.battery_red_cell_6));
@@ -707,6 +707,8 @@ public class JeiRecipes {
 		batteries.add(new ItemStack(ModItems.battery_spark_cell_power));
 		batteries.add(new ItemStack(ModItems.fusion_core));
 		batteries.add(new ItemStack(ModItems.energy_core));
+		for(ItemBatteryPack.EnumBatteryPack num : ItemBatteryPack.EnumBatteryPack.VALUES) batteries.add(new ItemStack(ModItems.battery_pack, 1, num.ordinal()));
+		for(ItemBatterySC.EnumBatterySC num : ItemBatterySC.EnumBatterySC.VALUES) batteries.add(new ItemStack(ModItems.battery_sc, 1, num.ordinal()));
 		return batteries;
 	}
 	

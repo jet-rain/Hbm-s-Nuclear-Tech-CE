@@ -36,7 +36,7 @@ import java.util.List;
 public class BlockSlidingBlastDoor extends BlockDummyable implements IRadResistantBlock, IPartialSealableBlock {
 
 	public BlockSlidingBlastDoor(Material materialIn, String s) {
-		super(materialIn, s);
+		super(materialIn, s, true);
 	}
 
 	public boolean isSealed(World world, BlockPos blockPos, EnumFacing direction){
@@ -187,13 +187,13 @@ public class BlockSlidingBlastDoor extends BlockDummyable implements IRadResista
 
 	@Override
 	public void onBlockAdded(World worldIn, BlockPos pos, IBlockState state) {
-		RadiationSystemNT.markChunkForRebuild(worldIn, pos);
+		RadiationSystemNT.markSectionForRebuild(worldIn, pos);
 		super.onBlockAdded(worldIn, pos, state);
 	}
 	
 	@Override
 	public void breakBlock(@NotNull World worldIn, @NotNull BlockPos pos, IBlockState state) {
-		RadiationSystemNT.markChunkForRebuild(worldIn, pos);
+		RadiationSystemNT.markSectionForRebuild(worldIn, pos);
 		super.breakBlock(worldIn, pos, state);
 	}
 

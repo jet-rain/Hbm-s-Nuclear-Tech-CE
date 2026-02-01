@@ -1,15 +1,11 @@
 package com.hbm.entity.effect;
 
-import biomesoplenty.api.block.BOPBlocks;
-import biomesoplenty.common.block.BlockBOPDirt;
-import biomesoplenty.common.block.BlockBOPGrass;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BlockMeta;
 import com.hbm.blocks.generic.WasteLog;
 import com.hbm.config.VersatileConfig;
 import com.hbm.entity.logic.IChunkLoader;
 import com.hbm.main.MainRegistry;
-import com.hbm.util.EnumUtil;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -170,39 +166,10 @@ public abstract class EntityFallout extends Entity implements IChunkLoader {
             }
             Block blockBelow = world.getBlockState(lowerPos.down()).getBlock();
             if (blockBelow == Blocks.FARMLAND) {
-                placeBlockFromDist(dist, ModBlocks.waste_dirt, lowerPos.down());
                 placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
             } else if (blockBelow instanceof BlockGrass) {
                 placeBlockFromDist(dist, ModBlocks.waste_earth, lowerPos.down());
                 placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-            } else if (blockBelow == BOPBlocks.grass) {
-                BlockBOPGrass.BOPGrassType grassType = EnumUtil.grabEnumSafely(BlockBOPGrass.BOPGrassType.class, block.getMetaFromState(world.getBlockState(pos)));
-                switch (grassType) {
-                    case SILTY :
-                        placeBlockFromDist(dist, ModBlocks.waste_earth_silty, lowerPos.down());
-                        placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-                    case SANDY:
-                        placeBlockFromDist(dist, ModBlocks.waste_earth_sandy, lowerPos.down());
-                        placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-                    case LOAMY:
-                        placeBlockFromDist(dist, ModBlocks.waste_earth_loamy, lowerPos.down());
-                        placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-                    case DAISY:
-                        placeBlockFromDist(dist, ModBlocks.waste_earth_daisy, lowerPos.down());
-                        placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-                    case OVERGROWN_STONE:
-                        placeBlockFromDist(dist, ModBlocks.waste_stone, lowerPos.down());
-                        placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-                    case OVERGROWN_NETHERRACK:
-                        placeBlockFromDist(dist, ModBlocks.waste_stone, lowerPos.down());
-                        placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-                    case ORIGIN:
-                        placeBlockFromDist(dist, ModBlocks.waste_earth, lowerPos.down());
-                        placeBlockFromDist(dist, ModBlocks.waste_grass_tall, lowerPos);
-                    case MYCELIAL_NETHERRACK:
-                        placeBlockFromDist(dist, ModBlocks.waste_mycelium_netherrack, lowerPos.down());
-                        world.setBlockState(lowerPos, ModBlocks.mush.getDefaultState());
-                }
             } else if (blockBelow == Blocks.MYCELIUM) {
                 placeBlockFromDist(dist, ModBlocks.waste_mycelium, lowerPos.down());
                 world.setBlockState(lowerPos, ModBlocks.mush.getDefaultState());
@@ -243,74 +210,21 @@ public abstract class EntityFallout extends Entity implements IChunkLoader {
             case "minecraft:grass":
                 placeBlockFromDist(dist, ModBlocks.waste_earth, pos);
                 return false;
-            case "biomesoplenty:grass"  :
-                BlockBOPGrass.BOPGrassType BOPGrassVariant = EnumUtil.grabEnumSafely(BlockBOPGrass.BOPGrassType.class, block.getMetaFromState(world.getBlockState(pos))) ;
-            switch (BOPGrassVariant){
-                case SILTY -> placeBlockFromDist(dist, ModBlocks.waste_earth_silty, pos);
-                case SANDY -> placeBlockFromDist(dist, ModBlocks.waste_earth_sandy, pos);
-                case LOAMY -> placeBlockFromDist(dist, ModBlocks.waste_earth_loamy, pos);
-                case DAISY -> placeBlockFromDist(dist, ModBlocks.waste_earth_daisy, pos);
-                case OVERGROWN_STONE -> placeBlockFromDist(dist, ModBlocks.waste_stone, pos);
-                case OVERGROWN_NETHERRACK -> placeBlockFromDist(dist, ModBlocks.waste_stone_netherrack, pos);
-                case SPECTRAL_MOSS -> placeBlockFromDist(dist, ModBlocks.waste_stone_moss, pos);
-                case MYCELIAL_NETHERRACK -> placeBlockFromDist(dist, ModBlocks.waste_mycelium_netherrack, pos);
-                case ORIGIN -> placeBlockFromDist(dist, ModBlocks.waste_earth, pos);
-            }
-                return false;
             case "minecraft:dirt":
                 BlockDirt.DirtType dirtVariant = blockState.getValue(BlockDirt.VARIANT);
                 switch (dirtVariant) {
-                    case DIRT -> placeBlockFromDist(dist, ModBlocks.waste_dirt, pos);
-                    case COARSE_DIRT -> placeBlockFromDist(dist, ModBlocks.waste_gravel, pos);
                     case PODZOL -> placeBlockFromDist(dist, ModBlocks.waste_mycelium, pos);
                 }
                 return false;
-            case "biomesoplenty:dirt"  :
-                BlockBOPDirt.BOPDirtType BOPDirtVariant = EnumUtil.grabEnumSafely(BlockBOPDirt.BOPDirtType.class, block.getMetaFromState(world.getBlockState(pos))) ;
-                switch (BOPDirtVariant){
-                    case SILTY -> placeBlockFromDist(dist, ModBlocks.waste_dirt_silty, pos);
-                    case SANDY -> placeBlockFromDist(dist, ModBlocks.waste_dirt_sandy, pos);
-                    case LOAMY -> placeBlockFromDist(dist, ModBlocks.waste_dirt_loamy, pos);
-                }
-                return false;
-            case "minecraft:farmland":
-                placeBlockFromDist(dist, ModBlocks.waste_dirt, pos);
-                return true;
-            case "minecraft:snow_layer":
-                placeBlockFromDist(dist, ModBlocks.waste_snow, pos);
-                return true;
-            case "minecraft:snow":
-                placeBlockFromDist(dist, ModBlocks.waste_snow_block, pos);
-                return true;
-            case "minecraft:ice":
-            case "minecraft:packed_ice":
-            case "minecraft:frosted_ice":
-                world.setBlockState(pos, ModBlocks.waste_ice.getDefaultState());
-                return true;
+
             case "minecraft:mycelium":
                 placeBlockFromDist(dist, ModBlocks.waste_mycelium, pos);
-                return false;
-            case "minecraft:gravel":
-                placeBlockFromDist(dist, ModBlocks.waste_gravel, pos);
-                return false;
-            case "minecraft:sandstone":
-                placeBlockFromDist(dist, ModBlocks.waste_sandstone, pos);
-                return false;
-            case "minecraft:red_sandstone":
-                placeBlockFromDist(dist, ModBlocks.waste_red_sandstone, pos);
-                return false;
-            case "minecraft:hardened_clay":
-            case "minecraft:stained_hardened_clay":
-                placeBlockFromDist(dist, ModBlocks.waste_terracotta, pos);
                 return false;
             case "minecraft:sand":
                 BlockSand.EnumType sandVariant = blockState.getValue(BlockSand.VARIANT);
                 Block trinitite = sandVariant == BlockSand.EnumType.SAND ? ModBlocks.waste_trinitite : ModBlocks.waste_trinitite_red;
-                Block sandWaste = sandVariant == BlockSand.EnumType.SAND ? ModBlocks.waste_sand : ModBlocks.waste_sand_red;
                 if (rand.nextInt(60) == 0) {
                     placeBlockFromDist(dist, trinitite, pos);
-                } else {
-                    placeBlockFromDist(dist, sandWaste, pos);
                 }
                 return false;
             case "minecraft:clay":

@@ -54,9 +54,9 @@ import static com.hbm.render.block.BlockBakeFrame.ROOT_PATH;
 public class BlockSellafield extends BlockMeta implements IDynamicModels {
 
     public static final IUnlistedProperty<Integer> VARIANT = new PropertyRandomVariant(sellafieldTextures.length);
-    public final static int LEVELS = 5;
-    public static final float rad = 0.5f;
-    public static final int[][] colors = new int[][]{
+    private static final short LEVELS = 6;
+    private static final float rad = 0.5f;
+    private static final int[][] colors = new int[][]{
             {0x4C7939, 0x41463F},
             {0x418223, 0x3E443B},
             {0x338C0E, 0x3B5431},
@@ -67,7 +67,7 @@ public class BlockSellafield extends BlockMeta implements IDynamicModels {
 
 
     public BlockSellafield(Material mat, SoundType type, String s) {
-        super(mat, type, s, (short) LEVELS);
+        super(mat, type, s, LEVELS);
         this.showMetaInCreative = true;
         this.needsRandomTick = true;
     }
@@ -119,7 +119,7 @@ public class BlockSellafield extends BlockMeta implements IDynamicModels {
 
     @SideOnly(Side.CLIENT)
     public void registerSprite(TextureMap map) {
-        for (int level = 0; level <= LEVELS; level++) {
+        for (int level = 0; level < LEVELS; level++) {
             int[] tint = colors[level];
 
             for (BlockBakeFrame texture : sellafieldTextures) {
@@ -133,7 +133,7 @@ public class BlockSellafield extends BlockMeta implements IDynamicModels {
 
     @SideOnly(Side.CLIENT)
     public void bakeModel(ModelBakeEvent event) {
-        for (int level = 0; level <= LEVELS; level++) {
+        for (int level = 0; level < LEVELS; level++) {
             var models = new IBakedModel[4];
             for (int variant = 0; variant < 4; variant++) {
                 IModel baseModel = ModelLoaderRegistry.getModelOrMissing(new ResourceLocation(sellafieldTextures[0].getBaseModel()));

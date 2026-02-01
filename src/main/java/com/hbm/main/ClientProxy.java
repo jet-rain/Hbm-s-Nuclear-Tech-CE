@@ -26,6 +26,7 @@ import com.hbm.items.weapon.sedna.factory.GunFactoryClient;
 import com.hbm.lib.HBMSoundHandler;
 import com.hbm.lib.RecoilHandler;
 import com.hbm.main.client.NTMClientRegistry;
+import com.hbm.command.CommandRadVisClient;
 import com.hbm.particle.*;
 import com.hbm.particle.bfg.*;
 import com.hbm.particle.bullet_hit.ParticleBloodParticle;
@@ -49,6 +50,7 @@ import com.hbm.render.anim.sedna.BusAnimationSedna;
 import com.hbm.render.anim.sedna.BusAnimationSequenceSedna;
 import com.hbm.render.anim.sedna.HbmAnimationsSedna;
 import com.hbm.render.entity.ElectricityRenderer;
+import com.hbm.render.entity.RenderBoat;
 import com.hbm.render.entity.RenderMetaSensitiveItem;
 import com.hbm.render.item.ItemRenderMissile;
 import com.hbm.render.item.ItemRenderMissileGeneric;
@@ -109,12 +111,12 @@ import net.minecraft.util.registry.IRegistry;
 import net.minecraft.world.World;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.model.obj.OBJLoader;
+import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
@@ -183,7 +185,7 @@ public class ClientProxy extends ServerProxy {
         MinecraftForge.EVENT_BUS.register(new ModEventHandlerRenderer());
         MinecraftForge.EVENT_BUS.register(new PlacementPreviewHandler());
         MinecraftForge.EVENT_BUS.register(theInfoSystem);
-        FMLCommonHandler.instance().bus().register(theInfoSystem);
+        ClientCommandHandler.instance.registerCommand(new CommandRadVisClient());
 
         HbmShaderManager.loadShaders();
 
@@ -772,7 +774,7 @@ public class ClientProxy extends ServerProxy {
                 }
             }
             case "debugdrone" -> {
-                Item held = player.getHeldItem(EnumHand.MAIN_HAND) == ItemStack.EMPTY ? null : player.getHeldItem(EnumHand.MAIN_HAND).getItem();
+                Item held = player.getHeldItem(EnumHand.MAIN_HAND).isEmpty() ? null : player.getHeldItem(EnumHand.MAIN_HAND).getItem();
 
                 if (held == ModItems.drone ||
                         held == Item.getItemFromBlock(ModBlocks.drone_crate_provider) ||
@@ -918,7 +920,7 @@ public class ClientProxy extends ServerProxy {
                 if (casingConfig == null) return;
 
                 for (int i = 0; i < ejector.getAmount(); i++) {
-                    ejector.spawnCasing(Minecraft.getMinecraft().renderEngine, casingConfig, world, x, y, z,
+                    ejector.spawnCasing(casingConfig, world, x, y, z,
                             data.getFloat("pitch"), data.getFloat("yaw"), data.getBoolean("crouched"));
                 }
             }
@@ -1839,6 +1841,9 @@ public class ClientProxy extends ServerProxy {
                 }
             }
         }
+
+        // IItemRendererProvider is not applicable to Render<T extends Entity>
+        Item.getItemFromBlock(ModBlocks.boat).setTileEntityItemStackRenderer(new RenderBoat.BoatItemRenderer());
     }
 
     @Deprecated

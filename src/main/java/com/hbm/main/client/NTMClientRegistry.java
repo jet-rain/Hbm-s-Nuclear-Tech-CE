@@ -26,7 +26,6 @@ import com.hbm.items.tool.ItemCanister;
 import com.hbm.items.tool.ItemGasCanister;
 import com.hbm.items.tool.ItemGuideBook;
 import com.hbm.items.weapon.IMetaItemTesr;
-import com.hbm.items.weapon.ItemAmmoArty;
 import com.hbm.items.weapon.sedna.ItemGunBaseNT;
 import com.hbm.main.MainRegistry;
 import com.hbm.main.ResourceManager;
@@ -275,25 +274,19 @@ public class NTMClientRegistry {
     @SubscribeEvent
     public void registerModels(ModelRegistryEvent event) {
         int i = 0;
-        ResourceLocation[] list = new ResourceLocation[SpecialContainerFillLists.EnumCell.values().length];
-        for (SpecialContainerFillLists.EnumCell e : SpecialContainerFillLists.EnumCell.values()) {
+        ResourceLocation[] list = new ResourceLocation[SpecialContainerFillLists.EnumCell.VALUES.length];
+        for (SpecialContainerFillLists.EnumCell e : SpecialContainerFillLists.EnumCell.VALUES) {
             list[i] = e.getResourceLocation();
             i++;
         }
         ModelLoader.registerItemVariants(ModItems.cell, list);
-
-        ModelResourceLocation[] locations = new ModelResourceLocation[ItemAmmoArty.itemTypes.length];
-        for (i = 0; i < ItemAmmoArty.itemTypes.length; i++) {
-            locations[i] = new ModelResourceLocation(ModItems.ammo_arty.getRegistryName() + "_" + i, "inventory");
-        }
-        ModelLoader.registerItemVariants(ModItems.ammo_arty, locations);
 
         FluidType[] order = Fluids.getInNiceOrder();
         for (i = 0; i < order.length; i++) {
             if (!order[i].hasNoID()) {
                 ModelLoader.setCustomModelResourceLocation(ModItems.fluid_duct, order[i].getID(), ItemFFFluidDuct.ductLoc);
                 if (order[i].getContainer(Fluids.CD_Gastank.class) != null) {
-                    ModelLoader.setCustomModelResourceLocation(ModItems.gas_full, order[i].getID(), ItemGasCanister.gasCansiterFullModel);
+                    ModelLoader.setCustomModelResourceLocation(ModItems.gas_full, order[i].getID(), ItemGasCanister.gasCanisterFullModel);
                 }
             }
         }
@@ -314,13 +307,10 @@ public class NTMClientRegistry {
             }
         }
         for (Block block : ModBlocks.ALL_BLOCKS) {
+            if (block instanceof IDynamicModels && IDynamicModels.INSTANCES.contains(block)) continue;
             registerBlockModel(block, 0);
         }
 
-
-        ((ItemBedrockOreNew) ModItems.bedrock_ore).registerModels();
-        ((ItemAmmoArty) ModItems.ammo_arty).registerModels();
-        ((ItemMold) ModItems.mold).registerModels();
         IDynamicModels.registerModels();
         IDynamicModels.registerCustomStateMappers();
         IMetaItemTesr.redirectModels();
@@ -334,14 +324,6 @@ public class NTMClientRegistry {
         ModelLoader.setCustomModelResourceLocation(ModItems.conveyor_wand, 3, new ModelResourceLocation(ModBlocks.conveyor_triple.getRegistryName(),
                 "inventory"));
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(ModBlocks.fence_metal), 1, new ModelResourceLocation("hbm:fence_metal_post", "inventory"));
-
-        //FIXME: this is a dogshit solution
-        // now 2 dogshit solutions!
-
-
-        for (ItemAutogen item : ItemAutogen.INSTANCES) {
-            item.registerModels();
-        }
     }
 
     private void registerBlockModel(Block block, int meta) {
@@ -384,7 +366,7 @@ public class NTMClientRegistry {
                 ModelLoader.setCustomModelResourceLocation(item, i, new ModelResourceLocation(item.getRegistryName(), "inventory"));
             }
         } else if (item == ModItems.siren_track) {
-            for (int i = 0; i < ItemCassette.TrackType.values().length; i++) {
+            for (int i = 0; i < ItemCassette.TrackType.VALUES.length; i++) {
                 ModelLoader.setCustomModelResourceLocation(item, i, new ModelResourceLocation(item.getRegistryName(), "inventory"));
             }
         } else if (item == ModItems.ingot_u238m2) {
@@ -398,10 +380,10 @@ public class NTMClientRegistry {
             for (int i = 0; i < 16; i++)
                 ModelLoader.setCustomModelResourceLocation(item, i, new ModelResourceLocation(item.getRegistryName().toString() + i, "inventory"));
         } else if (item == Item.getItemFromBlock(ModBlocks.brick_jungle_trap)) {
-            for (int i = 0; i < TrappedBrick.Trap.values().length; i++)
+            for (int i = 0; i < TrappedBrick.Trap.VALUES.length; i++)
                 ModelLoader.setCustomModelResourceLocation(item, i, new ModelResourceLocation(item.getRegistryName(), "inventory"));
         } else if (item instanceof ItemGuideBook) {
-            for (int i = 0; i < ItemGuideBook.BookType.values().length; i++)
+            for (int i = 0; i < ItemGuideBook.BookType.VALUES.length; i++)
                 ModelLoader.setCustomModelResourceLocation(item, i, new ModelResourceLocation(item.getRegistryName(), "inventory"));
         } else if (item instanceof ItemHot) {
             for (int i = 0; i < 15; i++)
@@ -414,11 +396,11 @@ public class NTMClientRegistry {
                 }
             }
         } else if (item instanceof ItemWasteLong) {
-            for (int i = 0; i < ItemWasteLong.WasteClass.values().length; i++) {
+            for (int i = 0; i < ItemWasteLong.WasteClass.VALUES.length; i++) {
                 ModelLoader.setCustomModelResourceLocation(item, i, new ModelResourceLocation(item.getRegistryName(), "inventory"));
             }
         } else if (item instanceof ItemWasteShort) {
-            for (int i = 0; i < ItemWasteShort.WasteClass.values().length; i++) {
+            for (int i = 0; i < ItemWasteShort.WasteClass.VALUES.length; i++) {
                 ModelLoader.setCustomModelResourceLocation(item, i, new ModelResourceLocation(item.getRegistryName(), "inventory"));
             }
         } else if (item == ModItems.coin_siege) {
@@ -433,7 +415,7 @@ public class NTMClientRegistry {
             ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(item.getRegistryName(), "inventory"));
         } else if (item instanceof IHasCustomModel) {
             ModelLoader.setCustomModelResourceLocation(item, meta, ((IHasCustomModel) item).getResourceLocation());
-        } else if (item instanceof IDynamicModels dyn && dyn.INSTANCES.contains(item)) { // we are literally registering them manually, why do it twice?..
+        } else if (item instanceof IDynamicModels && IDynamicModels.INSTANCES.contains(item)) { // we are literally registering them manually, why do it twice?..
         } else {
             ModelLoader.setCustomModelResourceLocation(item, meta, new ModelResourceLocation(item.getRegistryName(), "inventory"));
         }
@@ -447,12 +429,13 @@ public class NTMClientRegistry {
         ItemMold.bakeModels(evt);
         IDynamicModels.bakeModels(evt);
 
-        for (SpecialContainerFillLists.EnumCanister e : SpecialContainerFillLists.EnumCanister.values()) {
+
+        for (SpecialContainerFillLists.EnumCanister e : SpecialContainerFillLists.EnumCanister.VALUES) {
             Object o = evt.getModelRegistry().getObject(e.getResourceLocation());
             if (o instanceof IBakedModel)
                 e.putRenderModel((IBakedModel) o);
         }
-        for (SpecialContainerFillLists.EnumCell cellType : SpecialContainerFillLists.EnumCell.values()) {
+        for (SpecialContainerFillLists.EnumCell cellType : SpecialContainerFillLists.EnumCell.VALUES) {
             FluidType fluid = cellType.getFluid();
             int meta = (fluid == null) ? 0 : fluid.getID();
             ModelLoader.setCustomModelResourceLocation(
@@ -461,7 +444,7 @@ public class NTMClientRegistry {
                     cellType.getResourceLocation()
             );
         }
-        for (SpecialContainerFillLists.EnumGasCanister e : SpecialContainerFillLists.EnumGasCanister.values()) {
+        for (SpecialContainerFillLists.EnumGasCanister e : SpecialContainerFillLists.EnumGasCanister.VALUES) {
             Object o = evt.getModelRegistry().getObject(e.getResourceLocation());
             if (o instanceof IBakedModel)
                 e.putRenderModel((IBakedModel) o);
@@ -546,6 +529,9 @@ public class NTMClientRegistry {
         swapModels(ModItems.ammo_himars, reg);
         swapModels(ModItems.jetpack_glider, reg);
         swapModels(ModItems.gear_large, reg);
+        swapModels(ModItems.battery_pack, reg);
+
+        swapModels(Item.getItemFromBlock(ModBlocks.boat), reg);
 
         for (Item item : ItemGunBaseNT.INSTANCES) {
             swapModelsNoFPV(item, reg);

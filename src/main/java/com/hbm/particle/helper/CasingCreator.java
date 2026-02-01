@@ -60,6 +60,8 @@ public class CasingCreator implements IParticleCreator {
         data.setDouble("mZ", mZ);
         data.setFloat("yaw", player.rotationYaw);
         data.setFloat("pitch", player.rotationPitch);
+        data.setFloat("mPitch", mPitch);
+        data.setFloat("mYaw", mYaw);
         data.setString("name", casing);
         data.setBoolean("smoking", smoking);
         data.setInteger("smokeLife", smokeLife);
@@ -68,7 +70,33 @@ public class CasingCreator implements IParticleCreator {
 
         IParticleCreator.sendPacket(world, x, y, z, 50, data);
     }
+    public static void composeEffect(World world, Vec3d vec, float yaw, float pitch, double frontMotion, double heightMotion, double sideMotion, double motionVariance, float mPitch, float mYaw, String casing, boolean smoking, int smokeLife, double smokeLift, int nodeLife) {
 
+        Vec3d motion = new Vec3d(sideMotion, heightMotion, frontMotion);
+        motion.rotatePitch(-pitch / 180F * (float) Math.PI);
+        motion.rotateYaw(-yaw / 180F * (float) Math.PI);
+
+        double mX = motion.x+ world.rand.nextGaussian() * motionVariance;
+        double mY = motion.y+ world.rand.nextGaussian() * motionVariance;
+        double mZ = motion.z+ world.rand.nextGaussian() * motionVariance;
+
+        NBTTagCompound data = new NBTTagCompound();
+        data.setString("type", "casingNT");
+        data.setDouble("mX", mX);
+        data.setDouble("mY", mY);
+        data.setDouble("mZ", mZ);
+        data.setFloat("yaw", yaw);
+        data.setFloat("pitch", pitch);
+        data.setFloat("mPitch", mPitch);
+        data.setFloat("mYaw", mYaw);
+        data.setString("name", casing);
+        data.setBoolean("smoking", smoking);
+        data.setInteger("smokeLife", smokeLife);
+        data.setDouble("smokeLift", smokeLift);
+        data.setInteger("nodeLife", nodeLife);
+
+        IParticleCreator.sendPacket(world, vec.x, vec.y, vec.z, 50, data);
+    }
     @Override
     @SideOnly(Side.CLIENT)
     public void makeParticle(World world, EntityPlayer player, TextureManager texman, Random rand, double x, double y, double z, NBTTagCompound data) {
@@ -80,11 +108,13 @@ public class CasingCreator implements IParticleCreator {
         double mZ = data.getDouble("mZ");
         float yaw = data.getFloat("yaw");
         float pitch = data.getFloat("pitch");
+        float mPitch = data.getFloat("mPitch");
+        float mYaw = data.getFloat("mYaw");
         boolean smoking = data.getBoolean("smoking");
         int smokeLife = data.getInteger("smokeLife");
         double smokeLift = data.getDouble("smokeLift");
         int nodeLife = data.getInteger("nodeLife");
-        ParticleSpentCasing casing = new ParticleSpentCasing(texman, world, x, y, z, mX, mY, mZ, 0, 0, casingConfig, smoking, smokeLife, smokeLift, nodeLife);
+        ParticleSpentCasing casing = new ParticleSpentCasing(world, x, y, z, mX, mY, mZ, mPitch, mYaw, casingConfig, smoking, smokeLife, smokeLift, nodeLife);
         casing.prevRotationYaw = casing.rotationYaw = yaw;
         casing.prevRotationPitch = casing.rotationPitch = pitch;
         Minecraft.getMinecraft().effectRenderer.addEffect(casing);

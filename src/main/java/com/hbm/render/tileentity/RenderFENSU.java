@@ -15,7 +15,7 @@ import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.item.Item;
 import net.minecraft.nbt.NBTTagCompound;
 import org.lwjgl.opengl.GL11;
-
+@Deprecated
 @AutoRegister
 public class RenderFENSU extends TileEntitySpecialRenderer<TileEntityMachineFENSU> implements IItemRendererProvider, ITileActorRenderer {
 

@@ -19,6 +19,7 @@ import com.hbm.items.ItemEnums;
 import com.hbm.items.ItemEnums.EnumCircuitType;
 import com.hbm.items.ModItems;
 import com.hbm.items.food.ItemFlask;
+import com.hbm.items.machine.ItemBatterySC;
 import com.hbm.util.Tuple;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
@@ -293,15 +294,6 @@ public class AnvilRecipes extends SerializableRecipe {
 						new OreDictStack(STEEL.plate528(), 16),
 						new OreDictStack(STEEL.pipe(), 3),
 				}, new AnvilOutput(new ItemStack(ModBlocks.heater_heatex))).setTier(3));
-
-		constructionRecipes.add(new AnvilConstructionRecipe(
-				new AStack[] {
-						new ComparableStack(ModItems.rtg_unit, 5),
-						new OreDictStack(getReflector(), 8),
-						new OreDictStack(CU.ingot(), 16),
-						new OreDictStack(TCALLOY.ingot(), 6),
-						new OreDictStack(STEEL.plate(), 8),
-				}, new AnvilOutput(new ItemStack(ModBlocks.heater_rt))).setTier(4));
 
 		constructionRecipes.add(new AnvilConstructionRecipe(
 				new AStack[] {
@@ -751,8 +743,6 @@ public class AnvilRecipes extends SerializableRecipe {
 						new AnvilOutput(new ItemStack(ModItems.scrap, 1)),
 						new AnvilOutput(new ItemStack(ModItems.coil_tungsten, 1)),
 						new AnvilOutput(new ItemStack(Items.BREAD, 1), 0.5F),
-						new AnvilOutput(new ItemStack(ModItems.battery_generic, 1), 0.25F),
-						new AnvilOutput(new ItemStack(ModItems.battery_advanced, 1), 0.1F),
 						new AnvilOutput(new ItemStack(ModItems.fusion_core, 1), 0.01F)
 
 				}
@@ -764,8 +754,7 @@ public class AnvilRecipes extends SerializableRecipe {
 						new AnvilOutput(new ItemStack(ModItems.scrap, 1)),
 						new AnvilOutput(new ItemStack(ModItems.coil_tungsten, 2)),
 						new AnvilOutput(new ItemStack(Items.BREAD, 1), 0.5F),
-						new AnvilOutput(new ItemStack(ModItems.battery_lithium, 1), 0.25F),
-						new AnvilOutput(new ItemStack(ModItems.battery_sc_uranium, 1), 0.1F),
+						new AnvilOutput(new ItemStack(ModItems.battery_sc, 1, ItemBatterySC.EnumBatterySC.RA226.ordinal()), 0.1F),
 						new AnvilOutput(new ItemStack(ModItems.fusion_core, 1), 0.05F)
 
 				}

@@ -86,11 +86,6 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
         markDirty();
     }
 
-    /** The "chunks is modified, pls don't forget to save me" effect of markDirty, minus the block updates */
-    public void markChanged() {
-        this.world.markChunkDirty(this.pos, this);
-    }
-
     @Override
     public String getName() {
         return this.hasCustomName() ? this.customName : getDefaultName();
@@ -283,7 +278,8 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
         if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY && inventory != null) {
             if (facing == null) return true;
             BlockPos accessorPos = CapabilityContextProvider.getAccessor(this.pos);
-            return getAccessibleSlotsFromSide(facing, accessorPos) == null || getAccessibleSlotsFromSide(facing, accessorPos).length > 0;
+            int[] accessible = getAccessibleSlotsFromSide(facing, accessorPos);
+            return accessible == null || accessible.length > 0;
         }
         return super.hasCapability(capability, facing);
     }

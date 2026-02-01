@@ -73,9 +73,8 @@ public class HbmWorldGen implements IWorldGenerator {
                 generateBlueprintChest(world, rand, chunkMinX, chunkMinZ, 5000, 5000);
             }
 
-        } catch (final Throwable t) {
-            System.out.println("NTM Worldgen Error " + t);
-            t.printStackTrace();
+        } catch (Throwable t) {
+            MainRegistry.logger.error("NTM Worldgen Error", t);
         }
     }
 
@@ -133,7 +132,8 @@ public class HbmWorldGen implements IWorldGenerator {
             DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, 1, 32, 30, 10, ModBlocks.gas_explosive);
         }
 
-        if (WorldConfig.alexandriteSpawn > 0 && rand.nextInt(WorldConfig.alexandriteSpawn) == 0) {
+        int dimAlexandriteSpawn = parseInt(CompatibilityConfig.alexandriteSpawn.get(dimID));
+        if (dimAlexandriteSpawn > 0 && rand.nextInt(dimAlexandriteSpawn) == 0) {
             DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, 1, 3, 10, 5, ModBlocks.ore_alexandrite);
         }
         if (dimID == 0) {
@@ -196,12 +196,12 @@ public class HbmWorldGen implements IWorldGenerator {
         DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.cinnabarSpawn.get(dimID)), 4, 8, 16, ModBlocks.ore_cinnabar);
         DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.cobaltSpawn.get(dimID)), 4, 4, 8, ModBlocks.ore_cobalt);
 
-        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(WorldConfig.ironClusterSpawn), 6, 15, 45, ModBlocks.cluster_iron);
+        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.ironClusterSpawn.get(dimID)), 6, 15, 45, ModBlocks.cluster_iron);
         DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.titaniumClusterSpawn.get(dimID)), 6, 15, 30, ModBlocks.cluster_titanium);
         DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.aluminiumClusterSpawn.get(dimID)), 6, 15, 35, ModBlocks.cluster_aluminium);
         DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.copperClusterSpawn.get(dimID)), 6, 15, 20, ModBlocks.cluster_copper);
 
-        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(WorldConfig.limestoneSpawn), 6, 15, 20, ModBlocks.stone_resource.getDefaultState().withProperty(BlockResourceStone.META, BlockEnums.EnumStoneType.LIMESTONE.ordinal()));
+        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, WorldConfig.limestoneSpawn, 6, 15, 20, ModBlocks.stone_resource.getDefaultState().withProperty(BlockResourceStone.META, BlockEnums.EnumStoneType.LIMESTONE.ordinal()));
 
         if (WorldConfig.newBedrockOres) {
             if (rand.nextInt(10) == 0) {
@@ -214,12 +214,8 @@ public class HbmWorldGen implements IWorldGenerator {
         }
 
         //Special ores
-        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.reiiumSpawn.get(dimID)), 3, 14, 18, ModBlocks.ore_reiium);
-        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.weidaniumSpawn.get(dimID)), 3, 14, 18, ModBlocks.ore_weidanium);
+
         DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.australiumSpawn.get(dimID)), 3, 14, 18, ModBlocks.ore_australium);
-        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.verticiumSpawn.get(dimID)), 3, 14, 18, ModBlocks.ore_verticium);
-        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.unobtainiumSpawn.get(dimID)), 3, 14, 18, ModBlocks.ore_unobtainium);
-        DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.daffergonSpawn.get(dimID)), 3, 14, 18, ModBlocks.ore_daffergon);
 
         //Nether ores
         DungeonToolbox.generateOre(world, rand, chunkMinX, chunkMinZ, parseInt(CompatibilityConfig.netherUraniumSpawn.get(dimID)), 6, 0, 127, ModBlocks.ore_nether_uranium, Blocks.NETHERRACK);
@@ -709,7 +705,8 @@ public class HbmWorldGen implements IWorldGenerator {
             }
         }
 
-        if (WorldConfig.oilSpawn > 0 && rand.nextInt(WorldConfig.oilSpawn) == 0) {
+        int dimOilSpawn = parseInt(CompatibilityConfig.oilBubbleSpawn.get(dimID));
+        if (dimOilSpawn > 0 && rand.nextInt(dimOilSpawn) == 0) {
             int randPosX = chunkMinX + rand.nextInt(16);
             int randPosY = rand.nextInt(25);
             int randPosZ = chunkMinZ + rand.nextInt(16);

@@ -1,7 +1,7 @@
 package com.hbm.inventory.container;
 
-import com.hbm.inventory.SlotCraftingOutput;
-import com.hbm.inventory.SlotNonRetarded;
+import com.hbm.inventory.slot.SlotCraftingOutput;
+import com.hbm.inventory.slot.SlotNonRetarded;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemMachineUpgrade;
 import com.hbm.lib.Library;
@@ -47,7 +47,7 @@ public class ContainerMachineAssemblyMachine extends ContainerBase {
                 }
             } else {
 
-                if(Library.isItemCanStoreEnergy(slotOriginal)) {
+                if(Library.isBattery(slotOriginal)) {
                     if(!this.mergeItemStack(slotStack, 0, 1, false)) return ItemStack.EMPTY;
                 } else if(slotOriginal.getItem() == ModItems.blueprints) {
                     if(!this.mergeItemStack(slotStack, 1, 2, false)) return ItemStack.EMPTY;

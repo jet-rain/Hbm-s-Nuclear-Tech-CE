@@ -1,7 +1,8 @@
 package com.hbm.inventory.container;
 
-import com.hbm.inventory.SlotTakeOnly;
+import com.hbm.inventory.slot.SlotFiltered;
 import com.hbm.tileentity.machine.TileEntityDiFurnace;
+import com.hbm.util.InventoryUtil;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.ClickType;
@@ -10,6 +11,8 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Predicate;
 
 public class ContainerDiFurnace extends Container {
   private final TileEntityDiFurnace diFurnace;
@@ -23,7 +26,7 @@ public class ContainerDiFurnace extends Container {
     // Fuel
     this.addSlotToContainer(new SlotItemHandler(tile.inventory, 2, 8, 36));
     // Output
-    this.addSlotToContainer(new SlotTakeOnly(tile.inventory, 3, 134, 36));
+    this.addSlotToContainer(SlotFiltered.takeOnly(tile.inventory, 3, 134, 36));
 
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 9; j++) {
@@ -59,35 +62,9 @@ public class ContainerDiFurnace extends Container {
 
   @Override
   public @NotNull ItemStack transferStackInSlot(@NotNull EntityPlayer player, int index) {
-    ItemStack rStack = ItemStack.EMPTY;
-    Slot slot = this.inventorySlots.get(index);
-
-    if (slot != null && slot.getHasStack()) {
-      ItemStack stack = slot.getStack();
-      rStack = stack.copy();
-
-      if (index <= 3) {
-        if (!this.mergeItemStack(stack, 4, this.inventorySlots.size(), true)) {
-          return ItemStack.EMPTY;
-        }
-      } else {
-        if (diFurnace.hasItemPower(stack)) {
-            if (!this.mergeItemStack(stack, 2, 3, false)) {
-                return ItemStack.EMPTY;
-            }
-        } else if (!this.mergeItemStack(stack, 0, 3, false)) {
-          return ItemStack.EMPTY;
-        }
-      }
-
-      if (stack.getCount() == 0) {
-        slot.putStack(ItemStack.EMPTY);
-      } else {
-        slot.onSlotChanged();
-      }
-    }
-
-    return rStack;
+    return InventoryUtil.transferStack(this.inventorySlots, index, 4,
+            Predicate.not(diFurnace::hasItemPower), 2,
+            diFurnace::hasItemPower, 3);
   }
 
   @Override

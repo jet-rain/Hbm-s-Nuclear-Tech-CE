@@ -95,16 +95,18 @@ public class FluidNetMK2 extends NodeNet<IFluidReceiverMK2, IFluidProviderMK2, F
                 if(toTransfer <= 0) continue;
 
                 long priorityDemand = fluidDemand[p][i];
+                long sentThisPriority = 0L;
 
                 for(Tuple.ObjectLongPair<IFluidReceiverMK2> entry : receivers[p][i]) {
                     double weight = (double) entry.getValue() / (double) (priorityDemand);
                     long toSend = (long) Math.max(toTransfer * weight, 0D);
                     toSend -= entry.getKey().transferFluid(type, p, toSend);
+                    sentThisPriority += toSend;
                     received[p] += toSend;
                     fluidTracker += toSend;
                 }
 
-                totalAvailable -= received[p];
+                totalAvailable -= sentThisPriority;
             }
 
             notAccountedFor[p] = received[p];

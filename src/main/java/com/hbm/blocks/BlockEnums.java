@@ -1,7 +1,7 @@
 package com.hbm.blocks;
 
 import com.hbm.items.ModItems;
-import net.minecraft.item.ItemStack;
+import net.minecraft.item.Item;
 
 import javax.annotation.Nullable;
 
@@ -9,133 +9,160 @@ import static com.hbm.blocks.OreEnumUtil.OreEnum;
 
 public class BlockEnums {
 
-    public enum EnumStoneType {
-        SULFUR,
-        ASBESTOS,
-        HEMATITE,
-        MALACHITE,
-        LIMESTONE,
-        BAUXITE
-    }
+	public enum EnumStoneType {
+		SULFUR,
+		ASBESTOS,
+		HEMATITE,
+		MALACHITE,
+		LIMESTONE,
+		BAUXITE;
 
-    public enum EnumMeteorType {
-        IRON,
-        COPPER,
-        ALUMINIUM,
-        RAREEARTH,
-        COBALT
-    }
+		public static final EnumStoneType[] VALUES = values();
+	}
 
-    public enum EnumStalagmiteType {
-        SULFUR,
-        ASBESTOS
-    }
+	public enum EnumMeteorType {
+		IRON,
+		COPPER,
+		ALUMINIUM,
+		RAREEARTH,
+		COBALT;
 
-    /** DECO / STRUCTURE ENUMS */
-    //i apologize in advance
+		public static final EnumMeteorType[] VALUES = values();
+	}
 
-    public enum TileType {
-        LARGE,
-        SMALL
-    }
+	public enum EnumStalagmiteType {
+		SULFUR,
+		ASBESTOS;
 
-    public enum LightstoneType {
-        UNREFINED,
-        TILE,
-        BRICKS,
-        BRICKS_CHISELED,
-        CHISELED
-    }
+		public static final EnumStalagmiteType[] VALUES = values();
+	}
 
-    public enum DecoComputerEnum {
-        IBM_300PL
-    }
+	/** DECO / STRUCTURE ENUMS */
+	//i apologize in advance
 
-    public enum DecoCabinetEnum {
-        GREEN,
-        STEEL
-    }
+	public enum TileType {
+		LARGE,
+		SMALL;
+
+		public static final TileType[] VALUES = values();
+	}
+
+	public enum LightstoneType {
+		UNREFINED,
+		TILE,
+		BRICKS,
+		BRICKS_CHISELED,
+		CHISELED;
+
+		public static final LightstoneType[] VALUES = values();
+	}
+
+	public enum DecoComputerEnum {
+		IBM_300PL;
+
+		public static final DecoComputerEnum[] VALUES = values();
+	}
+
+	public enum DecoCabinetEnum {
+		GREEN,
+		STEEL;
+
+		public static final DecoCabinetEnum[] VALUES = values();
+	}
 
     public enum DecoCRTEnum {
         CLEAN,
         BROKEN,
         BLINKING,
-        BSOD
+        BSOD;
+
+		public static final DecoCRTEnum[] VALUES = values();
     }
 
     public enum DecoToasterEnum {
         IRON,
         STEEL,
-        WOOD
+        WOOD;
+
+		public static final DecoToasterEnum[] VALUES = values();
     }
 
-    public enum OreType {
-        EMERALD ("emerald",OreEnum.EMERALD),
-        DIAMOND ("diamond", OreEnum.DIAMOND),
-        RADGEM ("radgem",OreEnum.RAD_GEM),
-        //URANIUM_SCORCEHD ("uranium_scorched", null),
-        URANIUM ("uranium", null),
-        SCHRABIDIUM ("schrabidium", null);
+	public enum OreType {
+		EMERALD ("emerald",OreEnum.EMERALD),
+		DIAMOND ("diamond", OreEnum.DIAMOND),
+		RADGEM ("radgem",OreEnum.RAD_GEM),
+		//URANIUM_SCORCEHD ("uranium_scorched", null),
+		URANIUM ("uranium", null),
+		SCHRABIDIUM ("schrabidium", null);
 
-        public final String overlayTexture;
-        public final OreEnum oreEnum;
+		public static final OreType[] VALUES = values();
 
-        public String getName(){
-            return overlayTexture;
-        }
+		public final String overlayTexture;
+		public final OreEnum oreEnum;
 
-        OreType(String overlayTexture, @Nullable OreEnum oreEnum) {
-            this.overlayTexture = overlayTexture;
-            this.oreEnum = oreEnum;
+		public String getName(){
+			return overlayTexture;
+		}
 
-        }
+		OreType(String overlayTexture, @Nullable OreEnum oreEnum) {
+			this.overlayTexture = overlayTexture;
+			this.oreEnum = oreEnum;
+
+		}
+	}
+
+
+	public enum EnumBasaltOreType {
+		SULFUR,
+		FLUORITE,
+		ASBESTOS,
+		GEM,
+		MOLYSITE;
+
+		public static final EnumBasaltOreType[] VALUES = values();
+
+		public Item getDrop() {
+			return switch (this) {
+                 case SULFUR -> ModItems.sulfur;
+                 case FLUORITE -> ModItems.fluorite;
+                 case ASBESTOS -> ModItems.ingot_asbestos;
+                 case GEM -> ModItems.gem_volcanic;
+                 case MOLYSITE -> ModItems.powder_molysite;
+			};
+		}
+
+		public int getDropCount(int rand){
+			return rand + 1;
+		}
     }
 
+	public enum EnumBlockCapType {
+		NUKA,
+		QUANTUM,
+		RAD,
+		SPARKLE,
+		KORL,
+		FRITZ,
+		SUNSET,
+		STAR;
 
-    public enum EnumBasaltOreType {
-        SULFUR (new ItemStack(ModItems.sulfur)),
-        FLUORITE(new ItemStack(ModItems.fluorite)),
-        ASBESTOS(new ItemStack(ModItems.ingot_asbestos)),
-        GEM(new ItemStack(ModItems.gem_volcanic)),
-        MOLYSITE(new ItemStack(ModItems.powder_molysite));
+		public static final EnumBlockCapType[] VALUES = values();
 
-        public final ItemStack drop;
+		public Item getDrop() {
+			return switch (this) {
+                 case NUKA -> ModItems.cap_nuka;
+                 case QUANTUM -> ModItems.cap_quantum;
+                 case RAD -> ModItems.cap_rad;
+                 case SPARKLE -> ModItems.cap_sparkle;
+                 case KORL -> ModItems.cap_korl;
+                 case FRITZ -> ModItems.cap_fritz;
+                 case SUNSET -> ModItems.cap_sunset;
+                 case STAR -> ModItems.cap_star;
+			};
+		}
 
-        public ItemStack getDrop(){
-            return drop;
-        }
-        public int getDropCount(int rand){
-            return rand + 1;
-        }
-
-        EnumBasaltOreType(ItemStack drop) {
-            this.drop = drop;
-        }
-    }
-
-    public enum EnumBlockCapType {
-        NUKA (new ItemStack(ModItems.cap_nuka)),
-        QUANTUM (new ItemStack(ModItems.cap_quantum)),
-        RAD (new ItemStack(ModItems.cap_rad)),
-        SPARKLE (new ItemStack(ModItems.cap_sparkle)),
-        KORL (new ItemStack(ModItems.cap_korl)),
-        FRITZ (new ItemStack(ModItems.cap_fritz)),
-        SUNSET (new ItemStack(ModItems.cap_sunset)),
-        STAR (new ItemStack(ModItems.cap_star));
-
-        public final ItemStack drop;
-
-        public ItemStack getDrop() {
-            return drop;
-        }
-
-        public int getDropCount(){
-            return 128;
-        }
-
-        EnumBlockCapType(ItemStack drop) {
-            this.drop = drop;
-        }
-    }
+		public int getDropCount(){
+			return 128;
+		}
+	}
 }
-

@@ -103,7 +103,7 @@ public class ArmorFSBPowered extends ArmorFSB implements IBatteryItem {
     		long netto_drain = drain;
     		ItemSelfcharger sc_battery = this.getHeldSCBattery(player);
     		if(sc_battery != null){
-    			netto_drain = netto_drain - (sc_battery.getDischargeRate()/4L);
+    			netto_drain = netto_drain - (sc_battery.getDischargeRate(stack)/4L);
     		}
     		this.dischargeBattery(stack, netto_drain);
     	}
@@ -112,14 +112,12 @@ public class ArmorFSBPowered extends ArmorFSB implements IBatteryItem {
 	@Override
     public long getCharge(ItemStack stack) {
     	if(stack.getItem() instanceof ArmorFSBPowered) {
-    		if(stack.hasTagCompound()) {
-    			return stack.getTagCompound().getLong("charge");
-    		} else {
-    			stack.setTagCompound(new NBTTagCompound());
-    			stack.getTagCompound().setLong("charge", ((ArmorFSBPowered)stack.getItem()).getMaxCharge(stack));
-    			return stack.getTagCompound().getLong("charge");
-    		}
-    	}
+            if (!stack.hasTagCompound()) {
+                stack.setTagCompound(new NBTTagCompound());
+                stack.getTagCompound().setLong("charge", ((ArmorFSBPowered) stack.getItem()).getMaxCharge(stack));
+            }
+            return stack.getTagCompound().getLong("charge");
+        }
 
     	return 0;
     }
@@ -146,12 +144,12 @@ public class ArmorFSBPowered extends ArmorFSB implements IBatteryItem {
     }
 
 	@Override
-    public long getChargeRate() {
-    	return chargeRate;
-    }
+	public long getChargeRate(ItemStack stack) {
+		return chargeRate;
+	}
 
 	@Override
-	public long getDischargeRate() {
+	public long getDischargeRate(ItemStack stack) {
 		return 0;
 	}
 

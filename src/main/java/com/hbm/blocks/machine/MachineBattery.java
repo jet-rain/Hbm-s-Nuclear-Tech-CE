@@ -26,7 +26,7 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent.Pre;
 
 import java.util.ArrayList;
 import java.util.List;
-
+@Deprecated
 public class MachineBattery extends BlockContainer implements ILookOverlay {
 
 	public static final PropertyDirection FACING = BlockHorizontal.FACING;

@@ -6,6 +6,7 @@ import com.hbm.interfaces.ICopiable;
 import com.hbm.items.IDynamicModels;
 import com.hbm.lib.ForgeDirection;
 import com.hbm.lib.InventoryHelper;
+import com.hbm.lib.Library;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.IPersistentNBT;
 import com.hbm.world.gen.nbt.INBTBlockTransformable;
@@ -53,129 +54,132 @@ import java.util.Random;
 
 public abstract class BlockDummyable extends BlockContainer implements ICustomBlockHighlight, ICopiable, INBTBlockTransformable, IDynamicModels {
 
-	//Drillgon200: I'm far to lazy to figure out what all the meta values should be translated to in properties
-	public static final PropertyInteger META = PropertyInteger.create("meta", 0, 15);
-	
-	public BlockDummyable(Material materialIn, String s) {
-		super(materialIn);
-		this.setTranslationKey(s);
-		this.setRegistryName(s);
-		this.setTickRandomly(true);
-		
-		ModBlocks.ALL_BLOCKS.add(this);
-		IDynamicModels.INSTANCES.add(this);
-	}
+    //Drillgon200: I'm far to lazy to figure out what all the meta values should be translated to in properties
+    public static final PropertyInteger META = PropertyInteger.create("meta", 0, 15);
+    /// BLOCK METADATA ///
 
-	public BlockDummyable(Material materialIn, String s, boolean useBakedModel) {
-		super(materialIn);
-		this.setTranslationKey(s);
-		this.setRegistryName(s);
-		this.setTickRandomly(true);
+    //0-5 		dummy rotation 		(for dummy neighbor checks)
+    //6-11 		extra 				(6 rotations with flag, for pipe connectors and the like)
+    //12-15 	block rotation 		(for rendering the TE)
 
-		ModBlocks.ALL_BLOCKS.add(this);
-	}
-	
-	/// BLOCK METADATA ///
-	
-	//0-5 		dummy rotation 		(for dummy neighbor checks)
-	//6-11 		extra 				(6 rotations with flag, for pipe connectors and the like)
-	//12-15 	block rotation 		(for rendering the TE)
+    //meta offset from dummy to TE rotation
+    public static final int offset = 10;
+    //meta offset from dummy to extra rotation
+    public static final int extra = 6;
+    private static final long NO_CORE = Long.MIN_VALUE;
+    public static boolean safeRem = false;
+    public List<AxisAlignedBB> bounding = new ArrayList<>();
 
-	//meta offset from dummy to TE rotation
-	public static final int offset = 10;
-	//meta offset from dummy to extra rotation
-	public static final int extra = 6;
-		
-	public static boolean safeRem = false;
-	
-	@Override
-	public void neighborChanged(@NotNull IBlockState state, World world, @NotNull BlockPos pos, @NotNull Block blockIn, @NotNull BlockPos fromPos) {
-		if(world.isRemote || safeRem)
-    		return;
-    	
-    	int metadata = state.getValue(META);
-    	
-    	//if it's an extra, remove the extra-ness
-    	if(metadata >= extra)
-    		metadata -= extra;
-    	
-    	ForgeDirection dir = ForgeDirection.getOrientation(metadata).getOpposite();
-    	Block b = world.getBlockState(new BlockPos(pos.getX() + dir.offsetX, pos.getY() + dir.offsetY, pos.getZ() + dir.offsetZ)).getBlock();
-    	if(b.getClass() != this.getClass()) {
-    		world.setBlockToAir(pos);
-    	}
-	}
-	
-	@Override
-	public void updateTick(@NotNull World world, @NotNull BlockPos pos, @NotNull IBlockState state, @NotNull Random rand) {
-		super.updateTick(world, pos, state, rand);
-		if(world.isRemote)
-    		return;
-    	
-    	int metadata = state.getValue(META);
-    	
-    	//if it's an extra, remove the extra-ness
-    	if(metadata >= extra)
-    		metadata -= extra;
-    	
-    	ForgeDirection dir = ForgeDirection.getOrientation(metadata).getOpposite();
-    	Block b = world.getBlockState(new BlockPos(pos.getX() + dir.offsetX, pos.getY() + dir.offsetY, pos.getZ() + dir.offsetZ)).getBlock();
-    	
-    	if(b.getClass() != this.getClass()) {
-    		world.setBlockToAir(pos);
-    	}
-	}
+    public BlockDummyable(Material materialIn, String s) {
+        super(materialIn);
+        this.setTranslationKey(s);
+        this.setRegistryName(s);
+        this.setTickRandomly(true);
 
-	@Nullable
-	public BlockPos findCore(IBlockAccess world, BlockPos pos) {
-    	positions.clear();
-    	int[] p = findCoreRec(world, pos.getX(), pos.getY(), pos.getZ());
-    	if(p == null) return null;
-    	return new BlockPos(p[0], p[1], p[2]);
+        ModBlocks.ALL_BLOCKS.add(this);
+        IDynamicModels.INSTANCES.add(this);
+    }
+
+    public BlockDummyable(Material materialIn, String s, boolean ignoredDontUseIDynamicModel) {
+        super(materialIn);
+        this.setTranslationKey(s);
+        this.setRegistryName(s);
+        this.setTickRandomly(true);
+
+        ModBlocks.ALL_BLOCKS.add(this);
+    }
+
+
+    protected int getMaxCoreSearchSteps() {
+        return 512;
+    }
+
+    private long findCoreSerialized(IBlockAccess world, BlockPos pos, BlockPos.MutableBlockPos scratch) {
+        return findCoreSerialized(world, pos.getX(), pos.getY(), pos.getZ(), scratch);
+    }
+
+    private long findCoreSerialized(IBlockAccess world, int x, int y, int z, BlockPos.MutableBlockPos scratch) {
+        for (int steps = 0, max = getMaxCoreSearchSteps(); steps < max; steps++) {
+            scratch.setPos(x, y, z);
+            IBlockState state = world.getBlockState(scratch);
+            if (state.getBlock() != this) return NO_CORE;
+            int meta = state.getValue(META);
+            if (meta >= 12) return Library.blockPosToLong(x, y, z);
+            if (meta >= extra) meta -= extra;
+            ForgeDirection dir = ForgeDirection.getOrientation(meta).getOpposite();
+            x += dir.offsetX;
+            y += dir.offsetY;
+            z += dir.offsetZ;
+        }
+        return NO_CORE;
+    }
+
+    @Nullable
+    public BlockPos findCore(IBlockAccess world, BlockPos pos) {
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(world, pos, scratch);
+        if (core == NO_CORE) return null;
+        return BlockPos.fromLong(core);
     }
 
     @Nullable
     public TileEntity findCoreTE(IBlockAccess world, BlockPos pos) {
-    	BlockPos core = findCore(world, pos);
-    	if(core == null) return null;
-    	return world.getTileEntity(core);
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(world, pos, scratch);
+        if (core == NO_CORE) return null;
+        Library.fromLong(scratch, core);
+        return world.getTileEntity(scratch);
     }
 
-	public int @Nullable [] findCore(IBlockAccess world, int x, int y, int z) {
-    	positions.clear();
-    	return findCoreRec(world, x, y, z);
+    @Nullable
+    public TileEntity findCoreTE(IBlockAccess world, int x, int y, int z) {
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(world, x, y, z, scratch);
+        if (core == NO_CORE) return null;
+        Library.fromLong(scratch, core);
+        return world.getTileEntity(scratch);
     }
-    
-    List<BlockPos> positions = new ArrayList<>();
 
-	private int @Nullable [] findCoreRec(IBlockAccess world, int x, int y, int z) {
-    	
-    	BlockPos pos = new BlockPos(x, y, z);
-    	IBlockState state = world.getBlockState(pos);
-    	
-    	if(state.getBlock().getClass() != this.getClass())
-    		return null;
-    	
-    	int metadata = state.getValue(META);
-    	
-    	//if it's an extra, remove the extra-ness
-    	if(metadata >= extra)
-    		metadata -= extra;
-    	
-    	//if the block matches and the orientation is "UNKNOWN", it's the core
-    	if(ForgeDirection.getOrientation(metadata) == ForgeDirection.UNKNOWN)
-    		return new int[] { x, y, z };
-    	
-    	if(positions.contains(pos))
-    		return null;
-
-    	ForgeDirection dir = ForgeDirection.getOrientation(metadata).getOpposite();
-    	
-    	positions.add(pos);
-    	
-    	return findCoreRec(world, x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
+    public int @Nullable [] findCore(IBlockAccess world, int x, int y, int z) {
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(world, x, y, z, scratch);
+        if (core == NO_CORE) return null;
+        return new int[]{Library.getBlockPosX(core), Library.getBlockPosY(core), Library.getBlockPosZ(core)};
     }
-    
+
+    @Override
+    public void neighborChanged(@NotNull IBlockState state, World world, @NotNull BlockPos pos, @NotNull Block blockIn, @NotNull BlockPos fromPos) {
+        if (world.isRemote || safeRem) return;
+
+        int metadata = state.getValue(META);
+
+        //if it's an extra, remove the extra-ness
+        if (metadata >= extra) metadata -= extra;
+
+        ForgeDirection dir = ForgeDirection.getOrientation(metadata).getOpposite();
+        BlockPos other = pos.add(dir.offsetX, dir.offsetY, dir.offsetZ);
+        if (world.getBlockState(other).getBlock() != this) {
+            world.setBlockToAir(pos);
+        }
+    }
+
+    @Override
+    public void updateTick(@NotNull World world, @NotNull BlockPos pos, @NotNull IBlockState state, @NotNull Random rand) {
+        super.updateTick(world, pos, state, rand);
+        if (world.isRemote) return;
+
+        int metadata = state.getValue(META);
+
+        //if it's an extra, remove the extra-ness
+        if (metadata >= extra) metadata -= extra;
+
+        ForgeDirection dir = ForgeDirection.getOrientation(metadata).getOpposite();
+        BlockPos other = pos.add(dir.offsetX, dir.offsetY, dir.offsetZ);
+        if (world.getBlockState(other).getBlock() != this) {
+            world.setBlockToAir(pos);
+        }
+    }
+
     @Override
     public void onBlockPlacedBy(@NotNull World world, @NotNull BlockPos pos, @NotNull IBlockState state, @NotNull EntityLivingBase player, @NotNull ItemStack itemStack) {
     	if(!(player instanceof EntityPlayer pl))
@@ -262,11 +266,6 @@ public abstract class BlockDummyable extends BlockContainer implements ICustomBl
      * A bit more advanced than the dir modifier, but it is important that the resulting direction meta is in the core range.
      * Using the "extra" metas is technically possible but requires a bit of tinkering, e.g. preventing a recursive loop
      * in the core finder and making sure the TE uses the right metas.
-     * @param world
-     * @param pos
-     * @param player
-     * @param original
-     * @return
      */
     protected int getMetaForCore(World world, BlockPos pos, EntityPlayer player, int original) {
         return original;
@@ -335,52 +334,51 @@ public abstract class BlockDummyable extends BlockContainer implements ICustomBl
 			if(i >= extra)
 				i -= extra;
 
-			ForgeDirection dir = ForgeDirection.getOrientation(i).getOpposite();
-			int[] pos1 = findCore(world, pos.getX() + dir.offsetX, pos.getY() + dir.offsetY, pos.getZ() + dir.offsetZ);
+            ForgeDirection dir = ForgeDirection.getOrientation(i).getOpposite();
 
-			if(pos1 != null) {
-				world.setBlockToAir(new BlockPos(pos1[0], pos1[1], pos1[2]));
-			}
-		}
-		InventoryHelper.dropInventoryItems(world, pos, world.getTileEntity(pos));
-		super.breakBlock(world, pos, state);
-	}
+            BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+            long core = findCoreSerialized(world, pos.getX() + dir.offsetX, pos.getY() + dir.offsetY, pos.getZ() + dir.offsetZ, scratch);
+
+            if (core != NO_CORE) {
+                Library.fromLong(scratch, core);
+                world.setBlockToAir(scratch);
+            }
+        }
+        InventoryHelper.dropInventoryItems(world, pos, world.getTileEntity(pos));
+        super.breakBlock(world, pos, state);
+    }
 
 	public boolean useDetailedHitbox() {
 		return !bounding.isEmpty();
 	}
 
-	public List<AxisAlignedBB> bounding = new ArrayList<>();
+    @Override
+    public void addCollisionBoxToList(@NotNull IBlockState state, @NotNull World worldIn, @NotNull BlockPos pos, @NotNull AxisAlignedBB entityBox,
+                                      @NotNull List<AxisAlignedBB> collidingBoxes, @Nullable Entity entityIn, boolean isActualState) {
+        if (!this.useDetailedHitbox()) {
+            super.addCollisionBoxToList(state, worldIn, pos, entityBox, collidingBoxes, entityIn, isActualState);
+            return;
+        }
 
-	@Override
-	public void addCollisionBoxToList(@NotNull IBlockState state, @NotNull World worldIn, @NotNull BlockPos pos, @NotNull AxisAlignedBB entityBox, @NotNull List<AxisAlignedBB> collidingBoxes, @Nullable Entity entityIn, boolean isActualState) {
-		if (!this.useDetailedHitbox()) {
-			super.addCollisionBoxToList(state, worldIn, pos, entityBox, collidingBoxes, entityIn, isActualState);
-			return;
-		}
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(worldIn, pos, scratch);
+        if (core == NO_CORE) return;
 
-		int[] corePos = this.findCore(worldIn, pos.getX(), pos.getY(), pos.getZ());
+        int coreX = Library.getBlockPosX(core);
+        int coreY = Library.getBlockPosY(core);
+        int coreZ = Library.getBlockPosZ(core);
 
-		if (corePos == null) {
-			return;
-		}
+        scratch.setPos(coreX, coreY, coreZ);
+        IBlockState coreState = worldIn.getBlockState(scratch);
 
-		BlockPos coreBlockPos = new BlockPos(corePos[0], corePos[1], corePos[2]);
+        for (AxisAlignedBB aabb : this.bounding) {
+            AxisAlignedBB rotatedBox = getAABBRotationOffset(aabb, coreX + 0.5, coreY, coreZ + 0.5, getRotationFromState(coreState));
 
-		for (AxisAlignedBB aabb : this.bounding) {
-			AxisAlignedBB rotatedBox = getAABBRotationOffset(
-					aabb,
-					coreBlockPos.getX() + 0.5,
-					coreBlockPos.getY(),
-					coreBlockPos.getZ() + 0.5,
-					getRotationFromState(worldIn.getBlockState(coreBlockPos))
-			);
-
-			if (entityBox.intersects(rotatedBox)) {
-				collidingBoxes.add(rotatedBox);
-			}
-		}
-	}
+            if (entityBox.intersects(rotatedBox)) {
+                collidingBoxes.add(rotatedBox);
+            }
+        }
+    }
 
 	private ForgeDirection getRotationFromState(IBlockState state) {
 		int meta = state.getValue(META);
@@ -459,30 +457,34 @@ public abstract class BlockDummyable extends BlockContainer implements ICustomBl
 		return !this.bounding.isEmpty();
 	}
 
-	@Override
-	@SideOnly(Side.CLIENT)
-	public void drawHighlight(DrawBlockHighlightEvent event, World world, BlockPos pos) {
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void drawHighlight(DrawBlockHighlightEvent event, World world, BlockPos pos) {
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(world, pos, scratch);
+        if (core == NO_CORE) return;
 
-		int[] posC = this.findCore(world, pos.getX(), pos.getY(), pos.getZ());
-		if(posC == null) return;
+        int coreX = Library.getBlockPosX(core);
+        int coreY = Library.getBlockPosY(core);
+        int coreZ = Library.getBlockPosZ(core);
 
-		int coreX = posC[0];
-		int coreY = posC[1];
-		int coreZ = posC[2];
+        EntityPlayer player = event.getPlayer();
+        float interp = event.getPartialTicks();
+        double dX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double) interp;
+        double dY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double) interp;
+        double dZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double) interp;
+        float exp = 0.002F;
 
-		EntityPlayer player = event.getPlayer();
-		float interp = event.getPartialTicks();
-		double dX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double) interp;
-		double dY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double) interp;
-		double dZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)interp;
-		float exp = 0.002F;
+        scratch.setPos(coreX, coreY, coreZ);
+        int meta = world.getBlockState(scratch).getValue(META);
 
-		int meta = world.getBlockState(new BlockPos(coreX, coreY, coreZ)).getValue(META);
-
-		ICustomBlockHighlight.setup();
-		for(AxisAlignedBB aabb : this.bounding) RenderGlobal.drawSelectionBoundingBox(getAABBRotationOffset(aabb.expand(exp, exp, exp), 0, 0, 0, ForgeDirection.getOrientation(meta - offset).getRotation(ForgeDirection.UP)).offset(coreX - dX + 0.5, coreY - dY, coreZ - dZ + 0.5), 0,0,0,1.0F);
-		ICustomBlockHighlight.cleanup();
-	}
+        ICustomBlockHighlight.setup();
+        for (AxisAlignedBB aabb : this.bounding)
+            RenderGlobal.drawSelectionBoundingBox(getAABBRotationOffset(aabb.expand(exp, exp, exp), 0, 0, 0,
+                    ForgeDirection.getOrientation(meta - offset).getRotation(ForgeDirection.UP)).offset(coreX - dX + 0.5, coreY - dY,
+                    coreZ - dZ + 0.5), 0, 0, 0, 1.0F);
+        ICustomBlockHighlight.cleanup();
+    }
 
 	@Override
 	public @NotNull AxisAlignedBB getBoundingBox(@NotNull IBlockState state, @NotNull IBlockAccess source, @NotNull BlockPos pos) {
@@ -493,32 +495,38 @@ public abstract class BlockDummyable extends BlockContainer implements ICustomBl
 		}
 	}
 
-	@Override
-	public NBTTagCompound getSettings(World world, int x, int y, int z) {
-		int[] pos = findCore(world, x, y, z);
-		TileEntity tile = world.getTileEntity(new BlockPos(pos[0], pos[1], pos[2]));
-		if (tile instanceof ICopiable)
-			return ((ICopiable) tile).getSettings(world, pos[0], pos[1], pos[2]);
-		else
-			return null;
-	}
+    @Override
+    public NBTTagCompound getSettings(World world, int x, int y, int z) {
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(world, x, y, z, scratch);
+        if (core == NO_CORE) return null;
 
-	@Override
-	public void pasteSettings(NBTTagCompound nbt, int index, World world, EntityPlayer player, int x, int y, int z) {
-		int[] pos = findCore(world, x, y, z);
-		TileEntity tile = world.getTileEntity(new BlockPos(pos[0], pos[1], pos[2]));
-		if (tile instanceof ICopiable)
-			((ICopiable) tile).pasteSettings(nbt, index, world, player, pos[0], pos[1], pos[2]);
-	}
+        Library.fromLong(scratch, core);
+        TileEntity tile = world.getTileEntity(scratch);
+        if (tile instanceof ICopiable) return ((ICopiable) tile).getSettings(world, scratch.getX(), scratch.getY(), scratch.getZ());
+        else return null;
+    }
 
-	@Override
-	public String[] infoForDisplay(World world, int x, int y, int z) {
-		int[] pos = findCore(world, x, y, z);
-		TileEntity tile = world.getTileEntity(new BlockPos(pos[0], pos[1], pos[2]));
-		if (tile instanceof ICopiable)
-			return ((ICopiable) tile).infoForDisplay(world, x, y, z);
-		return null;
-	}
+    @Override
+    public void pasteSettings(NBTTagCompound nbt, int index, World world, EntityPlayer player, int x, int y, int z) {
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(world, x, y, z, scratch);
+        if (core == NO_CORE) return;
+        Library.fromLong(scratch, core);
+        TileEntity tile = world.getTileEntity(scratch);
+        if (tile instanceof ICopiable) ((ICopiable) tile).pasteSettings(nbt, index, world, player, scratch.getX(), scratch.getY(), scratch.getZ());
+    }
+
+    @Override
+    public String[] infoForDisplay(World world, int x, int y, int z) {
+        BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        long core = findCoreSerialized(world, x, y, z, scratch);
+        if (core == NO_CORE) return null;
+        Library.fromLong(scratch, core);
+        TileEntity tile = world.getTileEntity(scratch);
+        if (tile instanceof ICopiable) return ((ICopiable) tile).infoForDisplay(world, x, y, z);
+        return null;
+    }
 
 	@Override
 	public int transformMeta(int meta, int coordBaseMode) {

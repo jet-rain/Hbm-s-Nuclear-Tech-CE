@@ -71,12 +71,7 @@ public class RenderBobble extends TileEntitySpecialRenderer<TileEntityBobble> im
 
         BobbleType type = te.type;
 
-        int rot = 0;
-        World world = te.getWorld();
-        BlockPos pos = te.getPos();
-        if (world.getBlockState(pos).getBlock() instanceof BlockBobble) {
-            rot = world.getBlockState(pos).getValue(BlockBobble.META);
-        }
+        int rot = te.getBlockMetadata();
         GlStateManager.rotate(22.5F * rot + 90F, 0F, -1F, 0F);
 
         renderBobble(type);
@@ -591,7 +586,7 @@ public class RenderBobble extends TileEntitySpecialRenderer<TileEntityBobble> im
 
             public void renderCommon(ItemStack stack) {
                 GlStateManager.scale(0.5, 0.5, 0.5);
-                RenderBobble.instance.renderBobble(BobbleType.values()[stack.getItemDamage()]);
+                RenderBobble.instance.renderBobble(BobbleType.VALUES[stack.getItemDamage()]);
             }
 
             public void renderGround() {

@@ -15,7 +15,10 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongCollection;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
@@ -35,7 +38,9 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -78,7 +83,7 @@ import static com.hbm.lib.internal.UnsafeHolder.U;
  *       {@code dimension → (chunkPos → Chunk)} used to locate chunks from worker threads without
  *       touching the vanilla
  *       {@link net.minecraft.world.gen.ChunkProviderServer#loadedChunks loadedChunks}, which is a
- *       non-threadsafe {@link it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap}.</li>
+ *       non-threadsafe {@link Long2ObjectOpenHashMap}.</li>
  *   <li>Reference-counted: call {@link #acquireMirrorMap} before concurrent work and
  *       {@link #releaseMirrorMap} afterwards. When the reference count drops to zero the
  *       mirror map is cleared.</li>
@@ -110,6 +115,8 @@ import static com.hbm.lib.internal.UnsafeHolder.U;
  *
  * @author mlbv
  */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 @Mod.EventBusSubscriber(modid = Tags.MODID)
 public final class ChunkUtil {
 
@@ -167,20 +174,20 @@ public final class ChunkUtil {
      * @param world the server world whose dimension will be mirrored
      */
     @ServerThread
-    public static void acquireMirrorMap(@NotNull WorldServer world) {
+    public static NonBlockingHashMapLong<Chunk> acquireMirrorMap(WorldServer world) {
         int key = world.provider.getDimension();
+        NonBlockingHashMapLong<Chunk> thisDim;
         if (activeTask.addTo(key, 1) == 0) {
-            NonBlockingHashMapLong<Chunk> thisDim = new NonBlockingHashMapLong<>(4096); // half the initial capacity of loadedChunks
+            thisDim = new NonBlockingHashMapLong<>(4096); // half the initial capacity of loadedChunks
             // This parallel traversal assumes the server thread is quiescent for this world's provider
             world.getChunkProvider().loadedChunks.values().parallelStream().forEach(chunk -> thisDim.put(ChunkPos.asLong(chunk.x, chunk.z), chunk));
             chunkMap.put(key, thisDim);
-        }
+        } else thisDim = chunkMap.get(key);
         refCounter++;
         if (GeneralConfig.enableExtendedLogging) {
-            MainRegistry.logger.info(
-                    "Acquired mirror map for dimension {}. Active tasks of this dim = {}, refCounter = {}.\nAll active dimensions: {}", key,
-                    activeTask.get(key), refCounter, chunkMap.keySetLong());
+            MainRegistry.logger.info("Acquired mirror map for dimension {}. Active tasks of this dim = {}, refCounter = {}.\nAll active dimensions: {}", key, activeTask.get(key), refCounter, chunkMap.keySetLong());
         }
+        return Objects.requireNonNull(thisDim);
     }
 
     /**
@@ -193,14 +200,12 @@ public final class ChunkUtil {
      * @param world the server world whose dimension mirror should be released (if last user)
      */
     @ServerThread
-    public static void releaseMirrorMap(@NotNull WorldServer world) {
+    public static void releaseMirrorMap(WorldServer world) {
         int key = world.provider.getDimension();
         if (activeTask.addTo(key, -1) == 1) chunkMap.remove(key);
         refCounter--;
         if (GeneralConfig.enableExtendedLogging) {
-            MainRegistry.logger.info(
-                    "Released mirror map for dimension {}. Active tasks of this dim = {}, refCounter = {}.\nAll active dimensions: {}", key,
-                    activeTask.get(key), refCounter, chunkMap.keySetLong());
+            MainRegistry.logger.info("Released mirror map for dimension {}. Active tasks of this dim = {}, refCounter = {}.\nAll active dimensions: {}", key, activeTask.get(key), refCounter, chunkMap.keySetLong());
         }
     }
 
@@ -214,17 +219,13 @@ public final class ChunkUtil {
      * <p>
      * It is strongly advised to keep the chunk loaded via {@link net.minecraftforge.common.ForgeChunkManager.Ticket ForgeChunkManager.Ticket}
      *
-     * @param world    the world whose dimension mirror to query
+     * @param loaded    the world mirror map
      * @param chunkPos packed long chunk position (see {@link ChunkPos#asLong(int, int)})
      * @return the loaded {@link Chunk} reference, or {@code null} if absent in the mirror
      */
-    @Nullable
     @ThreadSafeMethod
-    public static Chunk getLoadedChunk(@NotNull WorldServer world, long chunkPos) {
-        int key = world.provider.getDimension();
-        NonBlockingHashMapLong<Chunk> dimMap = chunkMap.get(key);
-        if (dimMap == null) return null;
-        Chunk chunk = dimMap.get(chunkPos);
+    public static @Nullable Chunk getLoadedChunk(Long2ObjectMap<? extends Chunk> loaded, long chunkPos) {
+        Chunk chunk = loaded.get(chunkPos);
         if (chunk == null) return null;
         U.putBooleanVolatile(chunk, UNLOAD_QUEUED_OFFSET, false);
         return chunk;
@@ -268,8 +269,8 @@ public final class ChunkUtil {
         chunkMap.clear();
         activeTask.clear();
         if (GeneralConfig.enableExtendedLogging)
-            MainRegistry.logger.info("Server stopping with {} active tasks, refCounter = {}", Arrays.stream(activeTask.values().toIntArray()).sum(),
-                    refCounter);
+            MainRegistry.logger.info("Server stopping with {} active tasks, refCounter = {}", Arrays.stream(activeTask.values().toIntArray())
+                                                                                                    .sum(), refCounter);
         refCounter = 0;
     }
 
@@ -279,115 +280,102 @@ public final class ChunkUtil {
      * @param srcData the source container
      * @return a new, independent {@link BlockStateContainer} with identical content
      */
-    @NotNull
     @ThreadSafeMethod
     @Contract("_ -> new")
-    public static BlockStateContainer copyOf(@NotNull BlockStateContainer srcData) {
-        final int bits = srcData.bits;
-        final IBlockStatePalette srcPalette = srcData.palette;
-        final BlockStateContainer copied = UnsafeHolder.allocateInstance(BlockStateContainer.class);
+    public static BlockStateContainer copyOf(BlockStateContainer srcData) {
+        int bits = srcData.bits;
+        IBlockStatePalette srcPalette = srcData.palette;
+        BlockStateContainer copied = UnsafeHolder.allocateInstance(BlockStateContainer.class);
         copied.bits = bits;
 
         if (bits <= 4) {
             copied.palette = new BlockStatePaletteLinear(bits, copied);
-            final int arraySize = U.getInt(srcPalette, BSL_ARRAY_SIZE_OFFSET);
+            int arraySize = U.getInt(srcPalette, BSL_ARRAY_SIZE_OFFSET);
             U.putInt(copied.palette, BSL_ARRAY_SIZE_OFFSET, arraySize);
-            final IBlockState[] srcStates = (IBlockState[]) U.getObject(srcPalette, BSL_STATES_OFFSET);
-            final IBlockState[] dstStates = (IBlockState[]) U.getObject(copied.palette, BSL_STATES_OFFSET);
+            IBlockState[] srcStates = (IBlockState[]) U.getReference(srcPalette, BSL_STATES_OFFSET);
+            IBlockState[] dstStates = (IBlockState[]) U.getReference(copied.palette, BSL_STATES_OFFSET);
             System.arraycopy(srcStates, 0, dstStates, 0, arraySize);
         } else if (bits <= 8) {
             copied.palette = new BlockStatePaletteHashMap(bits, copied);
-            final Object srcMap = U.getObject(srcPalette, BSHM_MAP_OFFSET);
-            final Object dstMap = U.getObject(copied.palette, BSHM_MAP_OFFSET);
+            Object srcMap = U.getReference(srcPalette, BSHM_MAP_OFFSET);
+            Object dstMap = U.getReference(copied.palette, BSHM_MAP_OFFSET);
 
-            final int nextFree = U.getInt(srcMap, IIHBM_NEXTFREE_OFFSET);
-            final int mapSize = U.getInt(srcMap, IIHBM_MAPSIZE_OFFSET);
+            int nextFree = U.getInt(srcMap, IIHBM_NEXTFREE_OFFSET);
+            int mapSize = U.getInt(srcMap, IIHBM_MAPSIZE_OFFSET);
             U.putInt(dstMap, IIHBM_NEXTFREE_OFFSET, nextFree);
             U.putInt(dstMap, IIHBM_MAPSIZE_OFFSET, mapSize);
 
-            final Object[] srcValues = (Object[]) U.getObject(srcMap, IIHBM_VALUES_OFFSET);
-            final int[] srcIntKeys = (int[]) U.getObject(srcMap, IIHBM_INTKEYS_OFFSET);
-            final Object[] srcById = (Object[]) U.getObject(srcMap, IIHBM_BYID_OFFSET);
+            Object[] srcValues = (Object[]) U.getReference(srcMap, IIHBM_VALUES_OFFSET);
+            int[] srcIntKeys = (int[]) U.getReference(srcMap, IIHBM_INTKEYS_OFFSET);
+            Object[] srcById = (Object[]) U.getReference(srcMap, IIHBM_BYID_OFFSET);
 
-            U.putObject(dstMap, IIHBM_VALUES_OFFSET, srcValues.clone());
-            U.putObject(dstMap, IIHBM_INTKEYS_OFFSET, srcIntKeys.clone());
-            U.putObject(dstMap, IIHBM_BYID_OFFSET, srcById.clone());
+            U.putReference(dstMap, IIHBM_VALUES_OFFSET, srcValues.clone());
+            U.putReference(dstMap, IIHBM_INTKEYS_OFFSET, srcIntKeys.clone());
+            U.putReference(dstMap, IIHBM_BYID_OFFSET, srcById.clone());
         } else {
             copied.palette = BlockStateContainer.REGISTRY_BASED_PALETTE;
         }
 
-        final BitArray srcStorage = srcData.storage;
+        BitArray srcStorage = srcData.storage;
         copied.storage = new BitArray(bits, 4096);
-        final long[] srcLongs = srcStorage.getBackingLongArray();
-        final long[] dstLongs = copied.storage.getBackingLongArray();
+        long[] srcLongs = srcStorage.getBackingLongArray();
+        long[] dstLongs = copied.storage.getBackingLongArray();
         System.arraycopy(srcLongs, 0, dstLongs, 0, srcLongs.length);
         return copied;
     }
 
-    @ThreadSafeMethod
-    private static boolean touchesOutsideNonAir(@NotNull WorldServer world, int chunkX, int chunkZ, int subY, int height, int xLocal, int yLocal,
-                                                int zLocal, @Nullable ExtendedBlockStorage @NotNull [] srcs, @NotNull NeighborCache nc) {
-        if (yLocal == 0 && subY > 0) {
-            ExtendedBlockStorage below = srcs[subY - 1];
-            if (below != null && !below.isEmpty()) {
-                if (below.get(xLocal, 15, zLocal).getBlock() != Blocks.AIR) return true;
+    private static boolean checkNeighbor(NonBlockingHashMapLong<Chunk> loaded, int chunkX, int chunkZ, int subY, int height, ExtendedBlockStorage[] srcs,
+                                         NeighborCache nc, int x, int y, int z, @Nullable BitMask localMask) {
+        if (x >= 0 && x <= 15 && y >= 0 && y <= 15 && z >= 0 && z <= 15) {
+            if (localMask != null) {
+                int nIdx = Library.packLocal(x, y, z);
+                if (localMask.get(nIdx)) return false;
             }
-        }
-        if (yLocal == 15 && subY < (height >> 4) - 1) {
-            ExtendedBlockStorage above = srcs[subY + 1];
-            if (above != null && !above.isEmpty()) {
-                if (above.get(xLocal, 0, zLocal).getBlock() != Blocks.AIR) return true;
-            }
+            ExtendedBlockStorage src = srcs[subY];
+            return src != null && !src.isEmpty() && src.get(x, y, z).getBlock() != Blocks.AIR;
         }
 
-        if (xLocal == 0) {
-            if (nc.negX == null) nc.negX = getLoadedEBS(world, ChunkPos.asLong(chunkX - 1, chunkZ));
+        if (y < 0) {
+            if (subY == 0) return false;
+            ExtendedBlockStorage below = srcs[subY - 1];
+            return below != null && !below.isEmpty() && below.get(x, 15, z).getBlock() != Blocks.AIR;
+        }
+        if (y > 15) {
+            if (subY >= (height >> 4) - 1) return false;
+            ExtendedBlockStorage above = srcs[subY + 1];
+            return above != null && !above.isEmpty() && above.get(x, 0, z).getBlock() != Blocks.AIR;
+        }
+        if (x < 0) {
+            if (nc.negX == null) nc.negX = getLoadedEBS(loaded, ChunkPos.asLong(chunkX - 1, chunkZ));
             if (nc.negX != null) {
                 ExtendedBlockStorage n = nc.negX[subY];
-                if (n != null && !n.isEmpty() && n.get(15, yLocal, zLocal).getBlock() != Blocks.AIR) return true;
+                return n != null && !n.isEmpty() && n.get(15, y, z).getBlock() != Blocks.AIR;
             }
+            return false;
         }
-        if (xLocal == 15) {
-            if (nc.posX == null) nc.posX = getLoadedEBS(world, ChunkPos.asLong(chunkX + 1, chunkZ));
+        if (x > 15) {
+            if (nc.posX == null) nc.posX = getLoadedEBS(loaded, ChunkPos.asLong(chunkX + 1, chunkZ));
             if (nc.posX != null) {
                 ExtendedBlockStorage n = nc.posX[subY];
-                if (n != null && !n.isEmpty() && n.get(0, yLocal, zLocal).getBlock() != Blocks.AIR) return true;
+                return n != null && !n.isEmpty() && n.get(0, y, z).getBlock() != Blocks.AIR;
             }
+            return false;
         }
-        if (zLocal == 0) {
-            if (nc.negZ == null) nc.negZ = getLoadedEBS(world, ChunkPos.asLong(chunkX, chunkZ - 1));
+        if (z < 0) {
+            if (nc.negZ == null) nc.negZ = getLoadedEBS(loaded, ChunkPos.asLong(chunkX, chunkZ - 1));
             if (nc.negZ != null) {
                 ExtendedBlockStorage n = nc.negZ[subY];
-                if (n != null && !n.isEmpty() && n.get(xLocal, yLocal, 15).getBlock() != Blocks.AIR) return true;
+                return n != null && !n.isEmpty() && n.get(x, y, 15).getBlock() != Blocks.AIR;
             }
+            return false;
         }
-        if (zLocal == 15) {
-            if (nc.posZ == null) nc.posZ = getLoadedEBS(world, ChunkPos.asLong(chunkX, chunkZ + 1));
-            if (nc.posZ != null) {
-                ExtendedBlockStorage n = nc.posZ[subY];
-                return n != null && !n.isEmpty() && n.get(xLocal, yLocal, 0).getBlock() != Blocks.AIR;
-            }
+        // z must >= 16
+        if (nc.posZ == null) nc.posZ = getLoadedEBS(loaded, ChunkPos.asLong(chunkX, chunkZ + 1));
+        if (nc.posZ != null) {
+            ExtendedBlockStorage n = nc.posZ[subY];
+            return n != null && !n.isEmpty() && n.get(x, y, 0).getBlock() != Blocks.AIR;
         }
         return false;
-    }
-
-    @ThreadSafeMethod
-    private static void carveOne(@NotNull WorldServer world, int chunkX, int chunkZ, int subY, int height, int xLocal, int yLocal, int zLocal,
-                                 int xGlobal, int yGlobal, int zGlobal, @Nullable ExtendedBlockStorage @NotNull [] srcs,
-                                 @NotNull ExtendedBlockStorage dst, @NotNull NeighborCache nc, @NotNull LongCollection teRemovals,
-                                 @NotNull LongCollection edgeOut) {
-        final IBlockState old = dst.get(xLocal, yLocal, zLocal);
-        final Block oldBlock = old.getBlock();
-        if (oldBlock == Blocks.AIR) return;
-
-        final long packed = Library.blockPosToLong(xGlobal, yGlobal, zGlobal);
-        if (oldBlock.hasTileEntity(old)) teRemovals.add(packed);
-
-        if (touchesOutsideNonAir(world, chunkX, chunkZ, subY, height, xLocal, yLocal, zLocal, srcs, nc)) {
-            edgeOut.add(packed);
-        }
-
-        dst.set(xLocal, yLocal, zLocal, AIR_DEFAULT_STATE); // updates ref counts
     }
 
     /**
@@ -395,56 +383,65 @@ public final class ChunkUtil {
      * {@code bs}. For every non-air block removed, tile-entity removals and edge contacts are
      * recorded.
      *
-     * <p>Edge contact logic: if a removed block position is adjacent to a non-air block outside the
-     * sub-chunk bounds (±X/±Z neighbor chunks or the subchunk above/below), the removed block's
-     * <em>own</em> global packed position is added to {@code edgeOut}.
+     * <p>Edge contact logic: if a removed block position is adjacent to a non-air block (that is NOT
+     * also being removed), the removed block's global packed position is added to {@code edgeOut}.</p>
      *
      * <p>Only the bit range that corresponds to this {@code subY} is scanned; set bits for other
      * sub-chunks are skipped.</p>
      *
      * <p>Neighbor reads are done via {@link #getLoadedEBS(WorldServer, long)} using the mirror map.</p>
      *
-     * @param world      the world (for height and skylight info)
-     * @param chunkX     chunk X coordinate
-     * @param chunkZ     chunk Z coordinate
-     * @param subY       sub-chunk Y index (0..height/16-1)
-     * @param srcs       the source chunk's {@code ExtendedBlockStorage[]} array
-     * @param bs         bitset of positions to carve; bits are ordered by descending global Y
-     * @param teRemovals sink of global packed positions whose TEs should be removed
-     * @param edgeOut    sink of global packed positions that touch non-air outside the sub-chunk
+     * @param world   the world (for height and skylight info)
+     * @param chunkX  chunk X coordinate
+     * @param chunkZ  chunk Z coordinate
+     * @param subY    sub-chunk Y index (0..height/16-1)
+     * @param srcs    the source chunk's {@code ExtendedBlockStorage[]} array
+     * @param bs      bitset of positions to carve; bits are ordered by descending global Y
+     * @param edgeOut sink of global packed positions that touch non-air outside the sub-chunk
      * @return a copied {@link ExtendedBlockStorage} with carved positions set to air, or
      * {@code null} if the source is empty.
      */
     @ThreadSafeMethod
-    @Contract(mutates = "param7, param8") // teRemovals and edgeOut
-    public static @Nullable ExtendedBlockStorage copyAndCarve(@NotNull WorldServer world, int chunkX, int chunkZ, int subY,
-                                                              @Nullable ExtendedBlockStorage @NotNull [] srcs, @NotNull BitMask bs,
-                                                              @NotNull LongCollection teRemovals, @NotNull LongCollection edgeOut) {
+    @Contract(mutates = "param7") // edgeOut
+    public static @Nullable ExtendedBlockStorage copyAndCarve(WorldServer world, int chunkX, int chunkZ, int subY,
+                                                              @Nullable ExtendedBlockStorage @NotNull [] srcs, BitMask bs,
+                                                              LongCollection edgeOut) {
         ExtendedBlockStorage src = getEbsVolatile(srcs, subY);
         if (src == null || src.isEmpty()) return null;
-        final int height = world.getHeight();
-        final ExtendedBlockStorage dst = copyOf(src);
-        final NeighborCache nc = new NeighborCache();
-
-        final int startBit = (height - 1 - ((subY << 4) + 15)) << 8;
-        final int endBit = ((height - 1 - (subY << 4)) << 8) | 0xFF;
+        int height = world.getHeight();
+        ExtendedBlockStorage dst = copyOf(src);
+        NeighborCache nc = new NeighborCache();
+        var loaded = chunkMap.get(world.provider.getDimension());
+        int startBit = (height - 1 - ((subY << 4) + 15)) << 8;
+        int endBit = ((height - 1 - (subY << 4)) << 8) | 0xFF;
 
         for (int bit = bs.nextSetBit(startBit); bit >= 0 && bit <= endBit; bit = bs.nextSetBit(bit + 1)) {
-            final int yGlobal = height - 1 - (bit >>> 8);
-            final int xGlobal = (chunkX << 4) | ((bit >>> 4) & 0xF);
-            final int zGlobal = (chunkZ << 4) | (bit & 0xF);
+            int yGlobal = height - 1 - (bit >>> 8);
+            int xGlobal = (chunkX << 4) | ((bit >>> 4) & 0xF);
+            int zGlobal = (chunkZ << 4) | (bit & 0xF);
 
-            final int xLocal = xGlobal & 0xF;
-            final int yLocal = yGlobal & 0xF;
-            final int zLocal = zGlobal & 0xF;
+            int xLocal = xGlobal & 0xF;
+            int yLocal = yGlobal & 0xF;
+            int zLocal = zGlobal & 0xF;
 
-            carveOne(world, chunkX, chunkZ, subY, height, xLocal, yLocal, zLocal, xGlobal, yGlobal, zGlobal, srcs, dst, nc, teRemovals, edgeOut);
+            IBlockState old = dst.get(xLocal, yLocal, zLocal);
+            if (old.getMaterial() != Material.AIR) {
+                if (checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal - 1, yLocal, zLocal, null) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal + 1, yLocal, zLocal, null) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal, yLocal - 1, zLocal, null) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal, yLocal + 1, zLocal, null) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal, yLocal, zLocal - 1, null) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal, yLocal, zLocal + 1, null)) {
+                    edgeOut.add(Library.blockPosToLong(xGlobal, yGlobal, zGlobal));
+                }
+                dst.set(xLocal, yLocal, zLocal, AIR_DEFAULT_STATE);
+            }
         }
         return dst;
     }
 
     /**
-     * Same as {@link #copyAndCarve(WorldServer, int, int, int, ExtendedBlockStorage[], BitMask, LongCollection, LongCollection)},
+     * Same as {@link #copyAndCarve(WorldServer, int, int, int, ExtendedBlockStorage[], BitMask, LongCollection)},
      * but accepts a <strong>local</strong> (0..4095) bitmask for the target sub-chunk. Each set bit represents
      * {@code index = x | (z << 4) | (y << 8)}.
      *
@@ -453,26 +450,37 @@ public final class ChunkUtil {
      * @return a copied {@link ExtendedBlockStorage} with carved positions set to air, or {@code null} if the source is empty.
      */
     @ThreadSafeMethod
-    @Contract(mutates = "param7, param8") // teRemovals and edgeOut
-    public static @Nullable ExtendedBlockStorage copyAndCarveLocal(@NotNull WorldServer world, int chunkX, int chunkZ, int subY,
-                                                                   @Nullable ExtendedBlockStorage @NotNull [] srcs, @NotNull BitMask localMask,
-                                                                   @NotNull LongCollection teRemovals, @NotNull LongCollection edgeOut) {
+    @Contract(mutates = "param7") // edgeOut
+    public static @Nullable ExtendedBlockStorage copyAndCarveLocal(WorldServer world, int chunkX, int chunkZ, int subY,
+                                                                   @Nullable ExtendedBlockStorage @NotNull [] srcs, BitMask localMask,
+                                                                   LongCollection edgeOut) {
         ExtendedBlockStorage src = getEbsVolatile(srcs, subY);
         if (src == null || src.isEmpty()) return null;
-        final int height = world.getHeight();
-        final ExtendedBlockStorage dst = copyOf(src);
-        final NeighborCache nc = new NeighborCache();
-
+        int height = world.getHeight();
+        ExtendedBlockStorage dst = copyOf(src);
+        NeighborCache nc = new NeighborCache();
+        var loaded = chunkMap.get(world.provider.getDimension());
+        int xBase = chunkX << 4, yBase = subY << 4, zBase = chunkZ << 4;
         for (int idx = localMask.nextSetBit(0); idx >= 0 && idx < 4096; idx = localMask.nextSetBit(idx + 1)) {
-            final int xLocal = idx & 15;
-            final int yLocal = (idx >>> 8) & 15;
-            final int zLocal = (idx >>> 4) & 15;
+            int xLocal = Library.getLocalX(idx);
+            int yLocal = Library.getLocalY(idx);
+            int zLocal = Library.getLocalZ(idx);
 
-            final int xGlobal = (chunkX << 4) | xLocal;
-            final int yGlobal = (subY << 4) | yLocal;
-            final int zGlobal = (chunkZ << 4) | zLocal;
-
-            carveOne(world, chunkX, chunkZ, subY, height, xLocal, yLocal, zLocal, xGlobal, yGlobal, zGlobal, srcs, dst, nc, teRemovals, edgeOut);
+            IBlockState old = dst.get(xLocal, yLocal, zLocal);
+            if (old.getMaterial() != Material.AIR) {
+                if (checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal - 1, yLocal, zLocal, localMask) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal + 1, yLocal, zLocal, localMask) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal, yLocal - 1, zLocal, localMask) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal, yLocal + 1, zLocal, localMask) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal, yLocal, zLocal - 1, localMask) ||
+                        checkNeighbor(loaded, chunkX, chunkZ, subY, height, srcs, nc, xLocal, yLocal, zLocal + 1, localMask)) {
+                    int xGlobal = xBase | xLocal;
+                    int yGlobal = yBase | yLocal;
+                    int zGlobal = zBase | zLocal;
+                    edgeOut.add(Library.blockPosToLong(xGlobal, yGlobal, zGlobal));
+                }
+                dst.set(xLocal, yLocal, zLocal, AIR_DEFAULT_STATE);
+            }
         }
         return dst;
     }
@@ -490,8 +498,8 @@ public final class ChunkUtil {
     @ThreadSafeMethod
     public static boolean casEbsAt(@Nullable ExtendedBlockStorage expect, @Nullable ExtendedBlockStorage update,
                                    @Nullable ExtendedBlockStorage @NotNull [] arr, int subY) {
-        final long off = ARR_BASE + ((long) subY) * ARR_SCALE;
-        return U.compareAndSwapObject(arr, off, expect, update);
+        long off = ARR_BASE + ((long) subY) * ARR_SCALE;
+        return U.compareAndSetReference(arr, off, expect, update);
     }
 
     /**
@@ -504,20 +512,20 @@ public final class ChunkUtil {
      */
     @ThreadSafeMethod
     private static @Nullable ExtendedBlockStorage getEbsVolatile(@Nullable ExtendedBlockStorage @NotNull [] arr, int subY) {
-        final long off = ARR_BASE + ((long) subY) * ARR_SCALE;
-        return (ExtendedBlockStorage) U.getObjectVolatile(arr, off);
+        long off = ARR_BASE + ((long) subY) * ARR_SCALE;
+        return (ExtendedBlockStorage) U.getReferenceVolatile(arr, off);
     }
 
     /**
      * Fetch the sub-chunk array for a loaded chunk using the mirror map.
      *
-     * @param world    the world whose mirror to query
+     * @param loaded    the world mirror map
      * @param chunkPos packed long chunk position
      * @return the sub-chunk array reference or {@code null} if the chunk is not present in the mirror
      */
     @ThreadSafeMethod
-    public static @Nullable ExtendedBlockStorage @Nullable [] getLoadedEBS(@NotNull WorldServer world, long chunkPos) {
-        Chunk chunk = getLoadedChunk(world, chunkPos);
+    public static @Nullable ExtendedBlockStorage @Nullable [] getLoadedEBS(Long2ObjectMap<? extends Chunk> loaded, long chunkPos) {
+        Chunk chunk = getLoadedChunk(loaded, chunkPos);
         if (chunk == null) return null;
         return chunk.getBlockStorageArray();
     }
@@ -528,7 +536,7 @@ public final class ChunkUtil {
      * <p>
      * Intended for cross-dimension copying.
      */
-    public static void copyEBS(boolean hasSky, @NotNull ExtendedBlockStorage src, @NotNull ExtendedBlockStorage dst) {
+    public static void copyEBS(boolean hasSky, ExtendedBlockStorage src, ExtendedBlockStorage dst) {
         dst.data = copyOf(src.getData());
         dst.blockLight = new NibbleArray(src.getBlockLight().getData().clone());
         dst.skyLight = hasSky ? src.skyLight != null ? new NibbleArray(src.skyLight.getData().clone()) : new NibbleArray() : null;
@@ -540,7 +548,7 @@ public final class ChunkUtil {
      * @return a deep copy of {@code src}
      */
     @Contract(value = "_ -> new", pure = true)
-    public static @NotNull ExtendedBlockStorage copyOf(@NotNull ExtendedBlockStorage src) {
+    public static ExtendedBlockStorage copyOf(ExtendedBlockStorage src) {
         ExtendedBlockStorage dst = UnsafeHolder.allocateInstance(ExtendedBlockStorage.class);
         dst.yBase = src.yBase;
         dst.data = copyOf(src.getData());
@@ -583,62 +591,63 @@ public final class ChunkUtil {
      *                              value in the map returned by {@code function.apply(chunk)} is {@code null}
      */
     @ThreadSafeMethod
-    public static void applyAndSwap(@NotNull Chunk chunk, @NotNull Function<Chunk, @Nullable Long2ObjectMap<@NotNull IBlockState>> function,
-                                    @Nullable Long2ObjectMap<@NotNull IBlockState> oldStatesOut) {
+    public static void applyAndSwap(Chunk chunk, Function<? super Chunk, ? extends @Nullable Long2ObjectOpenHashMap<@NotNull IBlockState>> function,
+                                    @Nullable Long2ObjectMap<? super @NotNull IBlockState> oldStatesOut) {
 
-        final Long2ObjectMap<IBlockState> newStates = function.apply(chunk);
+        Long2ObjectOpenHashMap<IBlockState> newStates = function.apply(chunk);
         if (newStates == null || newStates.isEmpty()) return;
 
-        final WorldServer world = (WorldServer) chunk.getWorld();
-        final boolean hasSky = world.provider.hasSkyLight();
-        final int height = world.getHeight();
-        final int chunkX = chunk.x, chunkZ = chunk.z;
-        final ExtendedBlockStorage[] arr = chunk.getBlockStorageArray();
+        WorldServer world = (WorldServer) chunk.getWorld();
+        boolean hasSky = world.provider.hasSkyLight();
+        int height = world.getHeight();
+        int chunkX = chunk.x, chunkZ = chunk.z;
+        ExtendedBlockStorage[] arr = chunk.getBlockStorageArray();
 
-        final Int2ObjectOpenHashMap<IBlockState>[] bySub = TL_BUCKET.get();
+        Int2ObjectOpenHashMap<IBlockState>[] bySub = TL_BUCKET.get();
         for (Int2ObjectOpenHashMap<IBlockState> map : bySub) map.clear();
 
         // bucket updates per subY with local-packed indices
-        for (Long2ObjectMap.Entry<IBlockState> e : newStates.long2ObjectEntrySet()) {
-            final long p = e.getLongKey();
-            final int x = Library.getBlockPosX(p);
-            final int y = Library.getBlockPosY(p);
-            final int z = Library.getBlockPosZ(p);
+        ObjectIterator<Long2ObjectMap.Entry<IBlockState>> iterator = newStates.long2ObjectEntrySet().fastIterator();
+        while (iterator.hasNext()) {
+            Long2ObjectMap.Entry<IBlockState> e = iterator.next();
+            long p = e.getLongKey();
+            int x = Library.getBlockPosX(p);
+            int y = Library.getBlockPosY(p);
+            int z = Library.getBlockPosZ(p);
             if ((x >> 4) != chunkX || (z >> 4) != chunkZ) continue;
             if (y < 0 || y >= height) continue;
 
-            final int subY = y >> 4;
+            int subY = y >> 4;
             Int2ObjectOpenHashMap<IBlockState> b = bySub[subY];
             if (b == null) bySub[subY] = b = new Int2ObjectOpenHashMap<>();
-            b.put(Library.packLocal(x & 15, y & 15, z & 15), e.getValue());
+            b.put(Library.blockPosToLocal(x, y, z), e.getValue());
         }
 
-        final Long2ObjectOpenHashMap<IBlockState> subScratch = oldStatesOut == null ? null : TL_SCRATCH.get();
-
+        Long2ObjectOpenHashMap<IBlockState> subScratch = oldStatesOut == null ? null : TL_SCRATCH.get();
         for (int subY = 0; subY < 16; subY++) {
             if (subScratch != null) subScratch.clear();
-            final Int2ObjectOpenHashMap<IBlockState> bucket = bySub[subY];
+            Int2ObjectOpenHashMap<IBlockState> bucket = bySub[subY];
             if (bucket == null || bucket.isEmpty()) continue;
 
             if (bucket.size() < DENSE_THRESHOLD) {
                 // sparse path
                 while (true) {
-                    final ExtendedBlockStorage src = getEbsVolatile(arr, subY);
+                    ExtendedBlockStorage src = getEbsVolatile(arr, subY);
                     ExtendedBlockStorage working = null;
                     boolean any = false;
 
-                    final int yBase = subY << 4;
-                    final int xBase = chunkX << 4, zBase = chunkZ << 4;
+                    int yBase = subY << 4;
+                    int xBase = chunkX << 4, zBase = chunkZ << 4;
 
                     for (Int2ObjectMap.Entry<IBlockState> e : bucket.int2ObjectEntrySet()) {
-                        final int local = e.getIntKey();
-                        final int lx = Library.unpackLocalX(local);
-                        final int ly = Library.unpackLocalY(local);
-                        final int lz = Library.unpackLocalZ(local);
-                        final IBlockState ns = e.getValue();
+                        int local = e.getIntKey();
+                        int lx = Library.getLocalX(local);
+                        int ly = Library.getLocalY(local);
+                        int lz = Library.getLocalZ(local);
+                        IBlockState ns = e.getValue();
                         if (ns == null) throw new NullPointerException("newState");
 
-                        final IBlockState os = (src != null && !src.isEmpty()) ? src.get(lx, ly, lz) : AIR_DEFAULT_STATE;
+                        IBlockState os = (src != null && !src.isEmpty()) ? src.get(lx, ly, lz) : AIR_DEFAULT_STATE;
                         if (os == ns) continue;
 
                         if (working == null) {
@@ -654,15 +663,17 @@ public final class ChunkUtil {
                         any = true;
 
                         if (subScratch != null) {
-                            final long gpos = Library.blockPosToLong(xBase | lx, yBase | ly, zBase | lz);
+                            long gpos = Library.blockPosToLong(xBase | lx, yBase | ly, zBase | lz);
                             subScratch.put(gpos, os);
                         }
                     }
 
                     if (!any) break;
-                    final ExtendedBlockStorage update = working.isEmpty() ? null : working;
+                    @SuppressWarnings("DataFlowIssue")
+                    ExtendedBlockStorage update = working.isEmpty() ? null : working;
                     if (casEbsAt(src, update, arr, subY)) {
-                        if (oldStatesOut != null) oldStatesOut.putAll(subScratch);
+                        if (oldStatesOut != null) //noinspection DataFlowIssue
+                            oldStatesOut.putAll(subScratch);
                         break;
                     } else if (subScratch != null) {
                         subScratch.clear();
@@ -670,26 +681,26 @@ public final class ChunkUtil {
                 }
             } else {
                 // Dense path: build a 4096 override array, then sweep 0..4095 using indexTo*
-                final IBlockState[] overrides = TL_OVERRIDES.get();
+                IBlockState[] overrides = TL_OVERRIDES.get();
                 Arrays.fill(overrides, null);
                 for (Int2ObjectMap.Entry<IBlockState> e : bucket.int2ObjectEntrySet()) {
                     overrides[e.getIntKey()] = e.getValue();
                 }
 
                 while (true) {
-                    final ExtendedBlockStorage src = getEbsVolatile(arr, subY);
+                    ExtendedBlockStorage src = getEbsVolatile(arr, subY);
                     ExtendedBlockStorage working = null;
                     boolean any = false;
 
                     for (int idx = 0; idx < 4096; idx++) {
-                        final IBlockState newState = overrides[idx];
+                        IBlockState newState = overrides[idx];
                         if (newState == null) continue;
 
-                        final int lx = idx & 15;
-                        final int ly = idx >>> 8;
-                        final int lz = (idx >>> 4) & 15;
+                        int lx = Library.getLocalX(idx);
+                        int ly = Library.getLocalY(idx);
+                        int lz = Library.getLocalZ(idx);
 
-                        final IBlockState oldState = src == null || src.isEmpty() ? AIR_DEFAULT_STATE : src.get(lx, ly, lz);
+                        IBlockState oldState = src == null || src.isEmpty() ? AIR_DEFAULT_STATE : src.get(lx, ly, lz);
                         if (oldState == newState) continue;
 
                         if (working == null) {
@@ -704,17 +715,18 @@ public final class ChunkUtil {
                         any = true;
 
                         if (subScratch != null) {
-                            final int x = indexToX(idx, chunkX);
-                            final int y = indexToY(idx) | (subY << 4);
-                            final int z = indexToZ(idx, chunkZ);
+                            int x = indexToX(idx, chunkX);
+                            int y = indexToY(idx) | (subY << 4);
+                            int z = indexToZ(idx, chunkZ);
                             subScratch.put(Library.blockPosToLong(x, y, z), oldState);
                         }
                     }
 
                     if (!any) break;
-                    final ExtendedBlockStorage update = working.isEmpty() ? null : working;
+                    ExtendedBlockStorage update = working.isEmpty() ? null : working;
                     if (casEbsAt(src, update, arr, subY)) {
-                        if (oldStatesOut != null) oldStatesOut.putAll(subScratch);
+                        if (oldStatesOut != null) //noinspection DataFlowIssue
+                            oldStatesOut.putAll(subScratch);
                         break;
                     } else if (subScratch != null) {
                         subScratch.clear();
@@ -741,26 +753,28 @@ public final class ChunkUtil {
      */
     @ThreadSafeMethod
     @SuppressWarnings("OptionalAssignedToNull")
-    public static @Nullable Optional<ExtendedBlockStorage> copyAndModify(int chunkX, int chunkZ, int subY, boolean hasSky, @Nullable ExtendedBlockStorage src
-            , @NotNull Int2ObjectMap<@NotNull IBlockState> toUpdate, @Nullable Long2ObjectMap<@NotNull IBlockState> oldStatesOut) {
+    public static @Nullable Optional<ExtendedBlockStorage> copyAndModify(int chunkX, int chunkZ, int subY, boolean hasSky,
+                                                                         @Nullable ExtendedBlockStorage src,
+                                                                         Int2ObjectMap<@NotNull IBlockState> toUpdate,
+                                                                         @Nullable Long2ObjectMap<? super @NotNull IBlockState> oldStatesOut) {
         if (toUpdate.isEmpty()) return null;
 
         ExtendedBlockStorage dst = null;
         boolean anyChange = false;
-        final int xBase = chunkX << 4;
-        final int yBase = subY << 4;
-        final int zBase = chunkZ << 4;
+        int xBase = chunkX << 4;
+        int yBase = subY << 4;
+        int zBase = chunkZ << 4;
 
         for (Int2ObjectMap.Entry<IBlockState> e : toUpdate.int2ObjectEntrySet()) {
-            final int packedLocal = e.getIntKey();
-            final int lx = Library.unpackLocalX(packedLocal);
-            final int ly = Library.unpackLocalY(packedLocal);
-            final int lz = Library.unpackLocalZ(packedLocal);
+            int packedLocal = e.getIntKey();
+            int lx = Library.getLocalX(packedLocal);
+            int ly = Library.getLocalY(packedLocal);
+            int lz = Library.getLocalZ(packedLocal);
 
-            final IBlockState newState = e.getValue();
+            IBlockState newState = e.getValue();
             if (newState == null) throw new NullPointerException("newState");
 
-            final IBlockState oldState = (src != null && !src.isEmpty()) ? src.get(lx, ly, lz) : AIR_DEFAULT_STATE;
+            IBlockState oldState = (src != null && !src.isEmpty()) ? src.get(lx, ly, lz) : AIR_DEFAULT_STATE;
             if (oldState == newState) continue;
 
             if (dst == null) {
@@ -774,9 +788,9 @@ public final class ChunkUtil {
 
             // record OLD state before change
             if (oldStatesOut != null) {
-                final int xGlobal = xBase | lx;
-                final int yGlobal = yBase | ly;
-                final int zGlobal = zBase | lz;
+                int xGlobal = xBase | lx;
+                int yGlobal = yBase | ly;
+                int zGlobal = zBase | lz;
                 oldStatesOut.put(Library.blockPosToLong(xGlobal, yGlobal, zGlobal), oldState);
             }
 
@@ -819,22 +833,6 @@ public final class ChunkUtil {
             if (newTileEntity != null) world.setTileEntity(pos, newTileEntity);
         }
         if (newTileEntity != null) newTileEntity.updateContainingBlockInfo();
-    }
-
-    /**
-     * @return the X component of a packed chunk-key ({@code x | (z << 32)}).
-     */
-    @Contract(pure = true)
-    public static int getChunkPosX(long chunkKey) {
-        return (int) (chunkKey & 0xFFFFFFFFL);
-    }
-
-    /**
-     * @return the Z component of a packed chunk-key ({@code x | (z << 32)}).
-     */
-    @Contract(pure = true)
-    public static int getChunkPosZ(long chunkKey) {
-        return (int) ((chunkKey >>> 32) & 0xFFFFFFFFL);
     }
 
     /**

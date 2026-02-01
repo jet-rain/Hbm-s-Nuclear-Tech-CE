@@ -1,6 +1,7 @@
 package com.hbm.util;
 
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -132,6 +133,10 @@ public final class RenderUtil {
 
     public static int getActiveTextureUnitIndex() {
         return GlStateManager.activeTextureUnit;
+    }
+
+    public static int getActiveTextureUnitEnum() {
+        return OpenGlHelper.defaultTexUnit + GlStateManager.activeTextureUnit;
     }
 
     public static int getShadeModel() {

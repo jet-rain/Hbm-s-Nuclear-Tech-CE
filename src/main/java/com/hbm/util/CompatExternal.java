@@ -3,11 +3,13 @@ package com.hbm.util;
 import com.hbm.api.energymk2.IEnergyHandlerMK2;
 import com.hbm.api.energymk2.IEnergyReceiverMK2;
 import com.hbm.api.fluidmk2.IFluidUserMK2;
+import com.hbm.api.network.IPacketRegisterListener;
 import com.hbm.api.recipe.IRecipeRegisterListener;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.tank.FluidTankNTM;
 import com.hbm.inventory.recipes.loader.SerializableRecipe;
+import com.hbm.packet.PacketDispatcher;
 import com.hbm.tileentity.machine.TileEntityDummy;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
@@ -41,10 +43,10 @@ public class CompatExternal {
 
         //if the block at that pos is a Dummyable, use the mk2's system to find the core
         if(b instanceof BlockDummyable dummy) {
-            int[] pos1 = dummy.findCore(world, pos.getX(), pos.getY(), pos.getZ());
+            BlockPos pos1 = dummy.findCore(world, pos);
 
             if(pos1 != null) {
-                return world.getTileEntity(new BlockPos(pos1[0], pos1[1], pos1[2]));
+                return world.getTileEntity(pos1);
             }
         }//  else MainRegistry.logger.info("{} is not instance of BlockDummyable", b.getClass().getSimpleName());
 
@@ -183,5 +185,14 @@ public class CompatExternal {
      */
     public static void registerRecipeRegisterListener(IRecipeRegisterListener listener) {
         SerializableRecipe.additionalListeners.add(listener);
+    }
+
+    /**
+     * Registers an IPacketRegisterListener to the PacketDispatcher. The listener is called at the tail of
+     * {@link PacketDispatcher#registerPackets()} with the next id available. This method must be called
+     * before init, i.e. in preinit or earlier.
+     */
+    public static void registerPacketRegisterListener(IPacketRegisterListener listener) {
+        PacketDispatcher.LISTENERS.add(listener);
     }
 }

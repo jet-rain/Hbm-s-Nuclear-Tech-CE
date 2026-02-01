@@ -1,7 +1,7 @@
 package com.hbm.inventory.container;
 
-import com.hbm.inventory.SlotBattery;
-import com.hbm.inventory.SlotPattern;
+import com.hbm.inventory.slot.SlotBattery;
+import com.hbm.inventory.slot.SlotPattern;
 import com.hbm.lib.Library;
 import com.hbm.tileentity.machine.TileEntityMachineAutocrafter;
 import net.minecraft.entity.player.EntityPlayer;
@@ -79,7 +79,7 @@ public class ContainerAutocrafter extends Container {
             autoCrafter.nextMode(index);
 
         } else {
-            slot.putStack(held != ItemStack.EMPTY ? held.copy() : ItemStack.EMPTY);
+            slot.putStack(!held.isEmpty() ? held.copy() : ItemStack.EMPTY);
 
             if(slot.getHasStack()) {
                 slot.getStack().setCount(1);
@@ -106,7 +106,7 @@ public class ContainerAutocrafter extends Container {
                     return ItemStack.EMPTY;
                 }
             } else if(index > 20){
-                if(Library.isItemDischargeable(rStack)) {
+                if(Library.isDischargeableBattery(rStack)) {
                     if(!this.mergeItemStack(stack, 20, 21, false)) return ItemStack.EMPTY;
                 } else return ItemStack.EMPTY;
             }

@@ -410,7 +410,7 @@ public class EntityChemical extends EntityThrowableNT{
                 ChemicalStyle style = getStyle();
 
                 if (style == ChemicalStyle.BURNING || style == ChemicalStyle.GASFLAME) {
-                    for (EnumFacing dir : EnumFacing.values()) {
+                    for (EnumFacing dir : EnumFacing.VALUES) {
                         BlockPos offsetPos = pos.offset(dir);
                         if (world.isAirBlock(offsetPos)) {
                             Block fire = (type == Fluids.BALEFIRE) ? ModBlocks.balefire : Blocks.FIRE;
@@ -420,7 +420,7 @@ public class EntityChemical extends EntityThrowableNT{
                 }
 
                 if (this.isExtinguishing()) {
-                    for (EnumFacing dir : EnumFacing.values()) {
+                    for (EnumFacing dir : EnumFacing.VALUES) {
                         BlockPos offsetPos = pos.offset(dir);
                         if (world.getBlockState(offsetPos).getBlock() == Blocks.FIRE) {
                             world.setBlockToAir(offsetPos);
@@ -513,16 +513,16 @@ public class EntityChemical extends EntityThrowableNT{
     }
 
     @Override
-    public double getGravityVelocity() {
+    public float getGravityVelocity() {
 
         ChemicalStyle type = getStyle();
 
-        if(type == ChemicalStyle.AMAT) return 0D;
-        if(type == ChemicalStyle.LIGHTNING) return 0D;
-        if(type == ChemicalStyle.GAS) return 0D;
-        if(type == ChemicalStyle.GASFLAME) return -0.01D;
+        if(type == ChemicalStyle.AMAT) return 0F;
+        if(type == ChemicalStyle.LIGHTNING) return 0F;
+        if(type == ChemicalStyle.GAS) return 0f;
+        if(type == ChemicalStyle.GASFLAME) return -0.01F;
 
-        return 0.03D;
+        return 0.03F;
     }
 
     public ChemicalStyle getStyle() {

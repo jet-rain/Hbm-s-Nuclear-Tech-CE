@@ -180,7 +180,6 @@ public class JEIConfig implements IModPlugin {
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_strand_caster), CRUCIBLE_CAST);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_crucible), CRUCIBLE_SMELT);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_cyclotron), CYCLOTRON);
-        registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_schrabidium_transmutator), TRANSMUTATION);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_press), PRESS);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_epress), PRESS);
         registry.addRecipeCatalyst(new ItemStack(ModBlocks.machine_conveyor_press), PRESS);
@@ -350,7 +349,6 @@ public class JEIConfig implements IModPlugin {
 		registry.addRecipeClickArea(GUIAnvil.class, 34, 26, 52-34, 44-26, ANVIL_SMITH);
 		registry.addRecipeClickArea(GUIAnvil.class, 12, 50, 48-12, 66-50, ANVIL_CON);
 		registry.addRecipeClickArea(GUIRBMKOutgasser.class, 64, 53, 48, 16, RBMKOUTGASSER);
-		registry.addRecipeClickArea(GUIMachineSchrabidiumTransmutator.class, 64, 56, 66, 31, TRANSMUTATION);
         registry.addRecipeClickArea(GUIMachineArcWelder.class, 72, 38, 32, 13, ARC_WELDER);
         registry.addRecipeClickArea(GUIMachineRotaryFurnace.class, 63, 31, 32, 9, ROTARY_FURNACE);
         registry.addRecipeClickArea(GUIElectrolyserFluid.class, 62, 26, 12, 40, ELECTROLYSIS_FLUID);
@@ -540,11 +538,6 @@ public class JEIConfig implements IModPlugin {
             CrucibleRecipes.CrucibleRecipe recipe = CrucibleRecipes.indexMapping.get(itemStack.getItemDamage());
             if(recipe == null) return "";
             return recipe.getName();
-        });
-        subtypeRegistry.registerSubtypeInterpreter(ModItems.fluid_identifier_multi, stack -> {
-            if (!stack.hasTagCompound()) return "";
-            //mlbv: non-existent key -> default = 0 -> NONE, exactly what we want
-            return ItemFluidIDMulti.getType(stack, true).getName() + "_" + ItemFluidIDMulti.getType(stack, false).getName();
         });
 	}
 

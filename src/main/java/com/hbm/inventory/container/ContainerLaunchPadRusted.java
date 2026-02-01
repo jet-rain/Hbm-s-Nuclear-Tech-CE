@@ -1,7 +1,7 @@
 package com.hbm.inventory.container;
 
 import com.hbm.api.item.IDesignatorItem;
-import com.hbm.inventory.SlotCraftingOutput;
+import com.hbm.inventory.slot.SlotCraftingOutput;
 import com.hbm.items.ModItems;
 import com.hbm.tileentity.bomb.TileEntityLaunchPadRusted;
 import net.minecraft.entity.player.EntityPlayer;
@@ -35,15 +35,15 @@ public class ContainerLaunchPadRusted extends Container {
     }
 
     @Override
-    public ItemStack transferStackInSlot(EntityPlayer player, int par2) {
+    public ItemStack transferStackInSlot(EntityPlayer player, int index) {
         ItemStack var3 = ItemStack.EMPTY;
-        Slot var4 = this.inventorySlots.get(par2);
+        Slot var4 = this.inventorySlots.get(index);
 
         if(var4 != null && var4.getHasStack()) {
             ItemStack var5 = var4.getStack();
             var3 = var5.copy();
 
-            if(par2 <= 3) {
+            if(index <= 3) {
                 if(!this.mergeItemStack(var5, 4, this.inventorySlots.size(), true)) {
                     return ItemStack.EMPTY;
                 }

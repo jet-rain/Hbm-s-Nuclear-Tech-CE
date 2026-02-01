@@ -46,6 +46,9 @@ public interface IEnergyReceiverMK2 extends IEnergyHandlerMK2 {
         return this.getMaxPower();
     }
 
+    /** Whether a provider can provide power by touching the block (i.e. via proxies), bypassing the need for a network entirely */
+    default boolean allowDirectProvision() { return true; }
+
     default void trySubscribe(World world, DirPos pos) { trySubscribe(world, pos.getPos(), pos.getDir()); }
 
     default void trySubscribe(World world, BlockPos pos, ForgeDirection dir) {

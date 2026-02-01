@@ -1,9 +1,9 @@
 package com.hbm.inventory.container;
 
-import com.hbm.inventory.SlotBattery;
-import com.hbm.inventory.SlotCraftingOutput;
-import com.hbm.inventory.SlotNonRetarded;
-import com.hbm.inventory.SlotUpgrade;
+import com.hbm.inventory.slot.SlotBattery;
+import com.hbm.inventory.slot.SlotCraftingOutput;
+import com.hbm.inventory.slot.SlotNonRetarded;
+import com.hbm.inventory.slot.SlotUpgrade;
 import com.hbm.items.machine.ItemBlueprints;
 import com.hbm.items.machine.ItemMachineUpgrade;
 import com.hbm.lib.Library;
@@ -50,7 +50,7 @@ public class ContainerMachinePUREX extends ContainerBase {
                 }
             } else {
 
-                if (Library.isItemCanStoreEnergy(slotOriginal)) {
+                if (Library.isBattery(slotOriginal)) {
                     if (!this.mergeItemStack(slotStack, 0, 1, false)) return ItemStack.EMPTY;
                 } else if (slotOriginal.getItem() instanceof ItemBlueprints) {
                     if (!this.mergeItemStack(slotStack, 1, 2, false)) return ItemStack.EMPTY;

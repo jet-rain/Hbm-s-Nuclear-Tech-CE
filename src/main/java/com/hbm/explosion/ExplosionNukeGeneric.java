@@ -1,8 +1,5 @@
 package com.hbm.explosion;
 
-import biomesoplenty.api.block.BOPBlocks;
-import biomesoplenty.common.block.BlockBOPDirt;
-import biomesoplenty.common.block.BlockBOPGrass;
 import cofh.redstoneflux.api.IEnergyProvider;
 import com.hbm.api.energymk2.IEnergyReceiverMK2;
 import com.hbm.blocks.ModBlocks;
@@ -20,7 +17,6 @@ import com.hbm.items.ModItems;
 import com.hbm.lib.Library;
 import com.hbm.lib.ModDamageSource;
 import com.hbm.main.MainRegistry;
-import com.hbm.util.EnumUtil;
 import com.hbm.util.MutableVec3d;
 import com.hbm.world.WorldUtil;
 import net.minecraft.block.*;
@@ -293,20 +289,7 @@ public class ExplosionNukeGeneric {
             } else if (b == Blocks.ACACIA_DOOR || b == Blocks.BIRCH_DOOR || b == Blocks.DARK_OAK_DOOR || b == Blocks.JUNGLE_DOOR || b == Blocks.OAK_DOOR || b == Blocks.SPRUCE_DOOR || b == Blocks.IRON_DOOR) {
                 world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
             } else if (b == Blocks.GRASS) {
-                world.setBlockState(pos, ModBlocks. waste_earth.getDefaultState());
-            } else if (b == BOPBlocks.grass) {
-                BlockBOPGrass.BOPGrassType grassType = EnumUtil.grabEnumSafely(BlockBOPGrass.BOPGrassType.class, b.getMetaFromState(world.getBlockState(pos)));
-                switch (grassType) {
-                    case SILTY ->    world.setBlockState(pos, ModBlocks.waste_earth_silty.getDefaultState());
-                    case SANDY ->    world.setBlockState(pos, ModBlocks.waste_earth_sandy.getDefaultState());
-                    case LOAMY ->    world.setBlockState(pos, ModBlocks.waste_earth_loamy.getDefaultState());
-                    case DAISY ->    world.setBlockState(pos, ModBlocks.waste_earth_daisy.getDefaultState());
-                    case OVERGROWN_STONE ->    world.setBlockState(pos, ModBlocks.waste_stone.getDefaultState());
-                    case OVERGROWN_NETHERRACK -> world.setBlockState(pos, ModBlocks.waste_stone_netherrack.getDefaultState());
-                    case SPECTRAL_MOSS -> world.setBlockState(pos, ModBlocks.waste_stone_moss.getDefaultState());
-                    case MYCELIAL_NETHERRACK -> world.setBlockState(pos, ModBlocks.waste_mycelium_netherrack.getDefaultState());
-                    case ORIGIN ->    world.setBlockState(pos, ModBlocks. waste_earth.getDefaultState());
-                }
+                world.setBlockState(pos, ModBlocks.waste_earth.getDefaultState());
             } else if (b == Blocks.MYCELIUM) {
                 world.setBlockState(pos, ModBlocks.waste_mycelium.getDefaultState());
             } else if (b == Blocks.SAND) {
@@ -337,21 +320,6 @@ public class ExplosionNukeGeneric {
                 } else {
                     world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
                 }
-            } else if (b == Blocks.DIRT || b == Blocks.FARMLAND) {
-                world.setBlockState(pos, ModBlocks.waste_dirt.getDefaultState());
-            } else if (b == BOPBlocks.dirt) {
-                BlockBOPDirt.BOPDirtType dirtType = EnumUtil.grabEnumSafely(BlockBOPDirt.BOPDirtType.class, b.getMetaFromState(world.getBlockState(pos)));
-               switch (dirtType) {
-                   case SILTY ->  world.setBlockState(pos, ModBlocks.waste_dirt_silty.getDefaultState());
-                   case SANDY ->  world.setBlockState(pos, ModBlocks.waste_dirt_sandy.getDefaultState());
-                   case LOAMY ->  world.setBlockState(pos, ModBlocks.waste_dirt_loamy.getDefaultState());
-               }
-            } else if (b instanceof BlockSnow) {
-                world.setBlockState(pos, ModBlocks.waste_snow.getDefaultState());
-            } else if (b instanceof BlockSnowBlock) {
-                world.setBlockState(pos, ModBlocks.waste_snow_block.getDefaultState());
-            } else if (b instanceof BlockIce) {
-                world.setBlockState(pos, ModBlocks.waste_ice.getDefaultState());
             } else if (b instanceof BlockBush) {
                 world.setBlockState(pos, Blocks.DEADBUSH.getDefaultState());
             } else if (b == Blocks.STONE) {
@@ -443,14 +411,6 @@ public class ExplosionNukeGeneric {
                 }
             } else if (b == Blocks.CLAY) {
                 world.setBlockState(pos, Blocks.HARDENED_CLAY.getDefaultState());
-            } else if (b == Blocks.DIRT) {
-                world.setBlockState(pos, ModBlocks.waste_dirt.getDefaultState());
-            } else if (b instanceof BlockSnow) {
-                world.setBlockState(pos, ModBlocks.waste_snow.getDefaultState());
-            } else if (b instanceof BlockSnowBlock) {
-                world.setBlockState(pos, ModBlocks.waste_snow_block.getDefaultState());
-            } else if (b instanceof BlockIce) {
-                world.setBlockState(pos, ModBlocks.waste_ice.getDefaultState());
             } else if (b instanceof BlockBush) {
                 world.setBlockState(pos, Blocks.DEADBUSH.getDefaultState());
             } else if (b == Blocks.STONE) {
@@ -521,8 +481,6 @@ public class ExplosionNukeGeneric {
                 handle.extractEnergy(handle.getEnergyStored(), false);
                 if (random.nextInt(5) <= 1) world.setBlockState(pos, ModBlocks.block_electrical_scrap.getDefaultState());
             }
-            if ((b == ModBlocks.fusion_conductor || b == ModBlocks.fusion_motor || b == ModBlocks.fusion_heater) && random.nextInt(10) == 0)
-                world.setBlockState(pos, ModBlocks.block_electrical_scrap.getDefaultState());
         }
     }
 
@@ -584,7 +542,7 @@ public class ExplosionNukeGeneric {
                 return;
             }
 
-            if (b.getBlock() == Blocks.GRASS || b.getBlock() == Blocks.MYCELIUM || b.getBlock() == ModBlocks.waste_earth || b.getBlock() == ModBlocks.waste_dirt || b.getBlock() == ModBlocks.waste_mycelium) {
+            if (b.getBlock() == Blocks.GRASS || b.getBlock() == Blocks.MYCELIUM || b.getBlock() == ModBlocks.waste_earth || b.getBlock() == ModBlocks.waste_mycelium) {
                 if (random.nextInt(5) < 2) world.setBlockState(pos, Blocks.DIRT.getStateFromMeta(1));
                 else world.setBlockState(pos, Blocks.DIRT.getDefaultState());
                 return;
@@ -594,35 +552,17 @@ public class ExplosionNukeGeneric {
                 return;
             }
 
-            if (b.getBlock() == ModBlocks.waste_trinitite || b.getBlock() == ModBlocks.waste_sand) {
+            if (b.getBlock() == ModBlocks.waste_trinitite) {
                 world.setBlockState(pos, Blocks.SAND.getDefaultState());
                 return;
             }
 
-            if (b.getBlock() == ModBlocks.waste_terracotta) {
-                world.setBlockState(pos, Blocks.STAINED_HARDENED_CLAY.getDefaultState());
-                return;
-            }
 
             if (b.getBlock() == ModBlocks.waste_trinitite_red) {
                 world.setBlockState(pos, Blocks.SAND.getStateFromMeta(1));
                 return;
             }
 
-            if (b.getBlock() == ModBlocks.waste_sandstone) {
-                world.setBlockState(pos, Blocks.SANDSTONE.getDefaultState());
-                return;
-            }
-
-            if (b.getBlock() == ModBlocks.waste_red_sandstone) {
-                world.setBlockState(pos, Blocks.RED_SANDSTONE.getDefaultState());
-                return;
-            }
-
-            if (b.getBlock() == ModBlocks.waste_gravel) {
-                world.setBlockState(pos, Blocks.GRAVEL.getDefaultState());
-                return;
-            }
 
             if (b.getBlock() == ModBlocks.taint) {
                 world.setBlockState(pos, ModBlocks.stone_gneiss.getDefaultState());

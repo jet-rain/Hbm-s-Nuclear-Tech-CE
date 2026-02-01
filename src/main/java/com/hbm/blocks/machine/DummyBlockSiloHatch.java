@@ -78,7 +78,7 @@ public class DummyBlockSiloHatch extends BlockContainer implements IDummy, IBomb
     		}
     	}
     	world.removeTileEntity(pos);
-    	RadiationSystemNT.markChunkForRebuild(world, pos);
+        RadiationSystemNT.markSectionForRebuild(world, pos);
 	}
 	
 	@Override
@@ -161,12 +161,11 @@ public class DummyBlockSiloHatch extends BlockContainer implements IDummy, IBomb
 	
 	@Override
 	public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world, BlockPos pos, EntityPlayer player) {
-		return new ItemStack(ModBlocks.silo_hatch);
+		return new ItemStack(ModBlocks.silo_hatch_drillgon);
 	}
 
 	@Override
 	public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
-		RadiationSystemNT.markChunkForRebuild(world, pos);
 		super.onBlockAdded(world, pos, state);
 	}
 
